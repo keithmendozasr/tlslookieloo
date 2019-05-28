@@ -36,11 +36,10 @@ ExternalProject_Add(googletest
 find_package(OpenSSL 1.1.0 REQUIRED)
 
 include_directories(
-	${CMAKE_SOURCE_DIR}/include
-	${CMAKE_BINARY_DIR}/include
-    ${CMAKE_SOURCE_DIR}/googletest/googletest/include
+    include
+    ${CMAKE_BINARY_DIR}/include
+    googletest/googletest/include
 )
 
-add_subdirectory(
-	${CMAKE_SOURCE_DIR}/tests
-)
+add_subdirectory(tests)
+add_subdirectory(src)

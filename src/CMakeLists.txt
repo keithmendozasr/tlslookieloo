@@ -13,4 +13,6 @@
 # limitations under the License.
 
 cmake_minimum_required (VERSION 3.7)
-add_subdirectory(unit)
+
+add_executable(tlslookieloo socketinfo.cpp)
+target_link_libraries(tlslookieloo log4cplus)

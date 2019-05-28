@@ -27,4 +27,3 @@ const inline std::string version()
 }
 
 } //namespace
-
