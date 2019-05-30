@@ -14,5 +14,5 @@
 
 cmake_minimum_required (VERSION 3.7)
 
-add_executable(tlslookieloo socketinfo.cpp clientsocket.cpp)
-target_link_libraries(tlslookieloo log4cplus)
+add_executable(tlslookieloo socketinfo.cpp clientsocket.cpp main.cpp)
+target_link_libraries(tlslookieloo ${CMAKE_BINARY_DIR}/log4cplus/lib/liblog4cplus.a pthread)

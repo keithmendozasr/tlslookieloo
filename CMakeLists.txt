@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required (VERSION 3.7)
+cmake_minimum_required (VERSION 3.13)
 include(FindPkgConfig)
 
 project (tlslookieloo VERSION 0.0.1.0)
 enable_testing()
 configure_file(include/version.h.in ${CMAKE_BINARY_DIR}/include/version.h)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -28,9 +28,18 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb3 -O0")
 
 include(ExternalProject)
 ExternalProject_Add(googletest
+    PREFIX ${CMAKE_BINARY_DIR}/googletest
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/googletest"
     BINARY_DIR "${CMAKE_BINARY_DIR}/googletest"
     INSTALL_COMMAND ""
+)
+
+# Build log4cplus
+ExternalProject_Add(log4cplus
+    PREFIX ${CMAKE_BINARY_DIR}/log4cplus
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/log4cplus"
+    CONFIGURE_COMMAND ${CMAKE_SOURCE_DIR}/log4cplus/configure --prefix=${CMAKE_BINARY_DIR}/log4cplus --enable-static=yes --enable-shared=no
+    BUILD_IN_SOURCE 1
 )
 
 find_package(OpenSSL 1.1.0 REQUIRED)
@@ -39,6 +48,7 @@ include_directories(
     include
     ${CMAKE_BINARY_DIR}/include
     googletest/googletest/include
+    ${CMAKE_BINARY_DIR}/log4cplus/include
 )
 
 add_subdirectory(tests)
