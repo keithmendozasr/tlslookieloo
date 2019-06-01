@@ -27,11 +27,16 @@
 #include <log4cplus/logger.h>
 #include <log4cplus/loggingmacros.h>
 #include <log4cplus/configurator.h>
+#include <log4cplus/hierarchy.h>
+
+#include <yaml-cpp/yaml.h>
 
 #include "version.h"
+#include "init.h"
 
 using namespace std;
 using namespace tlslookieloo;
+using namespace log4cplus;
 
 const char *argp_program_version = tlslookieloo::version().c_str();
 const char *argp_program_bug_address = "keith@homepluspower.info";
@@ -42,7 +47,7 @@ const char *argp_program_bug_address = "keith@homepluspower.info";
 struct ArgState
 {
     optional<string> targets, logconfig;
-    log4cplus::Logger logger;
+    Logger logger;
 };
 
 /**
@@ -79,11 +84,13 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
 
 int main(int argc, char *argv[])
 {
-    log4cplus::Initializer initializer;
-    log4cplus::BasicConfigurator::doConfigure();
+    Initializer initializer;
+    BasicConfigurator::doConfigure();
 
     struct ArgState argState;
-    argState.logger = log4cplus::Logger::getRoot();
+    argState.logger = Logger::getRoot();
+    Logger &logger = argState.logger;
+    logger.setLogLevel(INFO_LOG_LEVEL);
 
     struct argp_option options[] = {
         { "targets",    't', "tgtfile",     0, "Targets config file" },
@@ -97,7 +104,23 @@ int main(int argc, char *argv[])
     argp_parse(&argp, argc, argv, 0, nullptr, &argState);
 
     if(argState.logconfig)
-        log4cplus::PropertyConfigurator::doConfigure(argState.logconfig.value());
+    {
+        LOG4CPLUS_DEBUG(logger, "Loading logconfig file");
+        logger.getHierarchy().resetConfiguration();
+        PropertyConfigurator::doConfigure(argState.logconfig.value());
+    }
+
+    LOG4CPLUS_INFO(logger, "Process targets file");
+    try
+    {
+        parseTargetsFile(argState.targets.value());
+    }
+    catch(const YAML::Exception &e)
+    {
+        LOG4CPLUS_ERROR(logger, "Failed to parse targets file, cause: " <<
+            e.what() << ". Exiting");
+        return -1;
+    }
 
     return 0;
 }

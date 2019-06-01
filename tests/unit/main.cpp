@@ -16,10 +16,63 @@
 
 #include <gtest/gtest.h>
 
+#include <argp.h>
+
+#include <log4cplus/initializer.h>
+#include <log4cplus/configurator.h>
+#include <log4cplus/logger.h>
+#include <log4cplus/hierarchy.h>
+
+#include "config.h"
+
+using namespace std;
+
+namespace tlslookieloo
+{
+    string tgtFilesPath;
+}
+
+string logConfig;
+
+static error_t parseArgs(int key, char *arg, struct argp_state *state)
+{
+    switch(key)
+    {
+    case 't':
+        tlslookieloo::tgtFilesPath = arg;
+        break;
+    case 'l':
+        logConfig = arg;
+        break;
+    default:
+        return ARGP_ERR_UNKNOWN;
+    }
+
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
+    log4cplus::Initializer initializer();
+    log4cplus::BasicConfigurator::doConfigure();
+    auto logger = log4cplus::Logger::getRoot();
+    logger.setLogLevel(log4cplus::ERROR_LOG_LEVEL);
+
     ::testing::InitGoogleTest(&argc, argv);
+
+    struct argp_option options[] = {
+        { "targets", 't', "tgtfile", 0, "Path to test target files" },
+        { 0 }
+    };
+
+    struct argp argp = { options, parseArgs, "", "tlslookieloo unit tests" };
+    argp_parse(&argp, argc, argv, 0, nullptr, nullptr);
+
+    if(logConfig.size() != 0)
+    {
+        logger.getHierarchy().resetConfiguration();
+        log4cplus::PropertyConfigurator::doConfigure(logConfig);
+    }
 
     return RUN_ALL_TESTS();
 }
-

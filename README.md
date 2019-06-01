@@ -10,10 +10,11 @@ These are all minimum version
 * C++ 14 compatible compiler
 * cmake 3.7.2
 * OpenSSL 1.1.0j
+* yaml-cpp 0.6
 
 #Submodules
 The following are included as submodules of this project:
-* googletest
-* log4cplus
+* googletest at master
+* log4cplus at REL\_2\_0\_4
 
 Make sure to process the git submodule with --recurse accordingly.

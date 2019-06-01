@@ -45,9 +45,8 @@ ExternalProject_Add(log4cplus
 find_package(OpenSSL 1.1.0 REQUIRED)
 
 include_directories(
-    include
+    ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_BINARY_DIR}/include
-    googletest/googletest/include
     ${CMAKE_BINARY_DIR}/log4cplus/include
 )
 

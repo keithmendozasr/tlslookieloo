@@ -12,10 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required (VERSION 3.7)
-
 link_directories(${CMAKE_BINARY_DIR}/googletest/lib)
-add_executable(unittests main.cpp)
-target_link_libraries(unittests gtest pthread)
+add_executable(unittests main.cpp
+    ${CMAKE_SOURCE_DIR}/src/init.cpp init.cpp
+)
+target_include_directories(unittests
+    PRIVATE ${CMAKE_SOURCE_DIR}/tests/unit
+    PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googletest/include
+    PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googlemock/include
+)
 
-add_test(test unittests)
+target_link_libraries(unittests gtest pthread
+    ${CMAKE_BINARY_DIR}/log4cplus/lib/liblog4cplus.a
+    yaml-cpp
+)
+
+add_test(test unittests -t${CMAKE_SOURCE_DIR}/tests/unit/targets_files)
