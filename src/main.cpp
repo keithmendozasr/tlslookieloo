@@ -72,7 +72,7 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
         else
         {
             LOG4CPLUS_ERROR(argState->logger, "targets command-line option required");
-            return EINVAL;
+            argp_usage(state);
         }
         [[fallthrough]];
     default:
@@ -101,7 +101,11 @@ int main(int argc, char *argv[])
     const string progDoc = "Record TLS communication between a server and client";
     struct argp argp = { options, parseArgs, progDoc.c_str(), argsDoc.c_str() };
 
-    argp_parse(&argp, argc, argv, 0, nullptr, &argState);
+    if(argp_parse(&argp, argc, argv, 0, nullptr, &argState))
+    {
+        LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters");
+        return -1;
+    }
 
     if(argState.logconfig)
     {
@@ -110,15 +114,11 @@ int main(int argc, char *argv[])
         PropertyConfigurator::doConfigure(argState.logconfig.value());
     }
 
-    LOG4CPLUS_INFO(logger, "Process targets file");
-    try
-    {
+    if(argState.targets)
         parseTargetsFile(argState.targets.value());
-    }
-    catch(const YAML::Exception &e)
+    else
     {
-        LOG4CPLUS_ERROR(logger, "Failed to parse targets file, cause: " <<
-            e.what() << ". Exiting");
+        LOG4CPLUS_ERROR(logger, "Targets file to use not provided");
         return -1;
     }
 
