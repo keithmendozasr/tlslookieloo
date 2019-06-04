@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_executable(tlslookieloo socketinfo.cpp serverside.cpp init.cpp main.cpp)
-target_link_libraries(tlslookieloo
+add_executable(serverside_test
+    ${CMAKE_SOURCE_DIR}/src/socketinfo.cpp
+    ${CMAKE_SOURCE_DIR}/src/serverside.cpp
+    serverside.cpp)
+target_link_libraries(serverside_test
     ${CMAKE_BINARY_DIR}/log4cplus/lib/liblog4cplus.a pthread
-    yaml-cpp)
+)

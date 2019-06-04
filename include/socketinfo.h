@@ -178,8 +178,6 @@ private:
 
     std::unique_ptr<struct addrinfo, decltype(&freeaddrinfo)> servInfo;
     struct addrinfo *nextServ = nullptr;
-
-    timeval timeout;
 };
 
 } //namespace tlslookieloo

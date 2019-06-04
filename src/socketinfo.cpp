@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 #include <cstring>
-#include <system_error>
 #include <memory>
+#include <stdexcept>
 
 #include <log4cplus/loggingmacros.h>
 
@@ -242,7 +242,7 @@ void SocketInfo::waitForWriting(const unsigned int timeout)
     timeval waitTime;
     timeval *timevalPtr = nullptr;
 
-    if(timeout == 0)
+    if(timeout != 0)
     {
         waitTime.tv_sec = timeout;
         waitTime.tv_usec = 0;

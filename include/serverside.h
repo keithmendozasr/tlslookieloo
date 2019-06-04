@@ -25,21 +25,36 @@
 namespace tlslookieloo
 {
 
-class ClientSocket : public SocketInfo
+class ServerSide : public SocketInfo
 {
 public:
     /**
-     * Default constructor
+     * \brief TLS connection to server side
+     *
+     * Connect to the remote TLS server-end of the system under test. Connection
+     * failure can be caused by failing to connect to the remote port, or a
+     * failure during the TLS handshake.
+     *
+     * \arg port Server port to connect to
+     * \arg host Server host to connect to
+     * \return true if the tls connection was successful. False otherwise
      **/
-    void connect(const unsigned int &port, const std::string &host);
+    const bool connect(const unsigned int &port, const std::string &host);
 
 private:
-    log4cplus::Logger logger = log4cplus::Logger::getInstance("ClientSocket");
+    log4cplus::Logger logger = log4cplus::Logger::getInstance("ServerSide");
 
     /**
      * Wait for connect() call to complete
      */
     bool waitForConnect();
+
+    /**
+     * Do TCP socket connection to remote end
+     *
+     * \seee ServerSide::connect() for parameter and return info
+     */
+    const bool sockConnect(const unsigned int &port, const std::string &host);
 };
 
 } //namespace tlslookieloo

@@ -31,23 +31,19 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "version.h"
-#include "init.h"
 #include "serverside.h"
 
 using namespace std;
 using namespace tlslookieloo;
 using namespace log4cplus;
 
-const char *argp_program_version = tlslookieloo::version().c_str();
-const char *argp_program_bug_address = "keith@homepluspower.info";
-
 /**
  * Used in argp_parser to hold arg state
  */
 struct ArgState
 {
-    optional<string> targets, logconfig;
+    optional<string> logconfig;
+    char *args[2];
     Logger logger;
 };
 
@@ -61,44 +57,30 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
     LOG4CPLUS_DEBUG(argState->logger, "Value of key: " << hex << key);
     switch(key)
     {
-    case 't':
-        argState->targets = arg;
-        break;
     case 'l':
         argState->logconfig = arg;
         break;
-    case ARGP_KEY_END:
-        if(argState->targets)
-            LOG4CPLUS_DEBUG(argState->logger, "Required options set");
-        else
-        {
-            LOG4CPLUS_ERROR(argState->logger, "targets command-line option required");
+    case ARGP_KEY_ARG:
+        if(state->arg_num >= 2)
+            // Too many
             argp_usage(state);
-        }
-        [[fallthrough]];
+        
+        // Save the argument
+        argState->args[state->arg_num] = arg;
+        break;
+    case ARGP_KEY_END:
+        if(state->arg_num < 2)
+            // Not enough arguments
+            argp_usage(state);
+
+        // Got enough arguments
+        break;
+            
     default:
         return ARGP_ERR_UNKNOWN;
     }
 
     return 0;
-}
-
-static void start(const string &targets)
-{
-    auto logger = Logger::getRoot();
-    try
-    {
-        LOG4CPLUS_DEBUG(logger, "Process targets files");
-        for(const Target &item : parseTargetsFile(targets))
-        {
-            LOG4CPLUS_INFO(logger, "Starting " << item.name << " bridge");
-        }
-    }
-    catch(const YAML::Exception &e)
-    {
-        LOG4CPLUS_ERROR(logger, "Failed to parse targets file, cause: " <<
-            e.what() << ". Exiting");
-    }
 }
 
 int main(int argc, char *argv[])
@@ -112,13 +94,12 @@ int main(int argc, char *argv[])
     logger.setLogLevel(INFO_LOG_LEVEL);
 
     struct argp_option options[] = {
-        { "targets",    't', "tgtfile",     0, "Targets config file" },
         { "logconfig",  'l', "logcfgfile",  0, "Logging configuration file" },
         { 0 } 
     };
-    const string argsDoc = "";
-    const string progDoc = "Record TLS communication between a server and client";
-    struct argp argp = { options, parseArgs, progDoc.c_str(), argsDoc.c_str() };
+    const string argsDoc = "port host";
+    const string progDoc = "Test ServerSide class";
+    struct argp argp = { options, parseArgs, argsDoc.c_str(), progDoc.c_str() };
 
     if(argp_parse(&argp, argc, argv, 0, nullptr, &argState))
     {
@@ -133,19 +114,17 @@ int main(int argc, char *argv[])
         PropertyConfigurator::doConfigure(argState.logconfig.value());
     }
 
-    if(argState.targets)
-        start(argState.targets.value());
+    ServerSide s;
+    if(s.connect(stoi(argState.args[0]), argState.args[1]))
+    {
+        LOG4CPLUS_INFO(logger, "Connected to " << argState.args[1] << ":" <<
+            argState.args[0]);
+    }
     else
     {
-        LOG4CPLUS_ERROR(logger, "Targets file to use not provided");
-        return -1;
+        LOG4CPLUS_ERROR(logger, "Failed to connect to " <<
+            argState.args[1] << ":" << argState.args[0]);
     }
-
-    tlslookieloo::ServerSide s;
-    if(s.connect(9988,"testconnect"))
-        LOG4CPLUS_INFO(logger, "Connected");
-    else
-        LOG4CPLUS_INFO(logger, "Failed to connect");
 
     return 0;
 }
