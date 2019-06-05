@@ -23,8 +23,6 @@
 #include "socketinfo.h"
 #include "serverside.h"
 
-#include "timeoutexception.h"
-
 using namespace std;
 
 namespace tlslookieloo
@@ -52,31 +50,35 @@ const bool ServerSide::connect(const unsigned int &port, const string &host)
 
 bool ServerSide::waitForConnect()
 {
-    waitForWriting(3);
-    int val;
-    socklen_t len = sizeof(val);
-    auto err = getsockopt(getSocket(), SOL_SOCKET, SO_ERROR, &val, &len);
-    const string ip = getSocketIP();
-    if(err != 0)
+    bool retVal = true;
+    if(!waitForWriting(3))
     {
-        char buf[256];
-        char *errmsg = strerror_r(err, buf, 256);
-        string msg("getsockopt error. Cause: ");
-        msg += errmsg;
-        LOG4CPLUS_ERROR(logger, msg);
-        throw logic_error(msg);
+        LOG4CPLUS_INFO(logger, "Connection timed out");
+        retVal = false;
     }
-
-    if(val == 0)
-        LOG4CPLUS_DEBUG(logger, "Connected to " << ip << " after waiting");
     else
     {
-        LOG4CPLUS_DEBUG(logger, "Failed to connect to " << ip <<
-            " after waiting. Try next IP if available");
-        return false;
+        LOG4CPLUS_DEBUG(logger, "Connection ready");
+
+        int val;
+        socklen_t len = sizeof(val);
+        auto err = getsockopt(getSocket(), SOL_SOCKET, SO_ERROR, &val, &len);
+        const string ip = getSocketIP();
+        if(err != 0)
+            throwSystemError(err, "getsockopt error");
+
+        LOG4CPLUS_TRACE(logger, "Got socket option");
+        if(val == 0)
+            LOG4CPLUS_DEBUG(logger, "Connected to " << ip << " after waiting");
+        else
+        {
+            LOG4CPLUS_DEBUG(logger, "Failed to connect to " << ip <<
+                " after waiting. Try next IP if available");
+            retVal = false;
+        }
     }
 
-    return true;
+    return retVal;
 }
 
 const bool ServerSide::sockConnect(const unsigned int &port, const string &host)
@@ -85,77 +87,71 @@ const bool ServerSide::sockConnect(const unsigned int &port, const string &host)
     bool retVal = true;
     try
     {
-        resolveHostPort(port, host);
-        string ip;
-        do
+        if(resolveHostPort(port, host))
         {
-            struct sockaddr_storage addr;
-            try
+            string ip;
+            do
             {
-                initNextSocket();
-                addr = getAddrInfo();
-                ip = getSocketIP();
-                if(::connect(getSocket(), reinterpret_cast<struct sockaddr *>(&addr),
-                    getAddrInfoSize()) != 0)
+                struct sockaddr_storage addr;
+                try
                 {
-                    auto err = errno;
-                    if(err == EINPROGRESS)
+                    initNextSocket();
+                    addr = getAddrInfo();
+                    ip = getSocketIP();
+                    if(::connect(getSocket(), reinterpret_cast<struct sockaddr *>(&addr),
+                        getAddrInfoSize()) != 0)
                     {
-                        if(waitForConnect())
+                        auto err = errno;
+                        if(err == EINPROGRESS)
                         {
-                            LOG4CPLUS_DEBUG(logger, "Connected after wait");
-                            break;
+                            if(waitForConnect())
+                            {
+                                LOG4CPLUS_DEBUG(logger, "Connected after wait");
+                                break;
+                            }
+                            else
+                                LOG4CPLUS_DEBUG(logger,
+                                    "Connect failed after wait. Try next IP");
                         }
                         else
+                        {
+                            char buf[256];
+                            char *errmsg = strerror_r(err, buf, 256);
                             LOG4CPLUS_DEBUG(logger,
-                                "Connect failed after wait. Try next IP");
+                                "Failed to connect to IP " << ip <<
+                                ". Error message: " << errmsg << ". Try next IP");
+                        }
                     }
                     else
                     {
-                        char buf[256];
-                        char *errmsg = strerror_r(err, buf, 256);
-                        LOG4CPLUS_DEBUG(logger,
-                            "Failed to connect to IP " << ip <<
-                            ". Error message: " << errmsg << ". Try next IP");
+                        LOG4CPLUS_DEBUG(logger, "Connected to IP " << ip);
+                        break;
                     }
                 }
-                else
+                catch(const range_error &e)
                 {
-                    LOG4CPLUS_DEBUG(logger, "Connected to IP " << ip);
+                    LOG4CPLUS_DEBUG(logger, "Unable to connect to host");
+                    retVal = false;
                     break;
                 }
-            }
-            catch(TimeoutException &e)
-            {
-                LOG4CPLUS_DEBUG(logger,
-                    "Timed-out attempting to connect to IP " << ip <<
-                    ". Try next IP");
-            }
-            catch(const range_error &e)
-            {
-                LOG4CPLUS_DEBUG(logger, "Unable to connect to host");
-                retVal = false;
-                break;
-            }
 
-            // If it gets here closed the previously-opened socket for the next
-            // try
-            closeSocket();
-        }while(1);
+                // If it gets here closed the previously-opened socket for the next
+                // try
+                closeSocket();
+            }while(1);
+        }
+        else
+        {
+            LOG4CPLUS_DEBUG(logger, "Failed to resolve " << host << ":" << port);
+            retVal = false;
+        }
     }
-    catch(runtime_error &e)
+    catch(system_error &e)
     {
-        string msg("Host resolution failed. Cause: ");
-        msg += e.what();
-        LOG4CPLUS_INFO(logger, msg);
-        retVal = false;
+        LOG4CPLUS_ERROR(logger, "System error encountered connecting to remote. " <<
+            e.what());
+        throw;
     }
-
-
-    if(retVal)
-        LOG4CPLUS_INFO(logger, "Connected to " << host << ":" << port);
-    else
-        LOG4CPLUS_INFO(logger, "Connection attempt failed");
 
     return retVal;
 }

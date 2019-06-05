@@ -96,11 +96,10 @@ public:
      *
      * \throws std::system_error Error encountered while waiting for message to
      *  arrive
-     * \throws TimeoutException when timeout reached while waiting for data to
-     *  arrive
      * \param timeout Number of seconds to wait for data. 0 for no timeout
+     * \return true if the socket is ready for reading before timeout expires
      */
-    void waitForReading(const unsigned int timeout = 0);
+    const bool waitForReading(const unsigned int timeout = 0);
 
     /**
      * Attempt to read from client.
@@ -117,12 +116,11 @@ public:
      *
      * \throws std::system_error Error encountered while waiting for socket to
      *  be ready to send message
-     * \throws TimeoutException when timeout reached while waiting for socket
-     *  to be ready to send message
      * \param timeout Number of seconds to wait for socket to be writable. 0
      *  for no timeout
+     * \return true if the socket is ready for writing before timeout expires
      */
-    void waitForWriting(const unsigned int timeout = 0);
+    const bool waitForWriting(const unsigned int timeout = 0);
 
     /**
      * Attempt to send to client
@@ -138,13 +136,13 @@ protected:
      * Resolve the host and port in preparation for connection
      *
      * \throws invalid_argument if port param not valid port number
-     * \throws logic_error is socket instance already created
-     * \throws runtime_error if unable to create socket instance
+     * \throws logic_error if socket instance already created
      * \param port Port number to use with socket connection
      * \param host Host to connect to as client, or host to listen from as
      *  server
+     * \return true if the hostname and service is resolved. False otherwise
      */
-    void resolveHostPort(const unsigned int &port, const std::string &host = "");
+    const bool resolveHostPort(const unsigned int &port, const std::string &host = "");
 
     /**
      * Initialize a socket connection for the next IP

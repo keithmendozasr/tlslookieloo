@@ -20,7 +20,6 @@
 #include <log4cplus/loggingmacros.h>
 
 #include "socketinfo.h"
-#include "timeoutexception.h"
 
 using namespace std;
 using namespace log4cplus;
@@ -34,7 +33,7 @@ SocketInfo::SocketInfo() :
     servInfo(nullptr, &freeaddrinfo)
 {}
 
-void SocketInfo::resolveHostPort(const unsigned int &port, const string &host)
+const bool SocketInfo::resolveHostPort(const unsigned int &port, const string &host)
 {
     if(sockfd != -1)
     {
@@ -45,6 +44,7 @@ void SocketInfo::resolveHostPort(const unsigned int &port, const string &host)
     if(port > 65535)
         throw invalid_argument("port parameter > 65535");
 
+    bool retVal = true;
     int rv;
     struct addrinfo hints;
 
@@ -61,14 +61,20 @@ void SocketInfo::resolveHostPort(const unsigned int &port, const string &host)
         &hints, &tmp);
     if (rv != 0)
     {
-        throw runtime_error(gai_strerror(rv));
+        LOG4CPLUS_DEBUG(logger, "Failed to resolve host. " << gai_strerror(rv));
+        retVal = false;
+    }
+    else
+    {
+        LOG4CPLUS_DEBUG(logger, "Hostname and port info resolved");
+        servInfo = unique_ptr<struct addrinfo, decltype(&freeaddrinfo)>(
+            tmp, &freeaddrinfo);
+        LOG4CPLUS_TRACE(logger, "servInfo set: " <<
+            (servInfo ? "yes" : "no"));
+        nextServ = servInfo.get();
     }
 
-    servInfo = unique_ptr<struct addrinfo, decltype(&freeaddrinfo)>(
-        tmp, &freeaddrinfo);
-    LOG4CPLUS_TRACE(logger, "servInfo set: " <<
-        (servInfo ? "yes" : "no"));
-    nextServ = servInfo.get();
+    return retVal;
 }
 
 void SocketInfo::initNextSocket()
@@ -177,7 +183,7 @@ void SocketInfo::setAddrInfo(const sockaddr_storage *addr, const size_t &addrSiz
     addrInfoSize = addrSize;
 }
 
-void SocketInfo::waitForReading(const unsigned int timeout)
+const bool SocketInfo::waitForReading(const unsigned int timeout)
 {
     fd_set readFd;
     FD_ZERO(&readFd);
@@ -186,7 +192,9 @@ void SocketInfo::waitForReading(const unsigned int timeout)
     timeval waitTime;
     timeval *timevalPtr = nullptr;
 
-    if(timeout == 0)
+    bool retVal = true;
+
+    if(timeout != 0)
     {
         waitTime.tv_sec=timeout;
         waitTime.tv_usec=0;
@@ -204,7 +212,8 @@ void SocketInfo::waitForReading(const unsigned int timeout)
         }
         else if(retVal == 0)
         {
-            throw TimeoutException("Timeout waiting for data from client");
+            LOG4CPLUS_DEBUG(logger, "Read wait time expired");
+            retVal = false;
         }
         else if(FD_ISSET(sockfd, &readFd)) // NOLINT
         {
@@ -212,6 +221,8 @@ void SocketInfo::waitForReading(const unsigned int timeout)
             break;
         }
     } while(true);
+
+    return retVal;
 }
 
 const size_t SocketInfo::readData(char *data, const size_t &dataSize)
@@ -233,7 +244,7 @@ const size_t SocketInfo::readData(char *data, const size_t &dataSize)
     return retVal;
 }
 
-void SocketInfo::waitForWriting(const unsigned int timeout)
+const bool SocketInfo::waitForWriting(const unsigned int timeout)
 {
     fd_set writeFd;
     FD_ZERO(&writeFd);
@@ -241,6 +252,8 @@ void SocketInfo::waitForWriting(const unsigned int timeout)
 
     timeval waitTime;
     timeval *timevalPtr = nullptr;
+    
+    bool retVal = true;
 
     if(timeout != 0)
     {
@@ -260,7 +273,8 @@ void SocketInfo::waitForWriting(const unsigned int timeout)
         }
         else if(retVal == 0)
         {
-            throw TimeoutException("Timeout waiting for socket to be ready");
+            LOG4CPLUS_DEBUG(logger, "Write wait time expired");
+            retVal = false;
         }
         else if(FD_ISSET(sockfd, &writeFd))
         {
@@ -268,6 +282,8 @@ void SocketInfo::waitForWriting(const unsigned int timeout)
             break;
         }
     } while(1);
+
+    return retVal = true;
 }
 
 const size_t SocketInfo::writeData(const char *msg, const size_t &msgSize)
