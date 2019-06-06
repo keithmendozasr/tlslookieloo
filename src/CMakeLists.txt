@@ -15,4 +15,5 @@
 add_executable(tlslookieloo socketinfo.cpp serverside.cpp init.cpp main.cpp)
 target_link_libraries(tlslookieloo
     ${CMAKE_BINARY_DIR}/log4cplus/lib/liblog4cplus.a pthread
-    yaml-cpp)
+    yaml-cpp ssl crypto
+)

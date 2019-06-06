@@ -24,7 +24,7 @@ target_include_directories(unittests
 
 target_link_libraries(unittests gtest pthread
     ${CMAKE_BINARY_DIR}/log4cplus/lib/liblog4cplus.a
-    yaml-cpp
+    yaml-cpp ssl crypto
 )
 
 add_test(test unittests -t${CMAKE_SOURCE_DIR}/tests/unit/targets_files)

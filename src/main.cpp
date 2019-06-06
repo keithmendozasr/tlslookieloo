@@ -20,6 +20,7 @@
 #include <optional>
 #include <string>
 #include <ios>
+#include <regex>
 
 #include <argp.h>
 
@@ -92,6 +93,23 @@ static void start(const string &targets)
         for(const Target &item : parseTargetsFile(targets))
         {
             LOG4CPLUS_INFO(logger, "Starting " << item.name << " bridge");
+
+            // Spawn thread for each one later on
+            const regex re("(.*):(.*)");
+            smatch matches;
+            if(regex_match(item.server, matches, re))
+            {
+                LOG4CPLUS_TRACE(logger, "Port: " << matches[2] <<
+                    " Host: " << matches[1]);
+                auto port = stoi(matches[2]);
+                ServerSide s;
+                if(s.connect(port, matches[1]))
+                    LOG4CPLUS_INFO(logger, "Connected to " << item.server);
+                else
+                    LOG4CPLUS_INFO(logger, "Failed to connect to " << item.server);
+            }
+            else
+                LOG4CPLUS_INFO(logger, "\"" << item.server << " not a valid format");
         }
     }
     catch(const YAML::Exception &e)
@@ -140,12 +158,6 @@ int main(int argc, char *argv[])
         LOG4CPLUS_ERROR(logger, "Targets file to use not provided");
         return -1;
     }
-
-    tlslookieloo::ServerSide s;
-    if(s.connect(9988,"testconnect"))
-        LOG4CPLUS_INFO(logger, "Connected");
-    else
-        LOG4CPLUS_INFO(logger, "Failed to connect");
 
     return 0;
 }

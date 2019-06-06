@@ -19,6 +19,7 @@
 #include <system_error>
 #include <string>
 #include <memory>
+#include <utility>
 
 #include <netdb.h>
 #include <sys/socket.h>
@@ -40,6 +41,15 @@ public:
      * Default constructor
      */
     explicit SocketInfo();
+
+    SocketInfo(SocketInfo &&rhs) :
+        logger(std::move(rhs.logger)),
+        addrInfo(std::move(rhs.addrInfo)),
+        addrInfoSize(std::move(rhs.addrInfoSize)),
+        sockfd(std::move(rhs.sockfd)),
+        servInfo(std::move(rhs.servInfo)),
+        nextServ(std::move(rhs.nextServ))
+    {}
 
     virtual ~SocketInfo()
     {
@@ -176,6 +186,10 @@ private:
 
     std::unique_ptr<struct addrinfo, decltype(&freeaddrinfo)> servInfo;
     struct addrinfo *nextServ = nullptr;
+
+    // Explicitly force socket info move. File descriptors shouldn't be shared
+    // anyway
+    SocketInfo(const SocketInfo &) = delete;
 };
 
 } //namespace tlslookieloo

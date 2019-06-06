@@ -15,7 +15,9 @@
 add_executable(serverside_test
     ${CMAKE_SOURCE_DIR}/src/socketinfo.cpp
     ${CMAKE_SOURCE_DIR}/src/serverside.cpp
-    serverside.cpp)
+    serverside.cpp
+)
+
 target_link_libraries(serverside_test
-    ${CMAKE_BINARY_DIR}/log4cplus/lib/liblog4cplus.a pthread
+    ${CMAKE_BINARY_DIR}/log4cplus/lib/liblog4cplus.a pthread ssl crypto
 )

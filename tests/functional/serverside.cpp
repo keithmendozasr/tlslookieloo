@@ -119,6 +119,7 @@ int main(int argc, char *argv[])
     {
         LOG4CPLUS_INFO(logger, "Connected to " << argState.args[1] << ":" <<
             argState.args[0]);
+        LOG4CPLUS_INFO(logger, "Send data to server");
     }
     else
     {

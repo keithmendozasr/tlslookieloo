@@ -17,8 +17,11 @@
 #pragma once
 
 #include <string>
+#include <memory>
 
 #include <log4cplus/logger.h>
+
+#include <openssl/ssl.h>
 
 #include "socketinfo.h"
 
@@ -28,6 +31,29 @@ namespace tlslookieloo
 class ServerSide : public SocketInfo
 {
 public:
+    ServerSide() :
+        sslCtx(nullptr, &SSL_CTX_free)
+    {}
+
+    ServerSide(ServerSide &&rhs) :
+        logger(std::move(rhs.logger)),
+        sslCtx(std::move(rhs.sslCtx)),
+        sslObj(std::move(rhs.sslObj)),
+        timeout(std::move(rhs.timeout))
+    {}
+
+    virtual ~ServerSide() {}
+
+    /**
+     * Set the network timeout to use for all operations
+     *
+     * \param time new timeout
+     */
+    inline void setTimeout(const unsigned int &time)
+    {
+        timeout = time;
+    }
+
     /**
      * \brief TLS connection to server side
      *
@@ -43,6 +69,23 @@ public:
 
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("ServerSide");
+    std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)> sslCtx;
+
+    struct SSLDeleter {
+        void operator()(SSL * ptr)
+        {
+            if(ptr)
+            {
+                SSL_shutdown(ptr);
+                SSL_free(ptr);
+            }
+        }
+    };
+    std::unique_ptr<SSL, SSLDeleter> sslObj;
+
+    ServerSide(const ServerSide &) = delete;
+
+    unsigned int timeout = 5;
 
     /**
      * Wait for connect() call to complete
@@ -55,6 +98,24 @@ private:
      * \seee ServerSide::connect() for parameter and return info
      */
     const bool sockConnect(const unsigned int &port, const std::string &host);
+
+    /**
+     * Collect the SSL error message
+     */
+    const std::string sslErrMsg(const std::string &prefix);
+
+    /**
+     * Create the socket context for this instance
+     *
+     */
+    void initializeSSLContext();
+
+    /**
+     * Go through the SSL handshake
+     *
+     * \param host Expected hostname to connect to
+     */
+    const bool sslHandshake(const std::string &host);
 };
 
 } //namespace tlslookieloo
