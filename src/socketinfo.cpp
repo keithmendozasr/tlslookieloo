@@ -286,18 +286,4 @@ const bool SocketInfo::waitForWriting(const unsigned int timeout)
     return retVal = true;
 }
 
-const size_t SocketInfo::writeData(const char *msg, const size_t &msgSize)
-{
-    auto retVal = write(sockfd, msg, msgSize);
-    if(retVal < 0)
-    {
-        auto err = errno;
-        throwSystemError(err,"Error writing data to socket.");
-    }
-    else
-        LOG4CPLUS_TRACE(logger, "Wrote "<<retVal<<" bytes");
-
-    return retVal;
-}
-
 } //namespace tlslookieloo

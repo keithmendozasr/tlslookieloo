@@ -119,7 +119,7 @@ public:
      * \param dataSize Size of data
      * \return Number of bytes received
      */
-    const size_t readData(char *data, const size_t &dataSize);
+    virtual const size_t readData(char *data, const size_t &dataSize) = 0;
 
     /**
      * Wait for socket to be ready for writing
@@ -139,7 +139,7 @@ public:
      * \param msgSize Size of msg
      * \return Number of bytes sent
      */
-    const size_t writeData(const char *msg, const size_t &msgSize);
+    virtual const size_t writeData(const char *msg, const size_t &msgSize) = 0;
 
 protected:
     /**

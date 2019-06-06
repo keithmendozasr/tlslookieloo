@@ -16,6 +16,7 @@
 
 #include <cstring>
 #include <stdexcept>
+#include <string>
 
 #include <sys/socket.h>
 
@@ -68,6 +69,32 @@ const bool ServerSide::connect(const unsigned int &port, const string &host)
     }
 
     return retVal;
+}
+
+const size_t ServerSide::writeData(const char *msg, const size_t &msgSize)
+{
+    if(!sslObj)
+        throw logic_error("Attempting to write when SSL not initialized");
+
+    ERR_clear_error();
+
+    bool shouldRetry = false;
+    auto ptr = sslObj.get();
+    do
+    {
+        auto rslt = SSL_write(ptr, msg, msgSize);
+        LOG4CPLUS_TRACE(logger, "SSL_write return: " << rslt);
+        if(rslt <= 0)
+        {
+            LOG4CPLUS_TRACE(logger, "SSL_write reporting error");
+            shouldRetry = handleRetry(rslt);
+        }
+        else
+            LOG4CPLUS_DEBUG(logger, to_string(msgSize) << " sent over the wire");
+
+    } while(shouldRetry);
+
+    return msgSize;
 }
 
 bool ServerSide::waitForConnect()
@@ -190,7 +217,7 @@ void ServerSide::initializeSSLContext()
     SSL_library_init();
     OpenSSL_add_all_algorithms();
     SSL_load_error_strings();
-    ERR_load_SSL_strings();
+    ERR_load_crypto_strings();
 
     sslCtx = unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>(
         SSL_CTX_new(TLS_client_method()), &SSL_CTX_free
@@ -227,6 +254,58 @@ void ServerSide::initializeSSLContext()
         LOG4CPLUS_TRACE(logger, "CA verify paths set");
 }
 
+const bool ServerSide::handleRetry(const int &rslt)
+{
+    bool retVal = true;
+
+    auto ptr = sslObj.get();
+    auto code = SSL_get_error(ptr, rslt);
+
+    LOG4CPLUS_TRACE(logger, "Code: " << code);
+
+    switch(code)
+    {
+    case SSL_ERROR_WANT_READ:
+        LOG4CPLUS_TRACE(logger, "Wait for read ready");
+        if(!waitForReading(timeout))
+        {
+            LOG4CPLUS_INFO(logger, "Network timeout during handshake");
+            retVal = false;
+        }
+        else
+            LOG4CPLUS_TRACE(logger, "Socket ready for reading");
+        break;
+    case SSL_ERROR_WANT_WRITE:
+        LOG4CPLUS_TRACE(logger, "Wait for write ready");
+        if(!waitForWriting(timeout))
+        {
+            LOG4CPLUS_INFO(logger, "Network timeout during handshake");
+            retVal = false;
+        }
+        else
+            LOG4CPLUS_TRACE(logger, "Socket ready for writing");
+        break;
+    default:
+        {
+            LOG4CPLUS_ERROR(logger, "SSL error encountered. Error stack");
+            unsigned long errCode;
+            do
+            {
+                errCode = ERR_get_error();
+                if(errCode != 0)
+                {
+                    const char *msg = ERR_reason_error_string(errCode);
+                    LOG4CPLUS_ERROR(logger, "\t" <<
+                        (msg != nullptr ? msg : "Code " + to_string(code)));
+                }
+            } while(errCode != 0);
+        }
+        throw logic_error(string("SSL error"));
+    }
+
+    return retVal;
+}
+
 const bool ServerSide::sslHandshake(const std::string &host)
 {
     bool retVal = true;
@@ -234,6 +313,7 @@ const bool ServerSide::sslHandshake(const std::string &host)
     if(!sslCtx)
         throw logic_error("Attempting handshake before SSL context initialized");
 
+    ERR_clear_error();
     sslObj = unique_ptr<SSL, SSLDeleter>(SSL_new(sslCtx.get()));
     if(!sslObj)
     {
@@ -263,8 +343,8 @@ const bool ServerSide::sslHandshake(const std::string &host)
     else
         LOG4CPLUS_TRACE(logger, "Expected host set");
 
-    bool keepConnecting = true;
-    while(keepConnecting)
+    bool shouldRetry = false;
+    do
     {
         LOG4CPLUS_DEBUG(logger, "Start SSL connection");
         auto rslt = SSL_connect(ptr);
@@ -272,78 +352,43 @@ const bool ServerSide::sslHandshake(const std::string &host)
         if(rslt == -1)
         {
             LOG4CPLUS_TRACE(logger, "SSL_connect reporting error");
-            auto code = SSL_get_error(ptr, rslt);
-            LOG4CPLUS_TRACE(logger, "Code: " << code);
-            switch(code)
-            {
-            case SSL_ERROR_WANT_READ:
-                LOG4CPLUS_TRACE(logger, "Wait for read ready");
-                if(!waitForReading(timeout))
-                {
-                    LOG4CPLUS_INFO(logger, "Network timeout during handshake");
-                    keepConnecting = false;
-                }
-                else
-                    LOG4CPLUS_TRACE(logger, "Socket ready for reading");
-                break;
-            case SSL_ERROR_WANT_WRITE:
-                LOG4CPLUS_TRACE(logger, "Wait for write ready");
-                if(!waitForWriting(timeout))
-                {
-                    LOG4CPLUS_INFO(logger, "Network timeout during handshake");
-                    keepConnecting = false;
-                }
-                else
-                    LOG4CPLUS_TRACE(logger, "Socket ready for writing");
-                break;
-            default:
-                LOG4CPLUS_ERROR(logger, "SSL error encountered. Error stack:");
-                {
-                    unsigned long errCode;
-                    do
-                    {
-                        errCode = ERR_get_error();
-                        if(errCode != 0)
-                        {
-                            const char *msg = ERR_reason_error_string(errCode);
-                            LOG4CPLUS_ERROR(logger, "\t" <<
-                                (msg != nullptr ? msg : "Code: " + to_string(errCode))
-                            );
-                        }
-                    } while(errCode != 0);
-                }
-                throw logic_error(string("Fatal SSL error"));
-            }
+            shouldRetry = handleRetry(rslt);
         }
         else if(rslt == 0)
         {
             const string msg = sslErrMsg("Remote closed SSL handshake. Cause: ");
             LOG4CPLUS_WARN(logger, msg);
-            retVal = keepConnecting = false;
+            retVal = shouldRetry = false;
         }
         else
         {
             LOG4CPLUS_DEBUG(logger, "Handshake complete");
-            keepConnecting = false;
+            shouldRetry = false;
         }
-    };
+    } while(shouldRetry);
 
-    auto certPtr = SSL_get_peer_certificate(ptr);
-    LOG4CPLUS_TRACE(logger, "Value of certPtr: " << certPtr);
-    if(certPtr != nullptr)
+    if(retVal)
     {
-        X509_free(certPtr);
-        auto peerVal = SSL_get_verify_result(ptr);
-        LOG4CPLUS_TRACE(logger, "Value of peerVal: " << peerVal);
-        if(peerVal != X509_V_OK)
+        LOG4CPLUS_TRACE(logger, "Process peer validation");
+        auto certPtr = SSL_get_peer_certificate(ptr);
+        LOG4CPLUS_TRACE(logger, "Value of certPtr: " << certPtr);
+        if(certPtr != nullptr)
         {
-            LOG4CPLUS_WARN(logger, "Failed to verify peer. Cause: " <<
-                X509_verify_cert_error_string(peerVal)
-            );
+            X509_free(certPtr);
+            auto peerVal = SSL_get_verify_result(ptr);
+            LOG4CPLUS_TRACE(logger, "Value of peerVal: " << peerVal);
+            if(peerVal != X509_V_OK)
+            {
+                LOG4CPLUS_WARN(logger, "Failed to verify peer. Cause: " <<
+                    X509_verify_cert_error_string(peerVal)
+                );
+            }
         }
+        else
+            LOG4CPLUS_WARN(logger, "Remote server did not provide a certificate");
     }
     else
-        LOG4CPLUS_WARN(logger, "Remote server did not provide a certificate");
+        LOG4CPLUS_DEBUG(logger, "Handshake failed");
 
     return retVal;
 }

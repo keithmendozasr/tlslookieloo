@@ -67,6 +67,23 @@ public:
      **/
     const bool connect(const unsigned int &port, const std::string &host);
 
+    /**
+     * Read data from server
+     *
+     * \see SocketInfo::readData
+     */
+    const size_t readData(char *data, const size_t &dataSize)
+    {
+        return 0;
+    }
+
+    /**
+     * Write data to server
+     *
+     * \see SocketInfo::writeData
+     */
+    const size_t writeData(const char *msg, const size_t &msgSize);
+
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("ServerSide");
     std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)> sslCtx;
@@ -106,9 +123,18 @@ private:
 
     /**
      * Create the socket context for this instance
-     *
      */
     void initializeSSLContext();
+
+    /**
+     * Handle SSL conditions that requires a retry
+     *
+     * \arg rslt Error code returned by the last operation
+     * \return true if the operation should be retried. False otherwise
+     * \throw logic_error When an unexpected code was received
+     *  from SSL_get_error
+     */
+    const bool handleRetry(const int &rslt);
 
     /**
      * Go through the SSL handshake
@@ -116,6 +142,7 @@ private:
      * \param host Expected hostname to connect to
      */
     const bool sslHandshake(const std::string &host);
+
 };
 
 } //namespace tlslookieloo
