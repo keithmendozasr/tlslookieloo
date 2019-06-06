@@ -203,17 +203,18 @@ const bool SocketInfo::waitForReading(const unsigned int timeout)
 
     do
     {
-        auto retVal = select(sockfd+1, &readFd, nullptr, nullptr, timevalPtr);
-        if(retVal == -1)
+        auto rslt = select(sockfd+1, &readFd, nullptr, nullptr, timevalPtr);
+        if(rslt == -1)
         {
             auto err = errno;
             throwSystemError(err,
                 "Error waiting for socket to be ready for reading.");
         }
-        else if(retVal == 0)
+        else if(rslt == 0)
         {
             LOG4CPLUS_DEBUG(logger, "Read wait time expired");
             retVal = false;
+            break;
         }
         else if(FD_ISSET(sockfd, &readFd)) // NOLINT
         {
@@ -221,25 +222,6 @@ const bool SocketInfo::waitForReading(const unsigned int timeout)
             break;
         }
     } while(true);
-
-    return retVal;
-}
-
-const size_t SocketInfo::readData(char *data, const size_t &dataSize)
-{
-    if(data == nullptr)
-        throw invalid_argument("\"data\" parameter is null");
-
-    auto retVal = read(sockfd, data, dataSize);
-    if(retVal < 0)
-    {
-        auto err = errno;
-        throwSystemError(err, "Error reading from socket");
-    }
-    else if(retVal == 0)
-        throwSystemError(EPIPE);
-    else
-        LOG4CPLUS_TRACE(logger, "read complete. Value of retVal: " <<retVal);
 
     return retVal;
 }
@@ -264,26 +246,27 @@ const bool SocketInfo::waitForWriting(const unsigned int timeout)
 
     do
     {
-        auto retVal = select(sockfd+1, nullptr, &writeFd, nullptr, timevalPtr);
-        if(retVal == -1)
+        auto rslt = select(sockfd+1, nullptr, &writeFd, nullptr, timevalPtr);
+        if(rslt == -1)
         {
             auto err = errno;
             throwSystemError(err,
                 "Error waiting for socket to be ready for writing.");
         }
-        else if(retVal == 0)
+        else if(rslt == 0)
         {
             LOG4CPLUS_DEBUG(logger, "Write wait time expired");
             retVal = false;
+            break;
         }
         else if(FD_ISSET(sockfd, &writeFd))
         {
             LOG4CPLUS_DEBUG(logger, "Socket ready for writing");
             break;
         }
-    } while(1);
+    } while(true);
 
-    return retVal = true;
+    return retVal;
 }
 
 } //namespace tlslookieloo

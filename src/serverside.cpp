@@ -71,6 +71,35 @@ const bool ServerSide::connect(const unsigned int &port, const string &host)
     return retVal;
 }
 
+const size_t ServerSide::readData(char *data, const size_t &dataSize)
+{
+    if(!sslObj)
+        throw logic_error("Attempting to read when SSL not initialized");
+
+    ERR_clear_error();
+
+    bool shouldRetry = false;
+    auto ptr = sslObj.get();
+    int rslt;
+    do
+    {
+        rslt = SSL_read(ptr, data, dataSize);
+        LOG4CPLUS_TRACE(logger, "SSL_read return: " << rslt);
+        if(rslt <= 0)
+        {
+            LOG4CPLUS_TRACE(logger, "SSL_read reporting error");
+            shouldRetry = handleRetry(rslt);
+        }
+        else
+        {
+            LOG4CPLUS_DEBUG(logger, to_string(rslt) << " received over the wire");
+            shouldRetry = false;
+        }
+
+    } while(shouldRetry);
+
+    return rslt;
+}
 const size_t ServerSide::writeData(const char *msg, const size_t &msgSize)
 {
     if(!sslObj)
@@ -90,7 +119,10 @@ const size_t ServerSide::writeData(const char *msg, const size_t &msgSize)
             shouldRetry = handleRetry(rslt);
         }
         else
+        {
             LOG4CPLUS_DEBUG(logger, to_string(msgSize) << " sent over the wire");
+            shouldRetry = false;
+        }
 
     } while(shouldRetry);
 

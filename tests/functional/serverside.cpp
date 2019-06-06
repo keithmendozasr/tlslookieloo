@@ -122,6 +122,11 @@ int main(int argc, char *argv[])
         LOG4CPLUS_INFO(logger, "Send data to server");
         const char msg[] = "Hello from serverside";
         s.writeData(msg, sizeof(msg));
+
+        const size_t msgSize = 1024;
+        char buf[msgSize];
+        auto readLen = s.readData(buf, msgSize);
+        LOG4CPLUS_INFO(logger, "Data read: " << string(buf, readLen));
     }
     else
     {

@@ -72,10 +72,7 @@ public:
      *
      * \see SocketInfo::readData
      */
-    const size_t readData(char *data, const size_t &dataSize)
-    {
-        return 0;
-    }
+    const size_t readData(char *data, const size_t &dataSize);
 
     /**
      * Write data to server
