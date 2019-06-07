@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_executable(tlslookieloo socketinfo.cpp serverside.cpp init.cpp main.cpp)
+add_executable(tlslookieloo socketinfo.cpp serverside.cpp init.cpp
+    clientside.cpp main.cpp)
+
 target_link_libraries(tlslookieloo
     ${CMAKE_BINARY_DIR}/log4cplus/lib/liblog4cplus.a pthread
     yaml-cpp ssl crypto

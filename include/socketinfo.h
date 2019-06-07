@@ -20,6 +20,7 @@
 #include <string>
 #include <memory>
 #include <utility>
+#include <optional>
 
 #include <netdb.h>
 #include <sys/socket.h>
@@ -43,13 +44,19 @@ public:
     explicit SocketInfo();
 
     SocketInfo(SocketInfo &&rhs) :
-        logger(std::move(rhs.logger)),
+        logger(log4cplus::Logger::getInstance("SocketInfo")),
         addrInfo(std::move(rhs.addrInfo)),
         addrInfoSize(std::move(rhs.addrInfoSize)),
-        sockfd(std::move(rhs.sockfd)),
         servInfo(std::move(rhs.servInfo)),
         nextServ(std::move(rhs.nextServ))
-    {}
+    {
+        LOG4CPLUS_TRACE(logger, "Move constructor called");
+        LOG4CPLUS_TRACE(logger, "Address of rhs: " << &rhs);
+        LOG4CPLUS_TRACE(logger, "Address of new object " << this);
+        sockfd = rhs.sockfd;
+        rhs.sockfd = -1;
+
+    }
 
     virtual ~SocketInfo()
     {
@@ -72,8 +79,10 @@ public:
      */
     inline void closeSocket()
     {
+        LOG4CPLUS_TRACE(logger, "Value of sockfd for " << this << ": " << sockfd);
         if(sockfd != -1)
         {
+            LOG4CPLUS_DEBUG(logger, "Closing FD " << sockfd);
             shutdown(sockfd, SHUT_RDWR);
             close(sockfd);
             sockfd = -1;
@@ -119,7 +128,7 @@ public:
      * \param dataSize Size of data
      * \return Number of bytes received
      */
-    virtual const size_t readData(char *data, const size_t &dataSize) = 0;
+    virtual std::optional<const size_t> readData(char *data, const size_t &dataSize) = 0;
 
     /**
      * Wait for socket to be ready for writing
@@ -162,6 +171,16 @@ protected:
      * \throws runtime_error if unable to create socket instance
      */
      void initNextSocket();
+
+    /**
+     * Set the socket FD
+     *
+     * \arg fd New socket to set
+     */
+    inline void setSocket(const int &fd)
+    {
+        sockfd = fd;
+    }
 
     /**
      * Set the sockaddr_storage structure to associate to this class' instance
