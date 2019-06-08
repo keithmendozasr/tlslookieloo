@@ -25,8 +25,6 @@
 
 #include <log4cplus/loggingmacros.h>
 
-#include <openssl/err.h>
-
 #include "clientside.h"
 
 using namespace std;
@@ -89,7 +87,7 @@ ClientSide ClientSide::acceptClient()
     struct sockaddr_storage addr;
     socklen_t addrLen = sizeof(addr);
 
-    waitForReading(); // We're waiting forever, so no need to check timeout
+    waitForReading(false); // We're waiting forever, so no need to check timeout
     int fd = accept(getSocket(), reinterpret_cast<struct sockaddr *>(&addr),
         &addrLen);
     if(fd < 0)
@@ -115,102 +113,10 @@ ClientSide ClientSide::acceptClient()
     return move(c);
 }
 
-optional<const size_t> ClientSide::readData(char *data, const size_t &dataSize)
-{
-    if(!sslObj)
-        throw logic_error("Attempting to read when SSL not initialized");
-
-    ERR_clear_error();
-
-    bool shouldRetry = false;
-    auto ptr = sslObj.get();
-    optional<size_t> retVal;
-    do
-    {
-        auto rslt = SSL_read(ptr, data, dataSize);
-        LOG4CPLUS_TRACE(logger, "SSL_read return: " << rslt);
-        if(rslt <= 0)
-        {
-            LOG4CPLUS_TRACE(logger, "SSL_read reporting error");
-            if(SSL_get_error(ptr, rslt) == SSL_ERROR_SYSCALL && errno == 0)
-            {
-                LOG4CPLUS_TRACE(logger, "No more data to read");
-                shouldRetry = false;
-            }
-            else
-            {
-                LOG4CPLUS_TRACE(logger, "Wait for read ready");
-                shouldRetry = handleRetry(rslt);
-            }
-        }
-        else
-        {
-            LOG4CPLUS_DEBUG(logger, to_string(rslt) << " received over the wire");
-            shouldRetry = false;
-            retVal = rslt;
-        }
-
-    } while(shouldRetry);
-
-    return retVal;
-}
-
-const size_t ClientSide::writeData(const char *msg, const size_t &msgSize)
-{
-    if(!sslObj)
-        throw logic_error("Attempting to write when SSL not initialized");
-
-    ERR_clear_error();
-
-    bool shouldRetry = false;
-    auto ptr = sslObj.get();
-    do
-    {
-        auto rslt = SSL_write(ptr, msg, msgSize);
-        LOG4CPLUS_TRACE(logger, "SSL_write return: " << rslt);
-        if(rslt <= 0)
-        {
-            LOG4CPLUS_TRACE(logger, "SSL_write reporting error");
-            shouldRetry = handleRetry(rslt);
-        }
-        else
-        {
-            LOG4CPLUS_DEBUG(logger, to_string(msgSize) << " sent over the wire");
-            shouldRetry = false;
-        }
-
-    } while(shouldRetry);
-
-    return msgSize;
-}
-
-const string ClientSide::sslErrMsg(const string &prefix)
-{
-    auto code = ERR_get_error();
-    auto txt = ERR_reason_error_string(code);
-    return prefix + txt;
-}
-
 void ClientSide::initializeSSLContext(const string &certFile, const string &privKeyFile)
 {
-    OpenSSL_add_all_algorithms();
-    SSL_load_error_strings();
-
-    sslCtx = unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>(
-        SSL_CTX_new(TLS_server_method()), &SSL_CTX_free
-    );
-
-    if(!sslCtx)
-    {
-        const string msg = sslErrMsg("Failed to create SSL context. Cause: ");
-        LOG4CPLUS_ERROR(logger, msg);
-        throw bad_alloc();
-    }
-    else
-        LOG4CPLUS_TRACE(logger, "Context object created");
-
-    auto ptr = sslCtx.get();
-
+    newSSLCtx();
+    auto ptr = getSSLCtxPtr();
     LOG4CPLUS_TRACE(logger, "Loading separate certificate chain");
     if(SSL_CTX_use_certificate_chain_file(ptr, certFile.c_str()) == 0)
     {
@@ -238,81 +144,14 @@ void ClientSide::initializeSSLContext(const string &certFile, const string &priv
         LOG4CPLUS_TRACE(logger, "Private key file loaded");
 }
 
-const bool ClientSide::handleRetry(const int &rslt)
-{
-    bool retVal = true;
-
-    auto ptr = sslObj.get();
-    auto code = SSL_get_error(ptr, rslt);
-
-    LOG4CPLUS_TRACE(logger, "Code: " << code);
-
-    switch(code)
-    {
-    case SSL_ERROR_WANT_READ:
-        LOG4CPLUS_TRACE(logger, "Wait for read ready");
-        if(!waitForReading(timeout))
-        {
-            LOG4CPLUS_INFO(logger, "Network timeout waiting to read data");
-            retVal = false;
-        }
-        else
-            LOG4CPLUS_TRACE(logger, "Socket ready for reading");
-        break;
-    case SSL_ERROR_WANT_WRITE:
-        LOG4CPLUS_TRACE(logger, "Wait for write ready");
-        if(!waitForWriting(timeout))
-        {
-            LOG4CPLUS_INFO(logger, "Network timeout waiting to write data");
-            retVal = false;
-        }
-        else
-            LOG4CPLUS_TRACE(logger, "Socket ready for writing");
-        break;
-    case SSL_ERROR_ZERO_RETURN:
-        LOG4CPLUS_TRACE(logger, "Remote closed SSL session");
-        retVal = false;
-        break;
-    default:
-        {
-            LOG4CPLUS_ERROR(logger, "SSL error encountered. Error stack");
-            unsigned long errCode;
-            do
-            {
-                errCode = ERR_get_error();
-                if(errCode != 0)
-                {
-                    const char *msg = ERR_reason_error_string(errCode);
-                    LOG4CPLUS_ERROR(logger, "\t" <<
-                        (msg != nullptr ? msg : "Code " + to_string(code)));
-                }
-            } while(errCode != 0);
-        }
-        throw logic_error(string("SSL error"));
-    }
-
-    return retVal;
-}
-
 const bool ClientSide::sslHandshake()
 {
     bool retVal = true;
 
-    if(!sslCtx)
-        throw logic_error("Attempting handshake before SSL context initialized");
-
     ERR_clear_error();
-    sslObj = unique_ptr<SSL, SSLDeleter>(SSL_new(sslCtx.get()));
-    if(!sslObj)
-    {
-        const string msg = sslErrMsg("Failed to create SSL instance. Cause: ");
-        LOG4CPLUS_ERROR(logger, msg);
-        throw bad_alloc();
-    }
-    else
-        LOG4CPLUS_TRACE(logger, "SSL object created");
 
-    auto ptr = sslObj.get();
+    newSSLObj();
+    auto ptr = getSSLPtr();
     if(SSL_set_fd(ptr, getSocket()) == 0)
     {
         const string msg = sslErrMsg("Failed to set FD to SSL. Cause: ");

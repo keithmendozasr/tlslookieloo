@@ -29,6 +29,9 @@
 
 #include <log4cplus/logger.h>
 
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
 namespace tlslookieloo
 {
 
@@ -41,26 +44,42 @@ public:
     /**
      * Default constructor
      */
-    explicit SocketInfo();
+    explicit SocketInfo() :
+        logger(log4cplus::Logger::getInstance("SocketInfo")),
+        sockfd(-1),
+        servInfo(nullptr, &freeaddrinfo),
+        sslCtx(nullptr, &SSL_CTX_free)
+    {
+        LOG4CPLUS_TRACE(logger, "Timeout at construction: " << timeout);
+    }
 
     SocketInfo(SocketInfo &&rhs) :
         logger(log4cplus::Logger::getInstance("SocketInfo")),
         addrInfo(std::move(rhs.addrInfo)),
-        addrInfoSize(std::move(rhs.addrInfoSize)),
+        addrInfoSize(rhs.addrInfoSize),
+        sockfd(rhs.sockfd),
         servInfo(std::move(rhs.servInfo)),
-        nextServ(std::move(rhs.nextServ))
+        nextServ(rhs.nextServ),
+        timeout(rhs.timeout),
+        sslCtx(std::move(rhs.sslCtx)),
+        sslObj(std::move(rhs.sslObj))
     {
-        LOG4CPLUS_TRACE(logger, "Move constructor called");
-        LOG4CPLUS_TRACE(logger, "Address of rhs: " << &rhs);
-        LOG4CPLUS_TRACE(logger, "Address of new object " << this);
-        sockfd = rhs.sockfd;
         rhs.sockfd = -1;
-
     }
 
     virtual ~SocketInfo()
     {
         closeSocket();
+    }
+
+    /**
+     * Set the network timeout to use for all operations
+     *
+     * \param time new timeout
+     */
+    inline void setTimeout(const unsigned int &time)
+    {
+        timeout = time;
     }
 
     /**
@@ -118,7 +137,7 @@ public:
      * \param timeout Number of seconds to wait for data. 0 for no timeout
      * \return true if the socket is ready for reading before timeout expires
      */
-    const bool waitForReading(const unsigned int timeout = 0);
+    const bool waitForReading(const bool &withTimeout = true);
 
     /**
      * Attempt to read from client.
@@ -128,7 +147,7 @@ public:
      * \param dataSize Size of data
      * \return Number of bytes received
      */
-    virtual std::optional<const size_t> readData(char *data, const size_t &dataSize) = 0;
+    std::optional<const size_t> readData(char *data, const size_t &dataSize);
 
     /**
      * Wait for socket to be ready for writing
@@ -139,7 +158,7 @@ public:
      *  for no timeout
      * \return true if the socket is ready for writing before timeout expires
      */
-    const bool waitForWriting(const unsigned int timeout = 0);
+    const bool waitForWriting(const bool &withTimeout = true);
 
     /**
      * Attempt to send to client
@@ -148,7 +167,7 @@ public:
      * \param msgSize Size of msg
      * \return Number of bytes sent
      */
-    virtual const size_t writeData(const char *msg, const size_t &msgSize) = 0;
+    const size_t writeData(const char *msg, const size_t &msgSize);
 
 protected:
     /**
@@ -197,6 +216,63 @@ protected:
             throw std::system_error(err, std::generic_category(), msg);
     }
 
+    /**
+     * Collect the SSL error message
+     */
+    const inline std::string sslErrMsg(const std::string &prefix)
+    {
+        auto code = ERR_get_error();
+        auto txt = ERR_reason_error_string(code);
+        return prefix + txt;
+    }
+
+    /**
+     * Allocate a new SSL_CTX object
+     */
+    void newSSLCtx();
+
+    /**
+     * Get the raw SSL_CTX pointer
+     */
+    inline SSL_CTX *getSSLCtxPtr()
+    {
+        if(!sslCtx)
+            throw std::logic_error("SSL Context not initialized");
+
+        return sslCtx.get();
+    }
+
+    /**
+     * Allocate a new SSL object
+     */
+    void newSSLObj();
+
+    /**
+     * Get the raw SSL pointer
+     */
+    inline SSL *getSSLPtr()
+    {
+        if(!sslObj)
+            throw std::logic_error("SSL object not initialized");
+
+        return sslObj.get();
+    }
+
+    /**
+     * Log the SSL error stack
+     */
+    void logSSLErrorStack();
+
+    /**
+     * Handle SSL conditions that requires a retry
+     *
+     * \arg rslt Error code returned by the last operation
+     * \return true if the operation should be retried. False otherwise
+     * \throw logic_error When an unexpected code was received
+     *  from SSL_get_error
+     */
+    const bool handleRetry(const int &rslt);
+
 private:
     log4cplus::Logger logger;
     struct sockaddr_storage addrInfo;
@@ -205,6 +281,22 @@ private:
 
     std::unique_ptr<struct addrinfo, decltype(&freeaddrinfo)> servInfo;
     struct addrinfo *nextServ = nullptr;
+
+    unsigned int timeout = 5;
+
+    std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)> sslCtx;
+
+    struct SSLDeleter {
+        void operator()(SSL * ptr)
+        {
+            if(ptr)
+            {
+                SSL_shutdown(ptr);
+                SSL_free(ptr);
+            }
+        }
+    };
+    std::unique_ptr<SSL, SSLDeleter> sslObj;
 
     // Explicitly force socket info move. File descriptors shouldn't be shared
     // anyway

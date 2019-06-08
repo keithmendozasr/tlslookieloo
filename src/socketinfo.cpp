@@ -27,11 +27,6 @@ using namespace log4cplus;
 namespace tlslookieloo
 {
 
-SocketInfo::SocketInfo() :
-    logger(Logger::getInstance("SocketInfo")),
-    sockfd(-1),
-    servInfo(nullptr, &freeaddrinfo)
-{}
 
 const bool SocketInfo::resolveHostPort(const unsigned int &port, const string &host)
 {
@@ -183,7 +178,7 @@ void SocketInfo::setAddrInfo(const sockaddr_storage *addr, const size_t &addrSiz
     addrInfoSize = addrSize;
 }
 
-const bool SocketInfo::waitForReading(const unsigned int timeout)
+const bool SocketInfo::waitForReading(const bool &withTimeout)
 {
     fd_set readFd;
     FD_ZERO(&readFd);
@@ -194,8 +189,9 @@ const bool SocketInfo::waitForReading(const unsigned int timeout)
 
     bool retVal = true;
 
-    if(timeout != 0)
+    if(withTimeout)
     {
+        LOG4CPLUS_TRACE(logger, "Setting timeout to " << timeout << " seconds");
         waitTime.tv_sec=timeout;
         waitTime.tv_usec=0;
         timevalPtr = &waitTime;
@@ -226,7 +222,44 @@ const bool SocketInfo::waitForReading(const unsigned int timeout)
     return retVal;
 }
 
-const bool SocketInfo::waitForWriting(const unsigned int timeout)
+optional<const size_t> SocketInfo::readData(char *data, const size_t &dataSize)
+{
+
+    bool shouldRetry = false;
+    auto ptr = getSSLPtr();
+    ERR_clear_error();
+    optional<size_t> retVal;
+    do
+    {
+        auto rslt = SSL_read(ptr, data, dataSize);
+        LOG4CPLUS_TRACE(logger, "SSL_read return: " << rslt);
+        if(rslt <= 0)
+        {
+            LOG4CPLUS_TRACE(logger, "SSL_read reporting error");
+            if(SSL_get_error(ptr, rslt) == SSL_ERROR_SYSCALL && errno == 0)
+            {
+                LOG4CPLUS_TRACE(logger, "No more data to read");
+                shouldRetry = false;
+            }
+            else
+            {
+                LOG4CPLUS_TRACE(logger, "Wait for read ready");
+                shouldRetry = handleRetry(rslt);
+            }
+        }
+        else
+        {
+            LOG4CPLUS_DEBUG(logger, to_string(rslt) << " received over the wire");
+            shouldRetry = false;
+            retVal = rslt;
+        }
+
+    } while(shouldRetry);
+
+    return retVal;
+}
+
+const bool SocketInfo::waitForWriting(const bool &withTimeout)
 {
     fd_set writeFd;
     FD_ZERO(&writeFd);
@@ -237,8 +270,9 @@ const bool SocketInfo::waitForWriting(const unsigned int timeout)
     
     bool retVal = true;
 
-    if(timeout != 0)
+    if(withTimeout)
     {
+        LOG4CPLUS_TRACE(logger, "Setting timeout to " << timeout << " seconds");
         waitTime.tv_sec = timeout;
         waitTime.tv_usec = 0;
         timevalPtr = &waitTime;
@@ -265,6 +299,132 @@ const bool SocketInfo::waitForWriting(const unsigned int timeout)
             break;
         }
     } while(true);
+
+    return retVal;
+}
+
+const size_t SocketInfo::writeData(const char *msg, const size_t &msgSize)
+{
+    ERR_clear_error();
+
+    bool shouldRetry = false;
+    auto ptr = getSSLPtr();
+    do
+    {
+        auto rslt = SSL_write(ptr, msg, msgSize);
+        LOG4CPLUS_TRACE(logger, "SSL_write return: " << rslt);
+        if(rslt <= 0)
+        {
+            LOG4CPLUS_TRACE(logger, "SSL_write reporting error");
+            shouldRetry = handleRetry(rslt);
+        }
+        else
+        {
+            LOG4CPLUS_DEBUG(logger, to_string(msgSize) << " sent over the wire");
+            shouldRetry = false;
+        }
+
+    } while(shouldRetry);
+
+    return msgSize;
+}
+
+void SocketInfo::newSSLCtx()
+{
+    // Allow old SSL protocol; because we don't control what protocol the
+    //  system under test supports
+    sslCtx = unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>(
+        SSL_CTX_new(TLS_method()), &SSL_CTX_free
+    );
+
+    if(!sslCtx)
+    {
+        const string msg = sslErrMsg("Failed to create SSL context. Cause: ");
+        LOG4CPLUS_ERROR(logger, msg);
+        throw bad_alloc();
+    }
+    else
+        LOG4CPLUS_TRACE(logger, "Context object created");
+
+    if(SSL_CTX_set_min_proto_version(sslCtx.get(), SSL3_VERSION) != 1)
+    {
+        const string msg = sslErrMsg("Failed to set minimum SSL version. Cause: ");
+        LOG4CPLUS_ERROR(logger, msg);
+        logSSLErrorStack();
+        throw logic_error(msg);
+    }
+    else
+        LOG4CPLUS_TRACE(logger, "Minimum version set to SSL v3");
+}
+
+void SocketInfo::newSSLObj()
+{
+    sslObj = unique_ptr<SSL, SSLDeleter>(SSL_new(getSSLCtxPtr()));
+    if(!sslObj)
+    {
+        const string msg = sslErrMsg("Failed to create SSL instance. Cause: ");
+        LOG4CPLUS_ERROR(logger, msg);
+        throw bad_alloc();
+    }
+    else
+        LOG4CPLUS_TRACE(logger, "SSL object created");
+}
+
+void SocketInfo::logSSLErrorStack()
+{
+    LOG4CPLUS_ERROR(logger, "SSL error encountered. Error stack");
+    unsigned long errCode;
+    do
+    {
+        errCode = ERR_get_error();
+        if(errCode != 0)
+        {
+            const char *msg = ERR_reason_error_string(errCode);
+            LOG4CPLUS_ERROR(logger, "\t" <<
+                (msg != nullptr ? msg : "Code " + to_string(errCode)));
+        }
+    } while(errCode != 0);
+}
+
+const bool SocketInfo::handleRetry(const int &rslt)
+{
+    bool retVal = true;
+
+    auto ptr = getSSLPtr();
+    auto code = SSL_get_error(ptr, rslt);
+
+    LOG4CPLUS_TRACE(logger, "Code: " << code);
+
+    switch(code)
+    {
+    case SSL_ERROR_WANT_READ:
+        LOG4CPLUS_TRACE(logger, "Wait for read ready");
+        if(!waitForReading(timeout))
+        {
+            LOG4CPLUS_INFO(logger, "Network timeout waiting to read data");
+            retVal = false;
+        }
+        else
+            LOG4CPLUS_TRACE(logger, "Socket ready for reading");
+        break;
+    case SSL_ERROR_WANT_WRITE:
+        LOG4CPLUS_TRACE(logger, "Wait for write ready");
+        if(!waitForWriting(timeout))
+        {
+            LOG4CPLUS_INFO(logger, "Network timeout waiting to write data");
+            retVal = false;
+        }
+        else
+            LOG4CPLUS_TRACE(logger, "Socket ready for writing");
+        break;
+    case SSL_ERROR_ZERO_RETURN:
+        LOG4CPLUS_TRACE(logger, "Remote closed SSL session");
+        retVal = false;
+        break;
+    default:
+        logSSLErrorStack();
+        throw logic_error(string("SSL error"));
+    }
 
     return retVal;
 }

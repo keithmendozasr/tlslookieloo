@@ -22,8 +22,6 @@
 
 #include <log4cplus/logger.h>
 
-#include <openssl/ssl.h>
-
 #include "socketinfo.h"
 
 namespace tlslookieloo
@@ -32,29 +30,13 @@ namespace tlslookieloo
 class ClientSide : public SocketInfo
 {
 public:
-    ClientSide() :
-        sslCtx(nullptr, &SSL_CTX_free)
-    {}
+    explicit ClientSide(){}
 
     ClientSide(ClientSide &&rhs) :
-        SocketInfo(std::move(rhs)),
-        logger(std::move(rhs.logger)),
-        sslCtx(std::move(rhs.sslCtx)),
-        sslObj(std::move(rhs.sslObj)),
-        timeout(std::move(rhs.timeout))
+        SocketInfo(std::move(rhs))
     {}
 
     virtual ~ClientSide() {}
-
-    /**
-     * Set the network timeout to use for all operations
-     *
-     * \param time new timeout
-     */
-    inline void setTimeout(const unsigned int &time)
-    {
-        timeout = time;
-    }
 
     /**
      * \brief Start server listener
@@ -85,44 +67,10 @@ public:
         return sslHandshake();
     }
 
-    /**
-     * Read data from server
-     *
-     * \see SocketInfo::readData
-     */
-    std::optional<const size_t> readData(char *data, const size_t &dataSize);
-
-    /**
-     * Write data to server
-     *
-     * \see SocketInfo::writeData
-     */
-    const size_t writeData(const char *msg, const size_t &msgSize);
-
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("ClientSide");
-    std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)> sslCtx;
-
-    struct SSLDeleter {
-        void operator()(SSL * ptr)
-        {
-            if(ptr)
-            {
-                SSL_shutdown(ptr);
-                SSL_free(ptr);
-            }
-        }
-    };
-    std::unique_ptr<SSL, SSLDeleter> sslObj;
 
     ClientSide(const ClientSide &) = delete;
-
-    unsigned int timeout = 5;
-
-    /**
-     * Collect the SSL error message
-     */
-    const std::string sslErrMsg(const std::string &prefix);
 
     /**
      * Create the SSL context for this instance
@@ -132,16 +80,6 @@ private:
      *  in certFile
      */
     void initializeSSLContext(const std::string &certFile, const std::string &privKeyFile);
-
-    /**
-     * Handle SSL conditions that requires a retry
-     *
-     * \arg rslt Error code returned by the last operation
-     * \return true if the operation should be retried. False otherwise
-     * \throw logic_error When an unexpected code was received
-     *  from SSL_get_error
-     */
-    const bool handleRetry(const int &rslt);
 
     /**
      * Go through the SSL handshake

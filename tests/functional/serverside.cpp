@@ -126,7 +126,12 @@ int main(int argc, char *argv[])
         const size_t msgSize = 1024;
         char buf[msgSize];
         auto readLen = s.readData(buf, msgSize);
-        LOG4CPLUS_INFO(logger, "Data read: " << string(buf, readLen));
+        if(readLen)
+        {
+            LOG4CPLUS_INFO(logger, "Data read: " << string(buf, readLen.value()));
+        }
+        else
+            LOG4CPLUS_INFO(logger, "Remote disconnected");
     }
     else
     {
