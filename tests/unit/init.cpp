@@ -29,7 +29,7 @@ using ::testing::MatchesRegex;
 namespace tlslookieloo
 {
 
-TEST(parseTargetsFile, goodFile)
+TEST(parseTargetsFile, goodFile) // NOLINT
 {
     auto retVal = parseTargetsFile(tgtFilesPath + "/good_targets.yaml");
     EXPECT_EQ(retVal.size(), 2u);
@@ -49,7 +49,7 @@ TEST(parseTargetsFile, goodFile)
     }
 }
 
-TEST(parseTargetsFile, missingname)
+TEST(parseTargetsFile, missingname) // NOLINT
 {
     try
     {
@@ -65,7 +65,7 @@ TEST(parseTargetsFile, missingname)
     }
 }
 
-TEST(parseTargetsFile, missingclient)
+TEST(parseTargetsFile, missingclient) // NOLINT
 {
     try
     {
@@ -82,7 +82,7 @@ TEST(parseTargetsFile, missingclient)
     }
 }
 
-TEST(parseTargetsFile, missingserver)
+TEST(parseTargetsFile, missingserver) // NOLINT
 {
     try
     {
@@ -99,7 +99,7 @@ TEST(parseTargetsFile, missingserver)
     }
 }
 
-TEST(parseTargetsFile, nonsequence)
+TEST(parseTargetsFile, nonsequence) // NOLINT
 {
     try
     {

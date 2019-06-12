@@ -34,33 +34,36 @@ const bool ServerSide::connect(const unsigned int &port, const string &host)
 {
     bool retVal = true;
 
-    LOG4CPLUS_DEBUG(logger, "Start socket connection");
+    LOG4CPLUS_DEBUG(logger, "Start socket connection"); // NOLINT
     if(sockConnect(port,  host) == false)
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "Failed to connect to " << host << ":" << port);
         retVal = false;
     }
     else
     {
-        LOG4CPLUS_DEBUG(logger,
+        LOG4CPLUS_DEBUG(logger, // NOLINT
             "Socket connection successful. Start TLS handshake");
         try
         {
             initializeSSLContext();
             if(!sslHandshake(host))
             {
+                // NOLINTNEXTLINE
                 LOG4CPLUS_ERROR(logger, "SSL handshake with " << host << " failed");
                 retVal = false;
             }
             else
             {
+                // NOLINTNEXTLINE
                 LOG4CPLUS_INFO(logger, "Connection to " << host << ":" << port <<
                     " successful");
             }
         }
         catch(const exception &e)
         {
-            LOG4CPLUS_ERROR(logger,
+            LOG4CPLUS_ERROR(logger, // NOLINT
                 "Error encountered during TLS handshake: " <<e.what()
             );
             retVal = false;
@@ -75,12 +78,12 @@ bool ServerSide::waitForConnect()
     bool retVal = true;
     if(!waitForWriting())
     {
-        LOG4CPLUS_INFO(logger, "Connection timed out");
+        LOG4CPLUS_INFO(logger, "Connection timed out"); // NOLINT
         retVal = false;
     }
     else
     {
-        LOG4CPLUS_DEBUG(logger, "Connection ready");
+        LOG4CPLUS_DEBUG(logger, "Connection ready"); // NOLINT
 
         int val;
         socklen_t len = sizeof(val);
@@ -89,12 +92,13 @@ bool ServerSide::waitForConnect()
         if(err != 0)
             throwSystemError(err, "getsockopt error");
 
-        LOG4CPLUS_TRACE(logger, "Got socket option");
+        LOG4CPLUS_TRACE(logger, "Got socket option"); // NOLINT
         if(val == 0)
+            // NOLINTNEXTLINE
             LOG4CPLUS_DEBUG(logger, "Connected to " << ip << " after waiting");
         else
         {
-            LOG4CPLUS_DEBUG(logger, "Failed to connect to " << ip <<
+            LOG4CPLUS_DEBUG(logger, "Failed to connect to " << ip << // NOLINT
                 " after waiting. Try next IP if available");
             retVal = false;
         }
@@ -114,13 +118,14 @@ const bool ServerSide::sockConnect(const unsigned int &port, const string &host)
             string ip;
             do
             {
-                struct sockaddr_storage addr;
+                struct sockaddr_storage addr; // NOLINT
                 try
                 {
                     initNextSocket();
                     addr = getAddrInfo();
                     ip = getSocketIP();
-                    if(::connect(getSocket(), reinterpret_cast<struct sockaddr *>(&addr),
+                    if(::connect(getSocket(),
+                        reinterpret_cast<struct sockaddr *>(&addr), // NOLINT
                         getAddrInfoSize()) != 0)
                     {
                         auto err = errno;
@@ -128,31 +133,31 @@ const bool ServerSide::sockConnect(const unsigned int &port, const string &host)
                         {
                             if(waitForConnect())
                             {
-                                LOG4CPLUS_DEBUG(logger, "Connected after wait");
+                                LOG4CPLUS_DEBUG(logger, "Connected after wait"); // NOLINT
                                 break;
                             }
                             else
-                                LOG4CPLUS_DEBUG(logger,
+                                LOG4CPLUS_DEBUG(logger, // NOLINT
                                     "Connect failed after wait. Try next IP");
                         }
                         else
                         {
                             char buf[256];
-                            char *errmsg = strerror_r(err, buf, 256);
-                            LOG4CPLUS_DEBUG(logger,
+                            char *errmsg = strerror_r(err, &buf[0], 256);
+                            LOG4CPLUS_DEBUG(logger, // NOLINT
                                 "Failed to connect to IP " << ip <<
                                 ". Error message: " << errmsg << ". Try next IP");
                         }
                     }
                     else
                     {
-                        LOG4CPLUS_DEBUG(logger, "Connected to IP " << ip);
+                        LOG4CPLUS_DEBUG(logger, "Connected to IP " << ip); // NOLINT
                         break;
                     }
                 }
                 catch(const range_error &e)
                 {
-                    LOG4CPLUS_DEBUG(logger, "Unable to connect to host");
+                    LOG4CPLUS_DEBUG(logger, "Unable to connect to host"); // NOLINT
                     retVal = false;
                     break;
                 }
@@ -164,12 +169,14 @@ const bool ServerSide::sockConnect(const unsigned int &port, const string &host)
         }
         else
         {
-            LOG4CPLUS_DEBUG(logger, "Failed to resolve " << host << ":" << port);
+            LOG4CPLUS_DEBUG(logger, "Failed to resolve " << host << ":" << // NOLINT
+                port);
             retVal = false;
         }
     }
     catch(system_error &e)
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "System error encountered connecting to remote. " <<
             e.what());
         throw;
@@ -185,11 +192,11 @@ void ServerSide::initializeSSLContext()
     if(SSL_CTX_set_default_verify_paths(ptr) == 0)
     {
         const string msg = sslErrMsg("Failed to set CA verify paths");
-        LOG4CPLUS_ERROR(logger, msg);
+        LOG4CPLUS_ERROR(logger, msg); // NOLINT
         throw runtime_error(msg);
     }
     else
-        LOG4CPLUS_TRACE(logger, "CA verify paths set");
+        LOG4CPLUS_TRACE(logger, "CA verify paths set"); // NOLINT
 }
 
 const bool ServerSide::sslHandshake(const std::string &host)
@@ -201,67 +208,68 @@ const bool ServerSide::sslHandshake(const std::string &host)
     if(SSL_set_fd(ptr, getSocket()) == 0)
     {
         const string msg = sslErrMsg("Failed to set FD to SSL. Cause: ");
-        LOG4CPLUS_ERROR(logger, msg);
+        LOG4CPLUS_ERROR(logger, msg); // NOLINT
         throw runtime_error(msg);
     }
     else
-        LOG4CPLUS_TRACE(logger, "FD set to SSL instance");
+        LOG4CPLUS_TRACE(logger, "FD set to SSL instance"); // NOLINT
 
     if(SSL_set1_host(ptr, host.c_str()) != 1)
     {
         const string msg = sslErrMsg("Failed to set expected host. Cause: ");
-        LOG4CPLUS_ERROR(logger, msg);
+        LOG4CPLUS_ERROR(logger, msg); // NOLINT
         throw runtime_error(msg);
     }
     else
-        LOG4CPLUS_TRACE(logger, "Expected host set");
+        LOG4CPLUS_TRACE(logger, "Expected host set"); // NOLINT
 
     bool shouldRetry = false;
     do
     {
-        LOG4CPLUS_DEBUG(logger, "Start SSL connection");
+        LOG4CPLUS_DEBUG(logger, "Start SSL connection"); // NOLINT
         auto rslt = SSL_connect(ptr);
-        LOG4CPLUS_TRACE(logger, "SSL_connect return: " << rslt);
+        LOG4CPLUS_TRACE(logger, "SSL_connect return: " << rslt); // NOLINT
         if(rslt == -1)
         {
-            LOG4CPLUS_TRACE(logger, "SSL_connect reporting error");
+            LOG4CPLUS_TRACE(logger, "SSL_connect reporting error"); // NOLINT
             shouldRetry = handleRetry(rslt);
         }
         else if(rslt == 0)
         {
             const string msg = sslErrMsg("Remote closed SSL handshake. Cause: ");
-            LOG4CPLUS_WARN(logger, msg);
+            LOG4CPLUS_WARN(logger, msg); // NOLINT
             retVal = shouldRetry = false;
         }
         else
         {
-            LOG4CPLUS_DEBUG(logger, "Handshake complete");
+            LOG4CPLUS_DEBUG(logger, "Handshake complete"); // NOLINT
             shouldRetry = false;
         }
     } while(shouldRetry);
 
     if(retVal)
     {
-        LOG4CPLUS_TRACE(logger, "Process peer validation");
+        LOG4CPLUS_TRACE(logger, "Process peer validation"); // NOLINT
         auto certPtr = SSL_get_peer_certificate(ptr);
-        LOG4CPLUS_TRACE(logger, "Value of certPtr: " << certPtr);
+        LOG4CPLUS_TRACE(logger, "Value of certPtr: " << certPtr); // NOLINT
         if(certPtr != nullptr)
         {
             X509_free(certPtr);
             auto peerVal = SSL_get_verify_result(ptr);
-            LOG4CPLUS_TRACE(logger, "Value of peerVal: " << peerVal);
+            LOG4CPLUS_TRACE(logger, "Value of peerVal: " << peerVal); // NOLINT
             if(peerVal != X509_V_OK)
             {
-                LOG4CPLUS_WARN(logger, "Failed to verify peer. Cause: " <<
+                LOG4CPLUS_WARN(logger, "Failed to verify peer. Cause: " << // NOLINT
                     X509_verify_cert_error_string(peerVal)
                 );
             }
         }
         else
+            // NOLINTNEXTLINE
             LOG4CPLUS_WARN(logger, "Remote server did not provide a certificate");
     }
     else
-        LOG4CPLUS_DEBUG(logger, "Handshake failed");
+        LOG4CPLUS_DEBUG(logger, "Handshake failed"); // NOLINT
 
     return retVal;
 }

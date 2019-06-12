@@ -33,7 +33,7 @@ using namespace log4cplus;
 /**
  * Used in argp_parser to hold arg state
  */
-struct ArgState
+struct ArgState // NOLINT
 {
     optional<string> logconfig;
     char *args[3];
@@ -46,7 +46,8 @@ struct ArgState
  */
 static error_t parseArgs(int key, char *arg, struct argp_state *state)
 {
-    struct ArgState *argState = reinterpret_cast<ArgState *>(state->input);
+    struct ArgState *argState = reinterpret_cast<ArgState *>(state->input); // NOLINT
+    // NOLINTNEXTLINE
     LOG4CPLUS_DEBUG(argState->logger, "Value of key: " << hex << key);
     switch(key)
     {
@@ -59,7 +60,7 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
             argp_usage(state);
         
         // Save the argument
-        argState->args[state->arg_num] = arg;
+        argState->args[state->arg_num] = arg; // NOLINT
         break;
     case ARGP_KEY_END:
         if(state->arg_num < 3)
@@ -92,17 +93,18 @@ int main(int argc, char *argv[])
     };
     const string argsDoc = "port cert key";
     const string progDoc = "Test ClientSide class";
-    struct argp argp = { options, parseArgs, argsDoc.c_str(), progDoc.c_str() };
+    struct argp argp = { &options[0], parseArgs, argsDoc.c_str(), progDoc.c_str() };
 
     if(argp_parse(&argp, argc, argv, 0, nullptr, &argState))
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters");
         return -1;
     }
 
     if(argState.logconfig)
     {
-        LOG4CPLUS_DEBUG(logger, "Loading logconfig file");
+        LOG4CPLUS_DEBUG(logger, "Loading logconfig file"); // NOLINT
         logger.getHierarchy().resetConfiguration();
         PropertyConfigurator::doConfigure(argState.logconfig.value());
     }
@@ -111,39 +113,44 @@ int main(int argc, char *argv[])
     {
         ClientSide c;
         c.startListener(stoi(argState.args[0]), 2);
+        // NOLINTNEXTLINE
         LOG4CPLUS_INFO(logger, "Listening on " << argState.args[0]);
 
         while(1)
         {
             auto client = c.acceptClient();
+            // NOLINTNEXTLINE
             LOG4CPLUS_INFO(logger, "Got client FD: " << client.getSocket());
             client.startSSL(argState.args[1], argState.args[2]);
 
             while(1)
             {
                 char buf[1024];
-                auto readLen = client.readData(buf, 1024);
+                auto readLen = client.readData(&buf[0], 1024);
                 if(readLen)
                 {
+                    // NOLINTNEXTLINE
                     LOG4CPLUS_TRACE(logger, "readLen: " << readLen.value());
                     if(readLen.value() > 0)
                     {
-                        LOG4CPLUS_INFO(logger, "Data from server: " <<
+                        LOG4CPLUS_INFO(logger, "Data from server: " << // NOLINT
                             string(buf, readLen.value()));
                         client.writeData("Bye", 4);
                     }
                     else
+                        // NOLINTNEXTLINE
                         LOG4CPLUS_INFO(logger, "No data received from remote end");
                 }
                 else
                     break;
             }
 
-            LOG4CPLUS_INFO(logger, "Client went away");
+            LOG4CPLUS_INFO(logger, "Client went away"); // NOLINT
         }
     }
     catch(const system_error &e)
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "Error encountered testing ClientSide. Cause: " <<
             e.what());
         return 1;

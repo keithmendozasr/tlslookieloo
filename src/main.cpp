@@ -58,8 +58,8 @@ struct ArgState
  */
 static error_t parseArgs(int key, char *arg, struct argp_state *state)
 {
-    struct ArgState *argState = reinterpret_cast<ArgState *>(state->input);
-    LOG4CPLUS_DEBUG(argState->logger, "Value of key: " << hex << key);
+    struct ArgState *argState = reinterpret_cast<ArgState *>(state->input); // NOLINT
+    LOG4CPLUS_DEBUG(argState->logger, "Value of key: " << hex << key); // NOLINT
     switch(key)
     {
     case 't':
@@ -70,10 +70,12 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
         break;
     case ARGP_KEY_END:
         if(argState->targets)
-            LOG4CPLUS_DEBUG(argState->logger, "Required options set");
+            LOG4CPLUS_DEBUG(argState->logger, "Required options set"); // NOLINT
         else
         {
-            LOG4CPLUS_ERROR(argState->logger, "targets command-line option required");
+            // NOLINTNEXTLINE
+            LOG4CPLUS_ERROR(argState->logger,
+                "targets command-line option required");
             argp_usage(state);
         }
         [[fallthrough]];
@@ -89,9 +91,10 @@ static void start(const string &targets)
     auto logger = Logger::getRoot();
     try
     {
-        LOG4CPLUS_DEBUG(logger, "Process targets files");
+        LOG4CPLUS_DEBUG(logger, "Process targets files"); // NOLINT
         for(const Target &item : parseTargetsFile(targets))
         {
+            // NOLINTNEXTLINE
             LOG4CPLUS_INFO(logger, "Starting " << item.name << " bridge");
 
             // Spawn thread for each one later on
@@ -99,21 +102,25 @@ static void start(const string &targets)
             smatch matches;
             if(regex_match(item.server, matches, re))
             {
-                LOG4CPLUS_TRACE(logger, "Port: " << matches[2] <<
+                LOG4CPLUS_TRACE(logger, "Port: " << matches[2] << // NOLINT
                     " Host: " << matches[1]);
                 auto port = stoi(matches[2]);
                 ServerSide s;
                 if(s.connect(port, matches[1]))
+                    // NOLINTNEXTLINE
                     LOG4CPLUS_INFO(logger, "Connected to " << item.server);
                 else
+                    // NOLINTNEXTLINE
                     LOG4CPLUS_INFO(logger, "Failed to connect to " << item.server);
             }
             else
+                // NOLINTNEXTLINE
                 LOG4CPLUS_INFO(logger, "\"" << item.server << " not a valid format");
         }
     }
     catch(const YAML::Exception &e)
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "Failed to parse targets file, cause: " <<
             e.what() << ". Exiting");
     }
@@ -136,17 +143,17 @@ int main(int argc, char *argv[])
     };
     const string argsDoc = "";
     const string progDoc = "Record TLS communication between a server and client";
-    struct argp argp = { options, parseArgs, progDoc.c_str(), argsDoc.c_str() };
+    struct argp argp = { &options[0], parseArgs, progDoc.c_str(), argsDoc.c_str() };
 
     if(argp_parse(&argp, argc, argv, 0, nullptr, &argState))
     {
-        LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters");
+        LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters"); // NOLINT
         return -1;
     }
 
     if(argState.logconfig)
     {
-        LOG4CPLUS_DEBUG(logger, "Loading logconfig file");
+        LOG4CPLUS_DEBUG(logger, "Loading logconfig file"); // NOLINT
         logger.getHierarchy().resetConfiguration();
         PropertyConfigurator::doConfigure(argState.logconfig.value());
     }
@@ -155,7 +162,7 @@ int main(int argc, char *argv[])
         start(argState.targets.value());
     else
     {
-        LOG4CPLUS_ERROR(logger, "Targets file to use not provided");
+        LOG4CPLUS_ERROR(logger, "Targets file to use not provided"); // NOLINT
         return -1;
     }
 

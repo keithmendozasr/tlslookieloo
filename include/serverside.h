@@ -30,12 +30,31 @@ namespace tlslookieloo
 class ServerSide : public SocketInfo
 {
 public:
+    /**
+     * Default constructor
+     */
     explicit ServerSide(){}
 
+    /**
+     * Move constructor
+     */
     ServerSide(ServerSide &&rhs) :
         SocketInfo(std::move(rhs))
     {}
 
+    /**
+     * Move assignment operator
+     */
+    ServerSide &operator =(ServerSide && rhs)
+    {
+        SocketInfo::operator =(std::move(rhs));
+
+        return *this;
+    }
+
+    /**
+     * Destructor
+     */
     virtual ~ServerSide() {}
 
     /**
@@ -53,8 +72,6 @@ public:
 
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("ServerSide");
-
-    ServerSide(const ServerSide &) = delete;
 
     /**
      * Wait for connect() call to complete
@@ -80,6 +97,11 @@ private:
      */
     const bool sslHandshake(const std::string &host);
 
+    // Deleted constructors/operators
+    ServerSide(const ServerSide &) = delete;
+    ServerSide(ServerSide &) = delete;
+    ServerSide &operator = (const ServerSide &) = delete;
+    ServerSide &operator = (ServerSide &) = delete;
 };
 
 } //namespace tlslookieloo

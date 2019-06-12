@@ -36,6 +36,13 @@ public:
         SocketInfo(std::move(rhs))
     {}
 
+    ClientSide &operator = (ClientSide && rhs)
+    {
+        SocketInfo::operator =(std::move(rhs));
+
+        return *this;
+    }
+
     virtual ~ClientSide() {}
 
     /**
@@ -70,7 +77,6 @@ public:
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("ClientSide");
 
-    ClientSide(const ClientSide &) = delete;
 
     /**
      * Create the SSL context for this instance
@@ -85,6 +91,12 @@ private:
      * Go through the SSL handshake
      */
     const bool sslHandshake();
+
+    // Deleted constructors and operators
+    ClientSide(const ClientSide &) = delete;
+    ClientSide(ClientSide &) = delete;
+    ClientSide &operator=(const ClientSide &) = delete;
+    ClientSide &operator=(ClientSide &) = delete;
 };
 
 } //namespace tlslookieloo

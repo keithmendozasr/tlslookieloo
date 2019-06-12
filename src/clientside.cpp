@@ -47,16 +47,16 @@ void ClientSide::startListener(const unsigned int &port,
                 == -1)
                 throwSystemError(errno, "Error setting socket options");
             
-            LOG4CPLUS_TRACE(logger, "Attempt to listen to port " << port);
+            LOG4CPLUS_TRACE(logger, "Attempt to listen to port " << port); // NOLINT
             auto addr = getAddrInfo();
             if(bind(
-                sockFd, reinterpret_cast<const struct sockaddr *>(&addr),
+                sockFd, reinterpret_cast<const struct sockaddr *>(&addr), // NOLINT
                 (addr.ss_family == AF_INET ? sizeof(sockaddr_in) :
                     sizeof(sockaddr_in6))) == -1
             )
                 throwSystemError(errno, "Failed to bind");
             
-            LOG4CPLUS_TRACE(logger, "Bound to port " << port);
+            LOG4CPLUS_TRACE(logger, "Bound to port " << port); // NOLINT
 
             if(listen(sockFd, backlog) == -1)
                 throwSystemError(errno, "Failed to listen");
@@ -67,28 +67,29 @@ void ClientSide::startListener(const unsigned int &port,
         {
             string msg("Failed to resolve port ");
             msg += to_string(port);
-            LOG4CPLUS_DEBUG(logger, msg);
+            LOG4CPLUS_DEBUG(logger, msg); // NOLINT
             throw logic_error(msg);
         }
     }
     catch(system_error &e)
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "System error encountered starting listener. " <<
             e.what());
         closeSocket();
         throw;
     }
 
-    LOG4CPLUS_DEBUG(logger, "Listening on port " << port);
+    LOG4CPLUS_DEBUG(logger, "Listening on port " << port); // NOLINT
 }
 
 ClientSide ClientSide::acceptClient()
 {
-    struct sockaddr_storage addr;
+    struct sockaddr_storage addr; // NOLINT
     socklen_t addrLen = sizeof(addr);
 
     waitForReading(false); // We're waiting forever, so no need to check timeout
-    int fd = accept(getSocket(), reinterpret_cast<struct sockaddr *>(&addr),
+    int fd = accept(getSocket(), reinterpret_cast<struct sockaddr *>(&addr), // NOLINT
         &addrLen);
     if(fd < 0)
     {
@@ -96,39 +97,39 @@ ClientSide ClientSide::acceptClient()
         throwSystemError(err, "Accept error");
     }
 
-    LOG4CPLUS_DEBUG(logger, "Received connection. New FD: " << fd);
+    LOG4CPLUS_DEBUG(logger, "Received connection. New FD: " << fd); // NOLINT
 
-    if(fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK) == -1)
+    if(fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK) == -1) // NOLINT
     {
         int err = errno;
         throwSystemError(err, "Failed to set client FD non-blocking");
     }
     else
-        LOG4CPLUS_TRACE(logger, "New FD non-blocking set");
+        LOG4CPLUS_TRACE(logger, "New FD non-blocking set"); // NOLINT
 
     ClientSide c;
     c.setSocket(fd);
     c.setAddrInfo(&addr, addrLen);
 
-    return move(c);
+    return c;
 }
 
 void ClientSide::initializeSSLContext(const string &certFile, const string &privKeyFile)
 {
     newSSLCtx();
     auto ptr = getSSLCtxPtr();
-    LOG4CPLUS_TRACE(logger, "Loading separate certificate chain");
+    LOG4CPLUS_TRACE(logger, "Loading separate certificate chain"); // NOLINT
     if(SSL_CTX_use_certificate_chain_file(ptr, certFile.c_str()) == 0)
     {
         const string msg = sslErrMsg(
             string("Failed to load certificate file ") + certFile +
             ". Cause: "
         );
-        LOG4CPLUS_ERROR(logger, msg);
+        LOG4CPLUS_ERROR(logger, msg); // NOLINT
         throw runtime_error(msg);
     }
     else
-        LOG4CPLUS_TRACE(logger, "Certificate file loaded");
+        LOG4CPLUS_TRACE(logger, "Certificate file loaded"); // NOLINT
 
     if(SSL_CTX_use_PrivateKey_file(ptr, privKeyFile.c_str(),
         SSL_FILETYPE_PEM) == 0)
@@ -137,11 +138,11 @@ void ClientSide::initializeSSLContext(const string &certFile, const string &priv
             string("Failed to load private key ") + privKeyFile +
             ". Cause: "
         );
-        LOG4CPLUS_ERROR(logger, msg);
+        LOG4CPLUS_ERROR(logger, msg); // NOLINT
         throw runtime_error(msg);
     }
     else
-        LOG4CPLUS_TRACE(logger, "Private key file loaded");
+        LOG4CPLUS_TRACE(logger, "Private key file loaded"); // NOLINT
 }
 
 const bool ClientSide::sslHandshake()
@@ -155,32 +156,32 @@ const bool ClientSide::sslHandshake()
     if(SSL_set_fd(ptr, getSocket()) == 0)
     {
         const string msg = sslErrMsg("Failed to set FD to SSL. Cause: ");
-        LOG4CPLUS_ERROR(logger, msg);
+        LOG4CPLUS_ERROR(logger, msg); // NOLINT
         throw runtime_error(msg);
     }
     else
-        LOG4CPLUS_TRACE(logger, "FD set to SSL instance: " << getSocket());
+        LOG4CPLUS_TRACE(logger, "FD set to SSL instance: " << getSocket()); // NOLINT
 
     bool shouldRetry = false;
     do
     {
-        LOG4CPLUS_DEBUG(logger, "Start SSL accept");
+        LOG4CPLUS_DEBUG(logger, "Start SSL accept"); // NOLINT
         auto rslt = SSL_accept(ptr);
-        LOG4CPLUS_TRACE(logger, "SSL_accept return: " << rslt);
+        LOG4CPLUS_TRACE(logger, "SSL_accept return: " << rslt); // NOLINT
         if(rslt == -1)
         {
-            LOG4CPLUS_TRACE(logger, "SSL_accept reporting error");
+            LOG4CPLUS_TRACE(logger, "SSL_accept reporting error"); // NOLINT
             shouldRetry = handleRetry(rslt);
         }
         else if(rslt == 0)
         {
             const string msg = sslErrMsg("Remote closed SSL handshake. Cause: ");
-            LOG4CPLUS_WARN(logger, msg);
+            LOG4CPLUS_WARN(logger, msg); // NOLINT
             retVal = shouldRetry = false;
         }
         else
         {
-            LOG4CPLUS_DEBUG(logger, "Handshake complete");
+            LOG4CPLUS_DEBUG(logger, "Handshake complete"); // NOLINT
             shouldRetry = false;
         }
     } while(shouldRetry);

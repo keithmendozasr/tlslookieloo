@@ -44,27 +44,49 @@ public:
     /**
      * Default constructor
      */
-    explicit SocketInfo() :
+    explicit SocketInfo() : // NOLINT(cppcoreguidelines-pro-type-member-init)
         logger(log4cplus::Logger::getInstance("SocketInfo")),
         sockfd(-1),
         servInfo(nullptr, &freeaddrinfo),
         sslCtx(nullptr, &SSL_CTX_free)
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_TRACE(logger, "Timeout at construction: " << timeout);
     }
 
+    /**
+     * Move constructor
+     */
     SocketInfo(SocketInfo &&rhs) :
         logger(log4cplus::Logger::getInstance("SocketInfo")),
         addrInfo(std::move(rhs.addrInfo)),
         addrInfoSize(rhs.addrInfoSize),
-        sockfd(rhs.sockfd),
         servInfo(std::move(rhs.servInfo)),
-        nextServ(rhs.nextServ),
-        timeout(rhs.timeout),
         sslCtx(std::move(rhs.sslCtx)),
         sslObj(std::move(rhs.sslObj))
     {
+        sockfd = rhs.sockfd;
         rhs.sockfd = -1;
+        nextServ = rhs.nextServ;
+        timeout = rhs.timeout;
+    }
+
+    /**
+     * Move assignment operator
+     */
+    SocketInfo &operator = (SocketInfo &&rhs)
+    {
+        addrInfo = std::move(rhs.addrInfo);
+        addrInfoSize = std::move(rhs.addrInfoSize);
+        servInfo = std::move(rhs.servInfo);
+        sslCtx = std::move(rhs.sslCtx);
+        sslObj = std::move(rhs.sslObj);
+        sockfd = rhs.sockfd;
+        rhs.sockfd = -1;
+        nextServ = rhs.nextServ;
+        timeout = rhs.timeout;
+
+        return *this;
     }
 
     virtual ~SocketInfo()
@@ -98,10 +120,11 @@ public:
      */
     inline void closeSocket()
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_TRACE(logger, "Value of sockfd for " << this << ": " << sockfd);
         if(sockfd != -1)
         {
-            LOG4CPLUS_DEBUG(logger, "Closing FD " << sockfd);
+            LOG4CPLUS_DEBUG(logger, "Closing FD " << sockfd); // NOLINTEXTLINE
             shutdown(sockfd, SHUT_RDWR);
             close(sockfd);
             sockfd = -1;
@@ -301,6 +324,9 @@ private:
     // Explicitly force socket info move. File descriptors shouldn't be shared
     // anyway
     SocketInfo(const SocketInfo &) = delete;
+    SocketInfo(SocketInfo &) = delete;
+    SocketInfo &operator =(const SocketInfo &) = delete;
+    SocketInfo &operator =(SocketInfo &) = delete;
 };
 
 } //namespace tlslookieloo

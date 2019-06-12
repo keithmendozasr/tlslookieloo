@@ -40,7 +40,7 @@ using namespace log4cplus;
 /**
  * Used in argp_parser to hold arg state
  */
-struct ArgState
+struct ArgState // NOLINT
 {
     optional<string> logconfig;
     char *args[2];
@@ -53,8 +53,9 @@ struct ArgState
  */
 static error_t parseArgs(int key, char *arg, struct argp_state *state)
 {
+    // NOLINTNEXTLINE
     struct ArgState *argState = reinterpret_cast<ArgState *>(state->input);
-    LOG4CPLUS_DEBUG(argState->logger, "Value of key: " << hex << key);
+    LOG4CPLUS_DEBUG(argState->logger, "Value of key: " << hex << key); // NOLINT
     switch(key)
     {
     case 'l':
@@ -66,7 +67,7 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
             argp_usage(state);
         
         // Save the argument
-        argState->args[state->arg_num] = arg;
+        argState->args[state->arg_num] = arg; // NOLINT
         break;
     case ARGP_KEY_END:
         if(state->arg_num < 2)
@@ -93,23 +94,28 @@ int main(int argc, char *argv[])
     Logger &logger = argState.logger;
     logger.setLogLevel(INFO_LOG_LEVEL);
 
-    struct argp_option options[] = {
+    const struct argp_option options[] = {
         { "logconfig",  'l', "logcfgfile",  0, "Logging configuration file" },
         { 0 } 
     };
     const string argsDoc = "port host";
     const string progDoc = "Test ServerSide class";
-    struct argp argp = { options, parseArgs, argsDoc.c_str(), progDoc.c_str() };
+    struct argp argp = {
+        &options[0],
+        parseArgs,
+        argsDoc.c_str(),
+        progDoc.c_str()
+    };
 
     if(argp_parse(&argp, argc, argv, 0, nullptr, &argState))
     {
-        LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters");
+        LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters"); // NOLINT
         return -1;
     }
 
     if(argState.logconfig)
     {
-        LOG4CPLUS_DEBUG(logger, "Loading logconfig file");
+        LOG4CPLUS_DEBUG(logger, "Loading logconfig file"); // NOLINT
         logger.getHierarchy().resetConfiguration();
         PropertyConfigurator::doConfigure(argState.logconfig.value());
     }
@@ -117,25 +123,28 @@ int main(int argc, char *argv[])
     ServerSide s;
     if(s.connect(stoi(argState.args[0]), argState.args[1]))
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_INFO(logger, "Connected to " << argState.args[1] << ":" <<
             argState.args[0]);
-        LOG4CPLUS_INFO(logger, "Send data to server");
+        LOG4CPLUS_INFO(logger, "Send data to server"); // NOLINT
         const char msg[] = "Hello from serverside";
-        s.writeData(msg, sizeof(msg));
+        ServerSide s2 = std::move(s);
+        s2.writeData(&msg[0], sizeof(msg));
 
         const size_t msgSize = 1024;
         char buf[msgSize];
-        auto readLen = s.readData(buf, msgSize);
+        auto readLen = s2.readData(&buf[0], msgSize);
         if(readLen)
         {
+            // NOLINTNEXTLINE
             LOG4CPLUS_INFO(logger, "Data read: " << string(buf, readLen.value()));
         }
         else
-            LOG4CPLUS_INFO(logger, "Remote disconnected");
+            LOG4CPLUS_INFO(logger, "Remote disconnected"); // NOLINT
     }
     else
     {
-        LOG4CPLUS_ERROR(logger, "Failed to connect to " <<
+        LOG4CPLUS_ERROR(logger, "Failed to connect to " << // NOLINT
             argState.args[1] << ":" << argState.args[0]);
     }
 

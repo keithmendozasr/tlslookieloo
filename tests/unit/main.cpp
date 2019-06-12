@@ -65,7 +65,13 @@ int main(int argc, char *argv[])
         { 0 }
     };
 
-    struct argp argp = { options, parseArgs, "", "tlslookieloo unit tests" };
+    struct argp argp = {
+        reinterpret_cast<struct argp_option *>(&options[0]), // NOLINT
+        parseArgs,
+        "",
+        "tlslookieloo unit tests" 
+    };
+
     argp_parse(&argp, argc, argv, 0, nullptr, nullptr);
 
     if(logConfig.size() != 0)
