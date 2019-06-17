@@ -76,42 +76,49 @@ void ClientSide::startListener(const unsigned int &port,
         // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "System error encountered starting listener. " <<
             e.what());
-        closeSocket();
         throw;
     }
 
     LOG4CPLUS_DEBUG(logger, "Listening on port " << port); // NOLINT
 }
 
-ClientSide ClientSide::acceptClient()
+optional<ClientSide> ClientSide::acceptClient()
 {
     struct sockaddr_storage addr; // NOLINT
     socklen_t addrLen = sizeof(addr);
+    optional<ClientSide> retVal;
 
-    waitForReading(false); // We're waiting forever, so no need to check timeout
-    int fd = accept(getSocket(), reinterpret_cast<struct sockaddr *>(&addr), // NOLINT
-        &addrLen);
-    if(fd < 0)
+    // We're waiting forever, so no need to check timeout
+    if(waitForReading(false))
     {
-        int err = errno;
-        throwSystemError(err, "Accept error");
-    }
+        int fd = accept(getSocket(), reinterpret_cast<struct sockaddr *>(&addr), // NOLINT
+            &addrLen);
+        if(fd < 0)
+        {
+            int err = errno;
+            throwSystemError(err, "Accept error");
+        }
 
-    LOG4CPLUS_DEBUG(logger, "Received connection. New FD: " << fd); // NOLINT
+        LOG4CPLUS_DEBUG(logger, "Received connection. New FD: " << fd); // NOLINT
 
-    if(fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK) == -1) // NOLINT
-    {
-        int err = errno;
-        throwSystemError(err, "Failed to set client FD non-blocking");
+        if(fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK) == -1) // NOLINT
+        {
+            int err = errno;
+            throwSystemError(err, "Failed to set client FD non-blocking");
+        }
+        else
+            LOG4CPLUS_TRACE(logger, "New FD non-blocking set"); // NOLINT
+
+        ClientSide c;
+        c.setSocket(fd);
+        c.setAddrInfo(&addr, addrLen);
+
+        retVal = c;
     }
     else
-        LOG4CPLUS_TRACE(logger, "New FD non-blocking set"); // NOLINT
+        LOG4CPLUS_TRACE(logger, "waitForReading returned false");
 
-    ClientSide c;
-    c.setSocket(fd);
-    c.setAddrInfo(&addr, addrLen);
-
-    return c;
+    return retVal;
 }
 
 void ClientSide::initializeSSLContext(const string &certFile, const string &privKeyFile)

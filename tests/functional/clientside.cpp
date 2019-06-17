@@ -15,7 +15,7 @@
  */
 
 #include <unistd.h>
-
+#include <signal.h>
 #include <argp.h>
 
 #include <log4cplus/initializer.h>
@@ -77,8 +77,33 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
     return 0;
 }
 
+bool keepRunning = true;
+
+void sigHandler(int sig)
+{
+	Logger logger = Logger::getRoot();
+	LOG4CPLUS_INFO(logger, "Stopping program");
+	keepRunning = false;
+}
+
 int main(int argc, char *argv[])
 {
+    struct sigaction sa;
+    sa.sa_handler = sigHandler;
+    sa.sa_flags = 0;
+    sigemptyset(&sa.sa_mask);
+    if(sigaction(SIGINT, &sa, nullptr) == -1)
+    {
+        perror("Set SIGINT signal handler");
+        return EXIT_FAILURE;
+    }
+
+    if(sigaction(SIGTERM, &sa, nullptr) == -1)
+    {
+        perror("Set SIGTERM signal handler");
+        return EXIT_FAILURE;
+    }
+
     Initializer initializer;
     BasicConfigurator::doConfigure();
 
@@ -116,9 +141,17 @@ int main(int argc, char *argv[])
         // NOLINTNEXTLINE
         LOG4CPLUS_INFO(logger, "Listening on " << argState.args[0]);
 
-        while(1)
+        while(keepRunning)
         {
-            auto client = c.acceptClient();
+            auto acceptVal = c.acceptClient();
+            if(!acceptVal)
+            {
+                LOG4CPLUS_INFO(logger, "Client accepting issue");
+                break;
+            }
+
+            auto client = acceptVal.value();
+
             // NOLINTNEXTLINE
             LOG4CPLUS_INFO(logger, "Got client FD: " << client.getSocket());
             client.startSSL(argState.args[1], argState.args[2]);

@@ -41,58 +41,7 @@ namespace tlslookieloo
 class SocketInfo
 {
 public:
-    /**
-     * Default constructor
-     */
-    explicit SocketInfo() : // NOLINT(cppcoreguidelines-pro-type-member-init)
-        logger(log4cplus::Logger::getInstance("SocketInfo")),
-        sockfd(-1),
-        servInfo(nullptr, &freeaddrinfo),
-        sslCtx(nullptr, &SSL_CTX_free)
-    {
-        // NOLINTNEXTLINE
-        LOG4CPLUS_TRACE(logger, "Timeout at construction: " << timeout);
-    }
-
-    /**
-     * Move constructor
-     */
-    SocketInfo(SocketInfo &&rhs) :
-        logger(log4cplus::Logger::getInstance("SocketInfo")),
-        addrInfo(std::move(rhs.addrInfo)),
-        addrInfoSize(rhs.addrInfoSize),
-        servInfo(std::move(rhs.servInfo)),
-        sslCtx(std::move(rhs.sslCtx)),
-        sslObj(std::move(rhs.sslObj))
-    {
-        sockfd = rhs.sockfd;
-        rhs.sockfd = -1;
-        nextServ = rhs.nextServ;
-        timeout = rhs.timeout;
-    }
-
-    /**
-     * Move assignment operator
-     */
-    SocketInfo &operator = (SocketInfo &&rhs)
-    {
-        addrInfo = std::move(rhs.addrInfo);
-        addrInfoSize = std::move(rhs.addrInfoSize);
-        servInfo = std::move(rhs.servInfo);
-        sslCtx = std::move(rhs.sslCtx);
-        sslObj = std::move(rhs.sslObj);
-        sockfd = rhs.sockfd;
-        rhs.sockfd = -1;
-        nextServ = rhs.nextServ;
-        timeout = rhs.timeout;
-
-        return *this;
-    }
-
-    virtual ~SocketInfo()
-    {
-        closeSocket();
-    }
+    virtual ~SocketInfo(){}
 
     /**
      * Set the network timeout to use for all operations
@@ -109,26 +58,10 @@ public:
      */
     inline const int &getSocket() const
     {
-        if(sockfd == -1)
+        if(!sockfd)
             throw std::logic_error("Socket not created");
 
-        return sockfd;
-    }
-
-    /**
-     * Close the socket connection
-     */
-    inline void closeSocket()
-    {
-        // NOLINTNEXTLINE
-        LOG4CPLUS_TRACE(logger, "Value of sockfd for " << this << ": " << sockfd);
-        if(sockfd != -1)
-        {
-            LOG4CPLUS_DEBUG(logger, "Closing FD " << sockfd); // NOLINTEXTLINE
-            shutdown(sockfd, SHUT_RDWR);
-            close(sockfd);
-            sockfd = -1;
-        }
+        return *sockfd;
     }
 
     /**
@@ -221,7 +154,13 @@ protected:
      */
     inline void setSocket(const int &fd)
     {
-        sockfd = fd;
+        if(!sockfd)
+        {
+            LOG4CPLUS_TRACE(logger, "Allocating sockfd");
+            sockfd = std::shared_ptr<int>(new int, SockfdDeleter());
+        }
+
+        *sockfd = fd;
     }
 
     /**
@@ -297,17 +236,36 @@ protected:
     const bool handleRetry(const int &rslt);
 
 private:
-    log4cplus::Logger logger;
+    log4cplus::Logger logger = log4cplus::Logger::getInstance("SocketInfo");
     struct sockaddr_storage addrInfo;
     size_t addrInfoSize;
-    int sockfd;
 
-    std::unique_ptr<struct addrinfo, decltype(&freeaddrinfo)> servInfo;
+    // Use shared_ptr on the sockfd holder to allow this class to be copyable
+    // without having to implement the reference counters in this class
+    struct SockfdDeleter
+    {
+        void operator()(int *ptr)
+        {
+            // NOLINTNEXTLINE
+            if(ptr != nullptr)
+            {
+                log4cplus::Logger logger = log4cplus::Logger::getInstance("SocketInfo");
+                LOG4CPLUS_DEBUG(logger, "Closing FD " << *ptr); // NOLINTEXTLINE
+                shutdown(*ptr, SHUT_RDWR);
+                close(*ptr);
+                delete ptr;
+            }
+        }
+    };
+    
+    std::shared_ptr<int> sockfd = nullptr;
+
+    std::shared_ptr<struct addrinfo> servInfo;
     struct addrinfo *nextServ = nullptr;
 
     unsigned int timeout = 5;
 
-    std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)> sslCtx;
+    std::shared_ptr<SSL_CTX> sslCtx;
 
     struct SSLDeleter {
         void operator()(SSL * ptr)
@@ -319,14 +277,7 @@ private:
             }
         }
     };
-    std::unique_ptr<SSL, SSLDeleter> sslObj;
-
-    // Explicitly force socket info move. File descriptors shouldn't be shared
-    // anyway
-    SocketInfo(const SocketInfo &) = delete;
-    SocketInfo(SocketInfo &) = delete;
-    SocketInfo &operator =(const SocketInfo &) = delete;
-    SocketInfo &operator =(SocketInfo &) = delete;
+    std::shared_ptr<SSL> sslObj;
 };
 
 } //namespace tlslookieloo

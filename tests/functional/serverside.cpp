@@ -128,12 +128,11 @@ int main(int argc, char *argv[])
             argState.args[0]);
         LOG4CPLUS_INFO(logger, "Send data to server"); // NOLINT
         const char msg[] = "Hello from serverside";
-        ServerSide s2 = std::move(s);
-        s2.writeData(&msg[0], sizeof(msg));
+        s.writeData(&msg[0], sizeof(msg));
 
         const size_t msgSize = 1024;
         char buf[msgSize];
-        auto readLen = s2.readData(&buf[0], msgSize);
+        auto readLen = s.readData(&buf[0], msgSize);
         if(readLen)
         {
             // NOLINTNEXTLINE

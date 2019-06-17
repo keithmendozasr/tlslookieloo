@@ -30,19 +30,6 @@ namespace tlslookieloo
 class ClientSide : public SocketInfo
 {
 public:
-    explicit ClientSide(){}
-
-    ClientSide(ClientSide &&rhs) :
-        SocketInfo(std::move(rhs))
-    {}
-
-    ClientSide &operator = (ClientSide && rhs)
-    {
-        SocketInfo::operator =(std::move(rhs));
-
-        return *this;
-    }
-
     virtual ~ClientSide() {}
 
     /**
@@ -59,7 +46,7 @@ public:
     /**
      * Accept connection
      */
-    ClientSide acceptClient();
+    std::optional<ClientSide> acceptClient();
     
     /**
      * Create the SSL context for this instance
@@ -91,12 +78,6 @@ private:
      * Go through the SSL handshake
      */
     const bool sslHandshake();
-
-    // Deleted constructors and operators
-    ClientSide(const ClientSide &) = delete;
-    ClientSide(ClientSide &) = delete;
-    ClientSide &operator=(const ClientSide &) = delete;
-    ClientSide &operator=(ClientSide &) = delete;
 };
 
 } //namespace tlslookieloo

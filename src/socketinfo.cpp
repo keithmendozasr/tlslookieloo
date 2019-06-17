@@ -16,6 +16,7 @@
 #include <cstring>
 #include <memory>
 #include <stdexcept>
+#include <csignal>
 
 #include <log4cplus/loggingmacros.h>
 
@@ -30,11 +31,8 @@ namespace tlslookieloo
 
 const bool SocketInfo::resolveHostPort(const unsigned int &port, const string &host)
 {
-    if(sockfd != -1)
-    {
-        if(servInfo)
+    if(sockfd && servInfo)
             throw logic_error("Instance already initialized");
-    }
 
     if(port > 65535)
         throw invalid_argument("port parameter > 65535");
@@ -63,8 +61,7 @@ const bool SocketInfo::resolveHostPort(const unsigned int &port, const string &h
     else
     {
         LOG4CPLUS_DEBUG(logger, "Hostname and port info resolved"); // NOLINT
-        servInfo = unique_ptr<struct addrinfo, decltype(&freeaddrinfo)>(
-            tmp, &freeaddrinfo);
+        servInfo = shared_ptr<struct addrinfo>(tmp, &freeaddrinfo);
         LOG4CPLUS_TRACE(logger, "servInfo set: " << // NOLINT
             (servInfo ? "yes" : "no"));
         nextServ = servInfo.get();
@@ -100,9 +97,11 @@ void SocketInfo::initNextSocket()
             LOG4CPLUS_TRACE(logger, "IP to try: "<<hostname); // NOLINT
     }
     LOG4CPLUS_TRACE(logger, "Attempt to get socket"); // NOLINT
-    sockfd = socket(addrInfoItem->ai_family,
-        addrInfoItem->ai_socktype | SOCK_NONBLOCK, addrInfoItem->ai_protocol);
-    if (sockfd == -1)
+    sockfd = shared_ptr<int>(new int(socket(addrInfoItem->ai_family,
+        addrInfoItem->ai_socktype | SOCK_NONBLOCK, addrInfoItem->ai_protocol)),
+        SockfdDeleter()
+    );
+    if (*sockfd == -1)
     {
         int err = errno;
         char buf[256];
@@ -126,7 +125,7 @@ void SocketInfo::initNextSocket()
 
 const string SocketInfo::getSocketIP() const
 {
-    if(sockfd == -1)
+    if(!sockfd)
         throw logic_error("Address info not initialized");
 
     string ip;
@@ -186,14 +185,17 @@ void SocketInfo::setAddrInfo(const sockaddr_storage *addr, const size_t &addrSiz
 
 const bool SocketInfo::waitForReading(const bool &withTimeout)
 {
+    if(!sockfd)
+        throw logic_error("no socket");
+
     fd_set readFd;
     FD_ZERO(&readFd);
-    FD_SET(sockfd, &readFd); // NOLINT
+    FD_SET(*sockfd, &readFd); // NOLINT
 
     timeval waitTime; // NOLINT
     timeval *timevalPtr = nullptr;
 
-    bool retVal = true;
+    bool retVal = false;
 
     if(withTimeout)
     {
@@ -206,22 +208,33 @@ const bool SocketInfo::waitForReading(const bool &withTimeout)
 
     do
     {
-        auto rslt = select(sockfd+1, &readFd, nullptr, nullptr, timevalPtr);
+        LOG4CPLUS_TRACE(logger, "Wait on " << *sockfd);
+        auto rslt = select((*sockfd)+1, &readFd, nullptr, nullptr, timevalPtr);
+        LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt);
         if(rslt == -1)
         {
             auto err = errno;
-            throwSystemError(err,
-                "Error waiting for socket to be ready for reading.");
+            LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " << strerror(err));
+            if(err)
+            {
+                throwSystemError(err,
+                    "Error waiting for socket to be ready for reading.");
+            }
+            else
+            {
+                LOG4CPLUS_TRACE(logger, "Caught signal");
+                break;
+            }
         }
         else if(rslt == 0)
         {
             LOG4CPLUS_DEBUG(logger, "Read wait time expired"); // NOLINT
-            retVal = false;
             break;
         }
-        else if(FD_ISSET(sockfd, &readFd)) // NOLINT
+        else if(FD_ISSET(*sockfd, &readFd)) // NOLINT
         {
             LOG4CPLUS_DEBUG(logger, "Socket ready for reading"); // NOLINT
+            retVal = true;
             break;
         }
     } while(true);
@@ -271,12 +284,12 @@ const bool SocketInfo::waitForWriting(const bool &withTimeout)
 {
     fd_set writeFd;
     FD_ZERO(&writeFd);
-    FD_SET(sockfd, &writeFd); // NOLINT
+    FD_SET(*sockfd, &writeFd); // NOLINT
 
     timeval waitTime; // NOLINT
     timeval *timevalPtr = nullptr;
     
-    bool retVal = true;
+    bool retVal = false;
 
     if(withTimeout)
     {
@@ -289,22 +302,31 @@ const bool SocketInfo::waitForWriting(const bool &withTimeout)
 
     do
     {
-        auto rslt = select(sockfd+1, nullptr, &writeFd, nullptr, timevalPtr);
+        auto rslt = select((*sockfd)+1, nullptr, &writeFd, nullptr, timevalPtr);
         if(rslt == -1)
         {
             auto err = errno;
-            throwSystemError(err,
-                "Error waiting for socket to be ready for writing.");
+            LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " << strerror(err));
+            if(err)
+            {
+                throwSystemError(err,
+                    "Error waiting for socket to be ready for writing.");
+            }
+            else
+            {
+                LOG4CPLUS_TRACE(logger, "Caught signal");
+                break;
+            }
         }
         else if(rslt == 0)
         {
             LOG4CPLUS_DEBUG(logger, "Write wait time expired"); // NOLINT
-            retVal = false;
             break;
         }
-        else if(FD_ISSET(sockfd, &writeFd)) // NOLINT
+        else if(FD_ISSET(*sockfd, &writeFd)) // NOLINT
         {
             LOG4CPLUS_DEBUG(logger, "Socket ready for writing"); // NOLINT
+            retVal = true;
             break;
         }
     } while(true);
@@ -343,10 +365,7 @@ void SocketInfo::newSSLCtx()
 {
     // Allow old SSL protocol; because we don't control what protocol the
     //  system under test supports
-    sslCtx = unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>(
-        SSL_CTX_new(TLS_method()), &SSL_CTX_free
-    );
-
+    sslCtx = shared_ptr<SSL_CTX>(SSL_CTX_new(TLS_method()), &SSL_CTX_free);
     if(!sslCtx)
     {
         const string msg = sslErrMsg("Failed to create SSL context. Cause: ");
@@ -369,7 +388,7 @@ void SocketInfo::newSSLCtx()
 
 void SocketInfo::newSSLObj()
 {
-    sslObj = unique_ptr<SSL, SSLDeleter>(SSL_new(getSSLCtxPtr()));
+    sslObj = shared_ptr<SSL>(SSL_new(getSSLCtxPtr()), SSLDeleter());
     if(!sslObj)
     {
         const string msg = sslErrMsg("Failed to create SSL instance. Cause: ");

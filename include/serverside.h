@@ -31,28 +31,6 @@ class ServerSide : public SocketInfo
 {
 public:
     /**
-     * Default constructor
-     */
-    explicit ServerSide(){}
-
-    /**
-     * Move constructor
-     */
-    ServerSide(ServerSide &&rhs) :
-        SocketInfo(std::move(rhs))
-    {}
-
-    /**
-     * Move assignment operator
-     */
-    ServerSide &operator =(ServerSide && rhs)
-    {
-        SocketInfo::operator =(std::move(rhs));
-
-        return *this;
-    }
-
-    /**
      * Destructor
      */
     virtual ~ServerSide() {}
@@ -96,12 +74,6 @@ private:
      * \param host Expected hostname to connect to
      */
     const bool sslHandshake(const std::string &host);
-
-    // Deleted constructors/operators
-    ServerSide(const ServerSide &) = delete;
-    ServerSide(ServerSide &) = delete;
-    ServerSide &operator = (const ServerSide &) = delete;
-    ServerSide &operator = (ServerSide &) = delete;
 };
 
 } //namespace tlslookieloo

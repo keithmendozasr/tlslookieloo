@@ -161,10 +161,6 @@ const bool ServerSide::sockConnect(const unsigned int &port, const string &host)
                     retVal = false;
                     break;
                 }
-
-                // If it gets here closed the previously-opened socket for the next
-                // try
-                closeSocket();
             }while(1);
         }
         else
