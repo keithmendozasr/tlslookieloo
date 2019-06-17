@@ -31,6 +31,11 @@ class ServerSide : public SocketInfo
 {
 public:
     /**
+     * Constructor
+     */
+    ServerSide(){}
+
+    /**
      * Destructor
      */
     virtual ~ServerSide() {}

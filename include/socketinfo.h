@@ -19,7 +19,6 @@
 #include <system_error>
 #include <string>
 #include <memory>
-#include <utility>
 #include <optional>
 
 #include <netdb.h>
@@ -41,6 +40,19 @@ namespace tlslookieloo
 class SocketInfo
 {
 public:
+    /**
+     * Constructor
+     */
+    explicit SocketInfo();
+
+    /**
+     * Move constructor
+     */
+    SocketInfo(SocketInfo &rhs);
+
+    /**
+     * Destructor
+     */
     virtual ~SocketInfo(){}
 
     /**
@@ -265,7 +277,7 @@ private:
 
     unsigned int timeout = 5;
 
-    std::shared_ptr<SSL_CTX> sslCtx;
+    std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)> sslCtx;
 
     struct SSLDeleter {
         void operator()(SSL * ptr)

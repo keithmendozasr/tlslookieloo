@@ -30,6 +30,21 @@ namespace tlslookieloo
 class ClientSide : public SocketInfo
 {
 public:
+    /**
+     * Constructor
+     */
+    explicit ClientSide(){}
+
+    /**
+     * Copy constructor
+     */
+    ClientSide(ClientSide &rhs) :
+        SocketInfo(rhs)
+    {}
+
+    /**
+     * Destructor
+     */
     virtual ~ClientSide() {}
 
     /**

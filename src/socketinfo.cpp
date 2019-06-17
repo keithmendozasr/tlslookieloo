@@ -27,7 +27,21 @@ using namespace log4cplus;
 
 namespace tlslookieloo
 {
+SocketInfo::SocketInfo() :
+   sslCtx(nullptr, &SSL_CTX_free)
+{}
 
+SocketInfo::SocketInfo(SocketInfo &rhs) :
+    logger(Logger::getInstance("SockInfo")),
+    addrInfo(rhs.addrInfo),
+    addrInfoSize(rhs.addrInfoSize),
+    sockfd(rhs.sockfd),
+    servInfo(rhs.servInfo),
+    nextServ(rhs.nextServ),
+    timeout(rhs.timeout),
+    sslCtx(nullptr, &SSL_CTX_free),
+    sslObj(rhs.sslObj)
+{}
 
 const bool SocketInfo::resolveHostPort(const unsigned int &port, const string &host)
 {
@@ -365,7 +379,8 @@ void SocketInfo::newSSLCtx()
 {
     // Allow old SSL protocol; because we don't control what protocol the
     //  system under test supports
-    sslCtx = shared_ptr<SSL_CTX>(SSL_CTX_new(TLS_method()), &SSL_CTX_free);
+    sslCtx = unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>(
+        SSL_CTX_new(TLS_method()), &SSL_CTX_free);
     if(!sslCtx)
     {
         const string msg = sslErrMsg("Failed to create SSL context. Cause: ");

@@ -18,6 +18,7 @@
 #include <stdexcept>
 #include <string>
 #include <cerrno>
+#include <utility>
 
 #include <sys/socket.h>
 #include <unistd.h>
@@ -86,7 +87,6 @@ optional<ClientSide> ClientSide::acceptClient()
 {
     struct sockaddr_storage addr; // NOLINT
     socklen_t addrLen = sizeof(addr);
-    optional<ClientSide> retVal;
 
     // We're waiting forever, so no need to check timeout
     if(waitForReading(false))
@@ -113,12 +113,12 @@ optional<ClientSide> ClientSide::acceptClient()
         c.setSocket(fd);
         c.setAddrInfo(&addr, addrLen);
 
-        retVal = c;
+        return make_optional(c);
     }
     else
         LOG4CPLUS_TRACE(logger, "waitForReading returned false");
 
-    return retVal;
+    return nullopt;
 }
 
 void ClientSide::initializeSSLContext(const string &certFile, const string &privKeyFile)
