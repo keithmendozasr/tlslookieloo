@@ -82,15 +82,15 @@ bool keepRunning = true;
 void sigHandler(int sig)
 {
 	Logger logger = Logger::getRoot();
-	LOG4CPLUS_INFO(logger, "Stopping program");
+	LOG4CPLUS_INFO(logger, "Stopping program"); // NOLINT
 	keepRunning = false;
 }
 
 int main(int argc, char *argv[])
 {
     struct sigaction sa;
-    sa.sa_handler = sigHandler;
-    sa.sa_flags = 0;
+    sa.sa_handler = sigHandler; // NOLINT
+    sa.sa_flags = 0; // NOLINT
     sigemptyset(&sa.sa_mask);
     if(sigaction(SIGINT, &sa, nullptr) == -1)
     {
@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
             auto acceptVal = c.acceptClient();
             if(!acceptVal)
             {
-                LOG4CPLUS_INFO(logger, "Client accepting issue");
+                LOG4CPLUS_INFO(logger, "Client accepting issue"); // NOLINT
                 break;
             }
 

@@ -116,7 +116,7 @@ optional<ClientSide> ClientSide::acceptClient()
         return make_optional(c);
     }
     else
-        LOG4CPLUS_TRACE(logger, "waitForReading returned false");
+        LOG4CPLUS_TRACE(logger, "waitForReading returned false"); // NOLINT
 
     return nullopt;
 }

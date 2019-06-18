@@ -17,7 +17,6 @@
 #pragma once
 
 #include <string>
-#include <memory>
 #include <optional>
 
 #include <log4cplus/logger.h>
@@ -93,6 +92,11 @@ private:
      * Go through the SSL handshake
      */
     const bool sslHandshake();
+
+    // Delete uneeded constructors/operators
+    ClientSide(ClientSide &&) = delete;
+    ClientSide &operator =(ClientSide &) = delete;
+    ClientSide &operator =(ClientSide &&) = delete;
 };
 
 } //namespace tlslookieloo

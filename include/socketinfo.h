@@ -15,8 +15,6 @@
  */
 #pragma once
 
-#include <stdexcept>
-#include <system_error>
 #include <string>
 #include <memory>
 #include <optional>
@@ -46,9 +44,10 @@ public:
     explicit SocketInfo();
 
     /**
-     * Move constructor
+     * Copy constructor
      */
-    SocketInfo(SocketInfo &rhs);
+    SocketInfo(const SocketInfo &rhs);
+
 
     /**
      * Destructor
@@ -168,7 +167,7 @@ protected:
     {
         if(!sockfd)
         {
-            LOG4CPLUS_TRACE(logger, "Allocating sockfd");
+            LOG4CPLUS_TRACE(logger, "Allocating sockfd"); // NOLINT
             sockfd = std::shared_ptr<int>(new int, SockfdDeleter());
         }
 
@@ -265,7 +264,7 @@ private:
                 LOG4CPLUS_DEBUG(logger, "Closing FD " << *ptr); // NOLINTEXTLINE
                 shutdown(*ptr, SHUT_RDWR);
                 close(*ptr);
-                delete ptr;
+                delete ptr; // NOLINT(cppcoreguidelines-owning-memory)
             }
         }
     };
@@ -290,6 +289,11 @@ private:
         }
     };
     std::shared_ptr<SSL> sslObj;
+
+    // Delete unneeded constructors/operators
+    SocketInfo(SocketInfo &&) = delete;
+    SocketInfo & operator = (SocketInfo const &) = delete;
+    SocketInfo & operator = (SocketInfo &&) = delete;
 };
 
 } //namespace tlslookieloo

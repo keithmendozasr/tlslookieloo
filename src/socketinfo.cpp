@@ -27,11 +27,12 @@ using namespace log4cplus;
 
 namespace tlslookieloo
 {
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 SocketInfo::SocketInfo() :
-   sslCtx(nullptr, &SSL_CTX_free)
+    sslCtx(nullptr, &SSL_CTX_free)
 {}
 
-SocketInfo::SocketInfo(SocketInfo &rhs) :
+SocketInfo::SocketInfo(const SocketInfo &rhs) :
     logger(Logger::getInstance("SockInfo")),
     addrInfo(rhs.addrInfo),
     addrInfoSize(rhs.addrInfoSize),
@@ -222,13 +223,14 @@ const bool SocketInfo::waitForReading(const bool &withTimeout)
 
     do
     {
-        LOG4CPLUS_TRACE(logger, "Wait on " << *sockfd);
+        LOG4CPLUS_TRACE(logger, "Wait on " << *sockfd); // NOLINT
         auto rslt = select((*sockfd)+1, &readFd, nullptr, nullptr, timevalPtr);
-        LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt);
+        LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt); // NOLINT
         if(rslt == -1)
         {
             auto err = errno;
-            LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " << strerror(err));
+            LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
+                << strerror(err));
             if(err)
             {
                 throwSystemError(err,
@@ -236,7 +238,7 @@ const bool SocketInfo::waitForReading(const bool &withTimeout)
             }
             else
             {
-                LOG4CPLUS_TRACE(logger, "Caught signal");
+                LOG4CPLUS_TRACE(logger, "Caught signal"); // NOLINT
                 break;
             }
         }
@@ -320,7 +322,8 @@ const bool SocketInfo::waitForWriting(const bool &withTimeout)
         if(rslt == -1)
         {
             auto err = errno;
-            LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " << strerror(err));
+            LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
+                << strerror(err));
             if(err)
             {
                 throwSystemError(err,
@@ -328,7 +331,7 @@ const bool SocketInfo::waitForWriting(const bool &withTimeout)
             }
             else
             {
-                LOG4CPLUS_TRACE(logger, "Caught signal");
+                LOG4CPLUS_TRACE(logger, "Caught signal"); // NOLINT
                 break;
             }
         }

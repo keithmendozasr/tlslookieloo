@@ -17,8 +17,6 @@
 #pragma once
 
 #include <string>
-#include <memory>
-#include <optional>
 
 #include <log4cplus/logger.h>
 
@@ -34,6 +32,13 @@ public:
      * Constructor
      */
     ServerSide(){}
+
+    /**
+     * Copy constructor
+     */
+    ServerSide(const ServerSide &rhs) :
+        SocketInfo(rhs)
+    {}
 
     /**
      * Destructor
@@ -79,6 +84,11 @@ private:
      * \param host Expected hostname to connect to
      */
     const bool sslHandshake(const std::string &host);
+
+    // Delete uneeded constructors/operators
+    ServerSide(ServerSide &&) = delete;
+    ServerSide &operator = (ServerSide &) = delete;
+    ServerSide &operator = (ServerSide &&) = delete;
 };
 
 } //namespace tlslookieloo
