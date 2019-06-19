@@ -18,22 +18,25 @@
 
 #include <string>
 #include <vector>
+#include <tuple>
 
 namespace tlslookieloo
 {
 
-struct Target
-{
-    const std::string name,
-        client,
-        server;
-};
+typedef std::tuple<
+    const std::string,  // name
+    const std::string,  // server-side host
+    const unsigned int, // server-side port
+    const unsigned int, // client-side listen port
+    const std::string,  // client-side server cert
+    const std::string   // client-side server key
+> TargetItem;
 
 /**
  * Parse the targets file
  * \arg file Targets file path
  * \exception YAML::Exception
  */
-const std::vector<Target> parseTargetsFile(const std::string &file);
+const std::vector<TargetItem> parseTargetsFile(const std::string &file);
 
 } //namespace tlslookieloo

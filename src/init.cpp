@@ -28,9 +28,9 @@ using namespace YAML;
 namespace tlslookieloo
 {
 
-const vector<Target> parseTargetsFile(const string &file)
+const vector<TargetItem> parseTargetsFile(const string &file)
 {
-    vector<Target> retVal;
+    vector<TargetItem> retVal;
 
     auto logger = Logger::getRoot();
     LOG4CPLUS_INFO(logger, "Parsing targets file"); // NOLINT
@@ -57,17 +57,30 @@ const vector<Target> parseTargetsFile(const string &file)
         }
 
         if(!item["name"])
-            throw YAML::Exception(item.Mark(), "Name missing");
+            throw YAML::Exception(item.Mark(), "name field missing");
 
-        if(!item["client"])
-            throw YAML::Exception(item.Mark(), "Client missing");
+        if(!item["serverhost"])
+            throw YAML::Exception(item.Mark(), "serverhost field missing");
 
-        if(!item["server"])
-            throw YAML::Exception(item.Mark(), "Server missing");
+        if(!item["serverport"])
+            throw YAML::Exception(item.Mark(), "serverport field missing");
 
-        retVal.push_back({ item["name"].as<string>(),
-            item["client"].as<string>(),
-            item["server"].as<string>()
+        if(!item["clientport"])
+            throw YAML::Exception(item.Mark(), "clientport field missing");
+
+        if(!item["clientcert"])
+            throw YAML::Exception(item.Mark(), "clientcert field missing");
+
+        if(!item["clientkey"])
+            throw YAML::Exception(item.Mark(), "clientkey field missing");
+
+        retVal.push_back({
+            item["name"].as<string>(),
+            item["serverhost"].as<string>(),
+            item["serverport"].as<int>(),
+            item["clientport"].as<int>(),
+            item["clientcert"].as<string>(),
+            item["clientkey"].as<string>()
         });
     }
 

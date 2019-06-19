@@ -1,5 +1,5 @@
 -
-  serverhost: "server"
+  name: "App1"
   serverport: 8908
   clientport: 9988
   clientcert: "test_certs/cert.pem"

@@ -92,30 +92,26 @@ static void start(const string &targets)
     try
     {
         LOG4CPLUS_DEBUG(logger, "Process targets files"); // NOLINT
-        for(const Target &item : parseTargetsFile(targets))
+        for(auto item : parseTargetsFile(targets))
         {
             // NOLINTNEXTLINE
-            LOG4CPLUS_INFO(logger, "Starting " << item.name << " bridge");
+            LOG4CPLUS_INFO(logger, "Starting " << get<0>(item) << " bridge");
 
-            // Spawn thread for each one later on
-            const regex re("(.*):(.*)");
-            smatch matches;
-            if(regex_match(item.server, matches, re))
+            LOG4CPLUS_TRACE(logger, "Server Port: " << get<2>(item) << // NOLINT
+                " Host: " << get<1>(item));
+            ServerSide s;
+            if(s.connect(get<2>(item), get<1>(item)))
             {
-                LOG4CPLUS_TRACE(logger, "Port: " << matches[2] << // NOLINT
-                    " Host: " << matches[1]);
-                auto port = stoi(matches[2]);
-                ServerSide s;
-                if(s.connect(port, matches[1]))
-                    // NOLINTNEXTLINE
-                    LOG4CPLUS_INFO(logger, "Connected to " << item.server);
-                else
-                    // NOLINTNEXTLINE
-                    LOG4CPLUS_INFO(logger, "Failed to connect to " << item.server);
+                // NOLINTNEXTLINE
+                LOG4CPLUS_INFO(logger, "Connected to " << get<1>(item) << ":"
+                    << get<2>(item));
             }
             else
+            {
                 // NOLINTNEXTLINE
-                LOG4CPLUS_INFO(logger, "\"" << item.server << " not a valid format");
+                LOG4CPLUS_INFO(logger, "Failed to connect to "
+                    << get<1>(item) << ":" << get<2>(item));
+            }
         }
     }
     catch(const YAML::Exception &e)
