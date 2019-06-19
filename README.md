@@ -1,10 +1,10 @@
-#tlslookieloo
+# tlslookieloo
 Utility to view stream message between server and client
 
-#Longer idea
+# Longer idea
 tlslookieloo is a utility to help troubleshoot network-related issues between a server and client. A client will connect to tlslookieloo, who in turn, will connect to the target server. tlslookieloo will then store/display the unencrypted message between the two.
  
-#Dependencies
+# Dependencies
 These are all minimum version
 
 * C++ 14 compatible compiler
@@ -12,7 +12,7 @@ These are all minimum version
 * OpenSSL 1.1.0j
 * yaml-cpp 0.6
 
-#Submodules
+# Submodules
 The following are included as submodules of this project:
 * googletest at master
 * log4cplus at REL\_2\_0\_4
