@@ -446,7 +446,7 @@ const bool SocketInfo::handleRetry(const int &rslt)
     {
     case SSL_ERROR_WANT_READ:
         LOG4CPLUS_TRACE(logger, "Wait for read ready"); // NOLINT
-        if(!waitForReading(timeout))
+        if(!waitForReading())
         {
             // NOLINTNEXTLINE
             LOG4CPLUS_INFO(logger, "Network timeout waiting to read data");
@@ -457,7 +457,7 @@ const bool SocketInfo::handleRetry(const int &rslt)
         break;
     case SSL_ERROR_WANT_WRITE:
         LOG4CPLUS_TRACE(logger, "Wait for write ready"); // NOLINT
-        if(!waitForWriting(timeout))
+        if(!waitForWriting())
         {
             LOG4CPLUS_INFO(logger, "Network timeout waiting to write data"); // NOLINT
             retVal = false;
