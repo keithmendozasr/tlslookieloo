@@ -312,6 +312,10 @@ private:
     FRIEND_TEST(SocketInfo, waitForWritingInterrupted);
     FRIEND_TEST(SocketInfo, waitForWritingError);
     FRIEND_TEST(SocketInfo, waitForWritingNoTimeout);
+
+    FRIEND_TEST(SocketInfo, readDataExact);
+    FRIEND_TEST(SocketInfo, readDataShort);
+    FRIEND_TEST(SocketInfo, readDataNoData);
 };
 
 } //namespace tlslookieloo

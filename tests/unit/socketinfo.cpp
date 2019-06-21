@@ -32,6 +32,10 @@ namespace tlslookieloo
 std::function<int(int, fd_set *, fd_set *, fd_set *, struct timeval *)>
     selectFunc;
 
+function<int(SSL *, void *, int)> sslReadFunc;
+
+int SSLErrCode;
+
 extern "C"
 {
 
@@ -39,6 +43,16 @@ int select(int nfds, fd_set *readFds, fd_set *writeFds, fd_set *exceptFds,
     struct timeval *timeout)
 {
     return selectFunc(nfds, readFds, writeFds, exceptFds, timeout);
+}
+
+int SSL_read(SSL *ssl, void *buf, int num)
+{
+    return sslReadFunc(ssl, buf, num);
+}
+
+int SSL_get_error(const SSL *, int)
+{
+    return SSLErrCode;
 }
 
 }
@@ -119,7 +133,7 @@ TEST(SocketInfo, waitForReadingError) // NOLINT
             return -1;
         };
 
-    EXPECT_THROW(s.waitForReading(), system_error);
+    EXPECT_THROW(s.waitForReading(), system_error); // NOLINT
 }
 
 TEST(SocketInfo, waitForReadingNoTimeout) // NOLINT
@@ -214,7 +228,7 @@ TEST(SocketInfo, waitForWritingError) // NOLINT
             return -1;
         };
 
-    EXPECT_THROW(s.waitForWriting(), system_error);
+    EXPECT_THROW(s.waitForWriting(), system_error); // NOLINT
 }
 
 TEST(SocketInfo, waitForWritingNoTimeout) // NOLINT
@@ -229,6 +243,82 @@ TEST(SocketInfo, waitForWritingNoTimeout) // NOLINT
         };
 
     EXPECT_TRUE(s.waitForWriting(false));
+}
+
+TEST(SocketInfo, readDataExact) // NOLINT
+{
+    SocketInfo s;
+    s.newSSLCtx();
+    s.newSSLObj();
+
+    char buf[3];
+    sslReadFunc =
+        [](SSL *ssl, void *buf, int num)
+        {
+            EXPECT_NE(ssl, nullptr);
+            EXPECT_NE(buf, nullptr);
+            EXPECT_EQ(num, 3);
+            
+            char *tmp = reinterpret_cast<char *>(buf); // NOLINT
+            tmp[0] = 'a'; // NOLINT
+            tmp[1] = 'b'; // NOLINT
+            tmp[2] = 'c'; // NOLINT
+
+            return 3;
+        };
+    auto rslt = s.readData(&buf[0], 3);
+    EXPECT_TRUE(rslt);
+    EXPECT_EQ(rslt.value(), 3ul);
+    EXPECT_EQ(string(&buf[0], 3), string("abc"));
+}
+
+TEST(SocketInfo, readDataShort) // NOLINT
+{
+    SocketInfo s;
+    s.newSSLCtx();
+    s.newSSLObj();
+
+    char buf[30];
+    sslReadFunc =
+        [](SSL *ssl, void *buf, int num)
+        {
+            EXPECT_NE(ssl, nullptr);
+            EXPECT_NE(buf, nullptr);
+            EXPECT_EQ(num, 30);
+            
+            char *tmp = reinterpret_cast<char *>(buf); // NOLINT
+            tmp[0] = 'a'; // NOLINT
+            tmp[1] = 'b'; // NOLINT
+            tmp[2] = 'c'; // NOLINT
+            tmp[3] = 'd'; // NOLINT
+            tmp[4] = 'e'; // NOLINT
+            tmp[5] = '\0'; // NOLINT
+
+            return 6;
+        };
+    auto rslt = s.readData(&buf[0], 30);
+    EXPECT_TRUE(rslt);
+    EXPECT_EQ(rslt.value(), 6ul);
+    EXPECT_STREQ(&buf[0], "abcde");
+}
+
+
+TEST(SocketInfo, readDataNoData) // NOLINT
+{
+    SocketInfo s;
+    s.newSSLCtx();
+    s.newSSLObj();
+
+    SSLErrCode = SSL_ERROR_SYSCALL;
+    errno = 0;
+    char buf[1];
+    sslReadFunc =
+        [](SSL *ssl, void *buf, int num)
+        {
+            return -1;
+        };
+    auto rslt = s.readData(&buf[0], 1);
+    EXPECT_FALSE(rslt);
 }
 
 } //namespace tlslookieloo
