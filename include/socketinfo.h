@@ -29,6 +29,10 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+#include "log4cplus/loggingmacros.h"
+
+#include "gtest/gtest_prod.h"
+
 namespace tlslookieloo
 {
 
@@ -294,6 +298,20 @@ private:
     SocketInfo(SocketInfo &&) = delete;
     SocketInfo & operator = (SocketInfo const &) = delete;
     SocketInfo & operator = (SocketInfo &&) = delete;
+
+    FRIEND_TEST(SocketInfo, waitForReadingReady);
+    FRIEND_TEST(SocketInfo, waitForReadingTimeout);
+    FRIEND_TEST(SocketInfo, waitForReadingSetTimeout);
+    FRIEND_TEST(SocketInfo, waitForReadingInterrupted);
+    FRIEND_TEST(SocketInfo, waitForReadingError);
+    FRIEND_TEST(SocketInfo, waitForReadingNoTimeout);
+
+    FRIEND_TEST(SocketInfo, waitForWritingReady);
+    FRIEND_TEST(SocketInfo, waitForWritingTimeout);
+    FRIEND_TEST(SocketInfo, waitForWritingSetTimeout);
+    FRIEND_TEST(SocketInfo, waitForWritingInterrupted);
+    FRIEND_TEST(SocketInfo, waitForWritingError);
+    FRIEND_TEST(SocketInfo, waitForWritingNoTimeout);
 };
 
 } //namespace tlslookieloo

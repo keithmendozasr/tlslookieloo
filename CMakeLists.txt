@@ -48,6 +48,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_BINARY_DIR}/include
     ${CMAKE_BINARY_DIR}/log4cplus/include
+    ${CMAKE_SOURCE_DIR}/googletest/googletest/include
 )
 
 add_subdirectory(tests)

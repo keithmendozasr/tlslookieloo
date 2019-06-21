@@ -15,6 +15,7 @@
 link_directories(${CMAKE_BINARY_DIR}/googletest/lib)
 add_executable(unittests main.cpp
     ${CMAKE_SOURCE_DIR}/src/init.cpp init.cpp
+    ${CMAKE_SOURCE_DIR}/src/socketinfo.cpp socketinfo.cpp
 )
 target_include_directories(unittests
     PRIVATE ${CMAKE_SOURCE_DIR}/tests/unit
@@ -27,4 +28,5 @@ target_link_libraries(unittests gtest pthread
     yaml-cpp ssl crypto
 )
 
-add_test(test unittests -t${CMAKE_SOURCE_DIR}/tests/unit/targets_files)
+add_test(parseTargetsFile unittests -t${CMAKE_SOURCE_DIR}/tests/unit/targets_files --gtest_filter=parseTargetsFile)
+add_test(SocketInfo unittests --gtest_filter=SocketInfo.*)
