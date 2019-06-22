@@ -16,6 +16,7 @@
 
 #include "gtest/gtest.h"
 
+#include <functional>
 #include <cerrno>
 #include <system_error>
 
@@ -29,12 +30,14 @@ using ::testing::MatchesRegex;
 namespace tlslookieloo
 {
 
-std::function<int(int, fd_set *, fd_set *, fd_set *, struct timeval *)>
+function<int(int, fd_set *, fd_set *, fd_set *, struct timeval *)>
     selectFunc;
 
 function<int(SSL *, void *, int)> sslReadFunc;
 
 int SSLErrCode;
+
+function<int(SSL *, const void *, int)> sslWriteFunc;
 
 extern "C"
 {
@@ -55,7 +58,12 @@ int SSL_get_error(const SSL *, int)
     return SSLErrCode;
 }
 
+int SSL_write(SSL *ssl, const void *buf, int num)
+{
+    return sslWriteFunc(ssl, buf, num);
 }
+
+} // extern "C"
 
 TEST(SocketInfo, waitForReadingReady) // NOLINT
 {
@@ -381,6 +389,78 @@ TEST(SocketInfo, readDataNoData) // NOLINT
         };
     auto rslt = s.readData(&buf[0], 1);
     EXPECT_FALSE(rslt);
+}
+
+TEST(SocketInfo, writeDataExact) // NOLINT
+{
+    SocketInfo s;
+    s.newSSLCtx();
+    s.newSSLObj();
+
+    sslWriteFunc =
+        [](SSL *ssl, const void *buf, int num)
+        {
+            EXPECT_NE(ssl, nullptr);
+            EXPECT_NE(buf, nullptr);
+            EXPECT_EQ(num, 3);
+
+            // NOLINTNEXTLINE
+            EXPECT_EQ(
+                string(reinterpret_cast<const char *>(buf), num),
+                "abc");
+
+            return 3;
+        };
+
+    char buf[] = { 'a', 'b', 'c' };
+    auto rslt = s.writeData(&buf[0], 3);
+    EXPECT_EQ(rslt, 3ul);
+}
+
+TEST(SocketInfo, writeDataShort) // NOLINT
+{
+    SocketInfo s;
+    s.newSSLCtx();
+    s.newSSLObj();
+
+    sslWriteFunc =
+        [](SSL *ssl, const void *buf, int num)
+        {
+            EXPECT_NE(ssl, nullptr);
+            EXPECT_NE(buf, nullptr);
+            EXPECT_EQ(num, 7);
+
+            // NOLINTNEXTLINE
+            EXPECT_EQ(
+                string(reinterpret_cast<const char *>(buf), num),
+                "abcdefg"
+            );
+
+            return 2;
+        };
+
+    char buf[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g' };
+    auto rslt = s.writeData(&buf[0], 7);
+    EXPECT_EQ(rslt, 2ul);
+}
+
+TEST(SocketInfo, writeDataRemoteDisconnect) // NOLINT
+{
+    SocketInfo s;
+    s.newSSLCtx();
+    s.newSSLObj();
+
+    SSLErrCode = SSL_ERROR_ZERO_RETURN;
+    errno = 0;
+    sslWriteFunc =
+        [](SSL *, const void *, int)
+        {
+            return -1;
+        };
+
+    char buf[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g' };
+    auto rslt = s.writeData(&buf[0], 7);
+    EXPECT_EQ(rslt, 0ul);
 }
 
 } //namespace tlslookieloo

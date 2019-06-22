@@ -357,6 +357,7 @@ const size_t SocketInfo::writeData(const char *msg, const size_t &msgSize)
 
     bool shouldRetry = false;
     auto ptr = getSSLPtr();
+    size_t retVal = 0;
     do
     {
         auto rslt = SSL_write(ptr, msg, msgSize);
@@ -371,11 +372,12 @@ const size_t SocketInfo::writeData(const char *msg, const size_t &msgSize)
             LOG4CPLUS_DEBUG(logger, to_string(msgSize) << // NOLINT
                 " sent over the wire");
             shouldRetry = false;
+            retVal = rslt;
         }
 
     } while(shouldRetry);
 
-    return msgSize;
+    return retVal;
 }
 
 void SocketInfo::newSSLCtx()

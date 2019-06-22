@@ -322,6 +322,10 @@ private:
     FRIEND_TEST(SocketInfo, readDataExact);
     FRIEND_TEST(SocketInfo, readDataShort);
     FRIEND_TEST(SocketInfo, readDataNoData);
+
+    FRIEND_TEST(SocketInfo, writeDataExact);
+    FRIEND_TEST(SocketInfo, writeDataShort);
+    FRIEND_TEST(SocketInfo, writeDataRemoteDisconnect);
 };
 
 } //namespace tlslookieloo
