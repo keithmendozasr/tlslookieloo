@@ -313,6 +313,12 @@ private:
     FRIEND_TEST(SocketInfo, waitForWritingError);
     FRIEND_TEST(SocketInfo, waitForWritingNoTimeout);
 
+    FRIEND_TEST(SocketInfo, handleRetryWantReadOK);
+    FRIEND_TEST(SocketInfo, handleRetryWantReadFail);
+    FRIEND_TEST(SocketInfo, handleRetryWantWriteOK);
+    FRIEND_TEST(SocketInfo, handleRetryWantWriteFail);
+    FRIEND_TEST(SocketInfo, handleRetryRemoteDisconnect);
+
     FRIEND_TEST(SocketInfo, readDataExact);
     FRIEND_TEST(SocketInfo, readDataShort);
     FRIEND_TEST(SocketInfo, readDataNoData);

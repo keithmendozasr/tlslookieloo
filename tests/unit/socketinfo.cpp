@@ -245,6 +245,69 @@ TEST(SocketInfo, waitForWritingNoTimeout) // NOLINT
     EXPECT_TRUE(s.waitForWriting(false));
 }
 
+TEST(SocketInfo, handleRetryWantReadOK) // NOLINT
+{
+    SocketInfo s;
+    s.setSocket(4);
+    s.newSSLCtx();
+    s.newSSLObj();
+
+    SSLErrCode = SSL_ERROR_WANT_READ;
+    selectFunc =
+        [](int, fd_set *, fd_set *, fd_set *, struct timeval *) { return 1; };
+    EXPECT_TRUE(s.handleRetry(-1));
+}
+
+TEST(SocketInfo, handleRetryWantReadFail) // NOLINT
+{
+    SocketInfo s;
+    s.setSocket(4);
+    s.newSSLCtx();
+    s.newSSLObj();
+
+    SSLErrCode = SSL_ERROR_WANT_READ;
+    selectFunc =
+        [](int, fd_set *, fd_set *, fd_set *, struct timeval *) { return 0; };
+    EXPECT_FALSE(s.handleRetry(-1));
+}
+
+TEST(SocketInfo, handleRetryWantWriteOK) // NOLINT
+{
+    SocketInfo s;
+    s.setSocket(4);
+    s.newSSLCtx();
+    s.newSSLObj();
+
+    SSLErrCode = SSL_ERROR_WANT_WRITE;
+    selectFunc =
+        [](int, fd_set *, fd_set *, fd_set *, struct timeval *) { return 1; };
+    EXPECT_TRUE(s.handleRetry(-1));
+}
+
+TEST(SocketInfo, handleRetryWantWriteFail) // NOLINT
+{
+    SocketInfo s;
+    s.setSocket(4);
+    s.newSSLCtx();
+    s.newSSLObj();
+
+    SSLErrCode = SSL_ERROR_WANT_WRITE;
+    selectFunc =
+        [](int, fd_set *, fd_set *, fd_set *, struct timeval *) { return 0; };
+    EXPECT_FALSE(s.handleRetry(-1));
+}
+
+TEST(SocketInfo, handleRetryRemoteDisconnect) // NOLINT
+{
+    SocketInfo s;
+    s.setSocket(4);
+    s.newSSLCtx();
+    s.newSSLObj();
+
+    SSLErrCode = SSL_ERROR_ZERO_RETURN;
+    EXPECT_FALSE(s.handleRetry(-1));
+}
+
 TEST(SocketInfo, readDataExact) // NOLINT
 {
     SocketInfo s;
@@ -301,7 +364,6 @@ TEST(SocketInfo, readDataShort) // NOLINT
     EXPECT_EQ(rslt.value(), 6ul);
     EXPECT_STREQ(&buf[0], "abcde");
 }
-
 
 TEST(SocketInfo, readDataNoData) // NOLINT
 {
