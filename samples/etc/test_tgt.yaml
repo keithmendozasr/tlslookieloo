@@ -1,6 +1,0 @@
-- name: "App1"
-  clientport: 9988
-  clientcert: tlslookieloo/lookieloo_svr.pem
-  clientkey: tlslookieloo/lookieloo_svr_priv.pem
-  serverhost: localhost
-  serverport: 9999
