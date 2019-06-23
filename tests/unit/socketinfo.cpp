@@ -16,54 +16,17 @@
 
 #include "gtest/gtest.h"
 
-#include <functional>
 #include <cerrno>
 #include <system_error>
 
+#include "mockcapi.h"
 #include "socketinfo.h"
 
 using namespace testing;
 using namespace std;
 
-using ::testing::MatchesRegex;
-
 namespace tlslookieloo
 {
-
-function<int(int, fd_set *, fd_set *, fd_set *, struct timeval *)>
-    selectFunc;
-
-function<int(SSL *, void *, int)> sslReadFunc;
-
-int SSLErrCode;
-
-function<int(SSL *, const void *, int)> sslWriteFunc;
-
-extern "C"
-{
-
-int select(int nfds, fd_set *readFds, fd_set *writeFds, fd_set *exceptFds,
-    struct timeval *timeout)
-{
-    return selectFunc(nfds, readFds, writeFds, exceptFds, timeout);
-}
-
-int SSL_read(SSL *ssl, void *buf, int num)
-{
-    return sslReadFunc(ssl, buf, num);
-}
-
-int SSL_get_error(const SSL *, int)
-{
-    return SSLErrCode;
-}
-
-int SSL_write(SSL *ssl, const void *buf, int num)
-{
-    return sslWriteFunc(ssl, buf, num);
-}
-
-} // extern "C"
 
 TEST(SocketInfo, waitForReadingReady) // NOLINT
 {

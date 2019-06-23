@@ -14,6 +14,7 @@
 
 link_directories(${CMAKE_BINARY_DIR}/googletest/lib)
 add_executable(unittests main.cpp
+    mockcapi.cpp
     ${CMAKE_SOURCE_DIR}/src/init.cpp init.cpp
     ${CMAKE_SOURCE_DIR}/src/socketinfo.cpp socketinfo.cpp
 )
