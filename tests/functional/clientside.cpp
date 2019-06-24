@@ -153,7 +153,8 @@ int main(int argc, char *argv[])
             auto client = acceptVal.value();
 
             // NOLINTNEXTLINE
-            LOG4CPLUS_INFO(logger, "Got client FD: " << client.getSocket());
+            LOG4CPLUS_INFO(logger, "Got client " << client.getSocketIP() << " with FD: "
+                << client.getSocket());
             client.startSSL(argState.args[1], argState.args[2]);
 
             while(1)

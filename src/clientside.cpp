@@ -51,9 +51,9 @@ void ClientSide::startListener(const unsigned int &port,
             LOG4CPLUS_TRACE(logger, "Attempt to listen to port " << port); // NOLINT
             auto addr = getAddrInfo();
             if(bind(
-                sockFd, reinterpret_cast<const struct sockaddr *>(&addr), // NOLINT
-                (addr.ss_family == AF_INET ? sizeof(sockaddr_in) :
-                    sizeof(sockaddr_in6))) == -1
+                sockFd, reinterpret_cast<const struct sockaddr *>(addr->ai_addr), // NOLINT
+                addr->ai_addrlen
+                ) == -1
             )
                 throwSystemError(errno, "Failed to bind");
             
@@ -111,7 +111,8 @@ optional<ClientSide> ClientSide::acceptClient()
 
         ClientSide c;
         c.setSocket(fd);
-        c.setAddrInfo(&addr, addrLen);
+        // NOLINTNEXTLINE
+        c.saveSocketIP(reinterpret_cast<struct sockaddr_storage *>(&addr));
 
         return make_optional(c);
     }

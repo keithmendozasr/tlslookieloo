@@ -18,6 +18,7 @@
 #include <string>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 
 #include <netdb.h>
 #include <sys/socket.h>
@@ -52,7 +53,6 @@ public:
      */
     SocketInfo(const SocketInfo &rhs);
 
-
     /**
      * Destructor
      */
@@ -82,22 +82,19 @@ public:
     /**
      * Get the IP address the socket is connected to
      */
-    const std::string getSocketIP() const;
-    
-    /**
-     * Access the sockaddr_storage structure associated with the socket connection
-     */
-    inline const struct sockaddr_storage &getAddrInfo() const
+    inline const std::string getSocketIP() const
     {
-        return addrInfo;
+        return socketIP.value();
     }
 
     /**
-     * Get the address info structure's size
+     * Get the address info associated to the socket
      */
-    inline const size_t &getAddrInfoSize() const
+    inline const addrinfo *getAddrInfo() const
     {
-        return addrInfoSize;
+        if(sockAddr == nullptr)
+            throw std::logic_error("No address associated to socket");
+        return sockAddr;
     }
 
     /**
@@ -179,12 +176,11 @@ protected:
     }
 
     /**
-     * Set the sockaddr_storage structure to associate to this class' instance
+     * Initialize and throw a system_error exception
      *
-     * \param addr Pointer to sockaddr_storage to asssociate
+     * \arg err Error code
+     * \arg msg Additional message to include in the system_object instance
      */
-    void setAddrInfo(const sockaddr_storage *addr, const size_t &addrSize);
-
     inline void throwSystemError(const int &err, const std::string &msg = "")
     {
         if(msg == "")
@@ -250,10 +246,16 @@ protected:
      */
     const bool handleRetry(const int &rslt);
 
+    /**
+     * Save the socket IP information
+     *
+     * \arg addrInfo Address info to get the IP from
+     */
+    void saveSocketIP(const struct sockaddr_storage *addrInfo);
+
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("SocketInfo");
-    struct sockaddr_storage addrInfo;
-    size_t addrInfoSize;
+    std::optional<std::string> socketIP;
 
     // Use shared_ptr on the sockfd holder to allow this class to be copyable
     // without having to implement the reference counters in this class
@@ -276,6 +278,7 @@ private:
     std::shared_ptr<int> sockfd = nullptr;
 
     std::shared_ptr<struct addrinfo> servInfo;
+    struct addrinfo *sockAddr = nullptr;
     struct addrinfo *nextServ = nullptr;
 
     unsigned int timeout = 5;

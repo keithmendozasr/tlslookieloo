@@ -118,15 +118,16 @@ const bool ServerSide::sockConnect(const unsigned int &port, const string &host)
             string ip;
             do
             {
-                struct sockaddr_storage addr; // NOLINT
                 try
                 {
                     initNextSocket();
-                    addr = getAddrInfo();
                     ip = getSocketIP();
+                    auto addrInfo = getAddrInfo();
+                    LOG4CPLUS_DEBUG(logger, "Attempt connecting to " << ip); // NOLINT
                     if(::connect(getSocket(),
-                        reinterpret_cast<struct sockaddr *>(&addr), // NOLINT
-                        getAddrInfoSize()) != 0)
+                        reinterpret_cast<const struct sockaddr *>(addrInfo->ai_addr), // NOLINT
+                        addrInfo->ai_addrlen) != 0
+                    )
                     {
                         auto err = errno;
                         if(err == EINPROGRESS)

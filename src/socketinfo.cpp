@@ -33,11 +33,10 @@ SocketInfo::SocketInfo() :
 {}
 
 SocketInfo::SocketInfo(const SocketInfo &rhs) :
-    logger(Logger::getInstance("SockInfo")),
-    addrInfo(rhs.addrInfo),
-    addrInfoSize(rhs.addrInfoSize),
+    socketIP(rhs.socketIP),
     sockfd(rhs.sockfd),
     servInfo(rhs.servInfo),
+    sockAddr(rhs.sockAddr),
     nextServ(rhs.nextServ),
     timeout(rhs.timeout),
     sslCtx(nullptr, &SSL_CTX_free),
@@ -79,7 +78,7 @@ const bool SocketInfo::resolveHostPort(const unsigned int &port, const string &h
         servInfo = shared_ptr<struct addrinfo>(tmp, &freeaddrinfo);
         LOG4CPLUS_TRACE(logger, "servInfo set: " << // NOLINT
             (servInfo ? "yes" : "no"));
-        nextServ = servInfo.get();
+        sockAddr = nextServ = servInfo.get();
     }
 
     return retVal;
@@ -91,6 +90,8 @@ void SocketInfo::initNextSocket()
         "Value of servInfo at start: " << servInfo.get() <<
         " nextServ: " << nextServ
     );
+
+
     if(!servInfo)
         throw logic_error("Host info not resolved yet");
     else if(nextServ == nullptr)
@@ -98,22 +99,14 @@ void SocketInfo::initNextSocket()
     else
         LOG4CPLUS_TRACE(logger, "Initialize socket"); // NOLINT
 
-    struct addrinfo *addrInfoItem = nextServ;
-    static const bool logTrace = logger.isEnabledFor(TRACE_LOG_LEVEL);
-    if(logTrace)
-    {
-        char hostname[NI_MAXHOST];
-        int errnum = getnameinfo(addrInfoItem->ai_addr, addrInfoItem->ai_addrlen,
-            &hostname[0], sizeof(hostname), nullptr, 0, NI_NUMERICHOST);
-        if((errnum != 0))
-            LOG4CPLUS_TRACE(logger, "getnameinfo errored out: " << // NOLINT
-                gai_strerror(errnum));
-        else
-            LOG4CPLUS_TRACE(logger, "IP to try: "<<hostname); // NOLINT
-    }
+    sockAddr = nextServ;
+    saveSocketIP(
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        reinterpret_cast<const struct sockaddr_storage *>(sockAddr->ai_addr)
+    );
     LOG4CPLUS_TRACE(logger, "Attempt to get socket"); // NOLINT
-    sockfd = shared_ptr<int>(new int(socket(addrInfoItem->ai_family,
-        addrInfoItem->ai_socktype | SOCK_NONBLOCK, addrInfoItem->ai_protocol)),
+    sockfd = shared_ptr<int>(new int(socket(sockAddr->ai_family,
+        sockAddr->ai_socktype | SOCK_NONBLOCK, sockAddr->ai_protocol)),
         SockfdDeleter()
     );
     if (*sockfd == -1)
@@ -128,45 +121,36 @@ void SocketInfo::initNextSocket()
     else
     {
         LOG4CPLUS_DEBUG(logger, "Socket ready"); // NOLINT
-        setAddrInfo(
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-            reinterpret_cast<const struct sockaddr_storage *> 
-                (addrInfoItem->ai_addr),
-            addrInfoItem->ai_addrlen);
-        nextServ = addrInfoItem->ai_next;
+        nextServ = sockAddr->ai_next;
     }
     LOG4CPLUS_TRACE(logger, "Value of nextServ: "<<nextServ); // NOLINT
 }
 
-const string SocketInfo::getSocketIP() const
+void SocketInfo::saveSocketIP(const sockaddr_storage *addrInfo)
 {
-    if(!sockfd)
-        throw logic_error("Address info not initialized");
-
-    string ip;
-    unique_ptr<char[]>buf;
+    //unique_ptr<char[]>buf;
     int af;
     int bufSize;
     void *addrPtr = nullptr;
 
-    if(addrInfo.ss_family == AF_INET)
+    if(addrInfo->ss_family == AF_INET)
     {
         // NOLINTNEXTLINE
         LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__ << " ai_family is AF_INET");
         bufSize = INET_ADDRSTRLEN;
         const struct sockaddr_in *t =
-            reinterpret_cast<const struct sockaddr_in *>(&addrInfo); // NOLINT
+            reinterpret_cast<const struct sockaddr_in *>(addrInfo); // NOLINT
         addrPtr = const_cast<void *>( // NOLINT
             reinterpret_cast<const void *>(&(t->sin_addr))); // NOLINT
         af = t->sin_family;
     }
-    else if(addrInfo.ss_family == AF_INET6)
+    else if(addrInfo->ss_family == AF_INET6)
     {
         // NOLINTNEXTLINE
         LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__ << " ai_family is AF_INET6");
         bufSize = INET6_ADDRSTRLEN;
         const struct sockaddr_in6 *t =
-            reinterpret_cast<const struct sockaddr_in6 *>(&addrInfo); // NOLINT
+            reinterpret_cast<const struct sockaddr_in6 *>(addrInfo); // NOLINT
         addrPtr = const_cast<void *>( // NOLINT
             reinterpret_cast<const void *>(&(t->sin6_addr))); // NOLINT
         af = t->sin6_family;
@@ -174,28 +158,18 @@ const string SocketInfo::getSocketIP() const
     else
         throw invalid_argument("Unexpected sa_family value");
 
-    buf = make_unique<char[]>(bufSize);
+    auto buf = make_unique<char[]>(bufSize);
+    LOG4CPLUS_TRACE(logger, "Value of af: " << af); // NOLINT
+    LOG4CPLUS_TRACE(logger, "Value of bufSize: " << bufSize); // NOLINT
     if(inet_ntop(af, addrPtr, buf.get(), bufSize)
         == nullptr)
     {
         auto err = errno;
-        const int errbuflen = 256;
-        char errbuf[errbuflen];
-        char *errmsg = strerror_r(err, &errbuf[0], errbuflen);
-        string msg("Failed to translate IP address: ");
-        msg += errmsg;
-        throw msg;
+        throwSystemError(err, "Failed to translate IP address");
     }
 
-    ip = string(buf.get(), bufSize);
-    LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__<<" Value of ip: "<<ip); // NOLINT
-    return ip;
-}
-
-void SocketInfo::setAddrInfo(const sockaddr_storage *addr, const size_t &addrSize)
-{
-    memmove(&addrInfo, addr, addrSize);
-    addrInfoSize = addrSize;
+    socketIP = make_optional(string(buf.get(), bufSize));
+    LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__<<" Value of ip: "<< socketIP.value()); // NOLINT
 }
 
 const bool SocketInfo::waitForReading(const bool &withTimeout)
