@@ -1,6 +1,8 @@
 # tlslookieloo
 Utility to view stream message between server and client
 
+![Coverity Scan Status](https://img.shields.io/coverity/scan/18672.svg)
+
 # Longer idea
 tlslookieloo is a utility to help troubleshoot network-related issues between a server and client. A client will connect to tlslookieloo, who in turn, will connect to the target server. tlslookieloo will then store/display the unencrypted message between the two.
  
