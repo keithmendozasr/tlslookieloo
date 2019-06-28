@@ -43,6 +43,43 @@ SocketInfo::SocketInfo(const SocketInfo &rhs) :
     sslObj(rhs.sslObj)
 {}
 
+SocketInfo::SocketInfo(SocketInfo &&rhs) :
+    socketIP(std::move(rhs.socketIP)),
+    sockfd(std::move(rhs.sockfd)),
+    servInfo(std::move(rhs.servInfo)),
+    sockAddr(std::move(rhs.sockAddr)),
+    nextServ(std::move(rhs.nextServ)),
+    timeout(std::move(rhs.timeout)),
+    sslCtx(nullptr, &SSL_CTX_free),
+    sslObj(std::move(rhs.sslObj))
+{}
+
+SocketInfo &SocketInfo::operator =(const SocketInfo &rhs)
+{
+    socketIP = rhs.socketIP;
+    sockfd = rhs.sockfd;
+    servInfo = rhs.servInfo;
+    sockAddr = rhs.sockAddr;
+    nextServ = rhs.nextServ;
+    timeout = rhs.timeout;
+    sslObj = rhs.sslObj;
+    
+    return *this;
+}
+
+SocketInfo &SocketInfo::operator =(SocketInfo &&rhs)
+{
+    socketIP = std::move(rhs.socketIP);
+    sockfd = std::move(rhs.sockfd);
+    servInfo = std::move(rhs.servInfo);
+    sockAddr = std::move(rhs.sockAddr);
+    nextServ = std::move(rhs.nextServ);
+    timeout = std::move(rhs.timeout);
+    sslObj = std::move(rhs.sslObj);
+
+    return *this;
+}
+
 const bool SocketInfo::resolveHostPort(const unsigned int &port, const string &host)
 {
     if(sockfd && servInfo)

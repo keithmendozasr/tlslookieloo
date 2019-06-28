@@ -37,9 +37,25 @@ public:
     /**
      * Copy constructor
      */
-    ClientSide(ClientSide &rhs) :
+    ClientSide(const ClientSide &rhs) :
         SocketInfo(rhs)
     {}
+
+    ClientSide(ClientSide &&rhs) :
+        SocketInfo(rhs)
+    {}
+
+    ClientSide &operator =(ClientSide const &rhs)
+    {
+        SocketInfo::operator =(rhs);
+        return *this;
+    }
+
+    ClientSide &operator =(ClientSide &&rhs)
+    {
+        SocketInfo::operator =(rhs);
+        return *this;
+    }
 
     /**
      * Destructor
@@ -78,7 +94,6 @@ public:
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("ClientSide");
 
-
     /**
      * Create the SSL context for this instance
      *
@@ -93,10 +108,6 @@ private:
      */
     const bool sslHandshake();
 
-    // Delete uneeded constructors/operators
-    ClientSide(ClientSide &&) = delete;
-    ClientSide &operator =(ClientSide &) = delete;
-    ClientSide &operator =(ClientSide &&) = delete;
 };
 
 } //namespace tlslookieloo

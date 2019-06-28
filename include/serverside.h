@@ -40,6 +40,22 @@ public:
         SocketInfo(rhs)
     {}
 
+    ServerSide(ServerSide &&rhs) :
+        SocketInfo(std::move(rhs))
+    {}
+
+    ServerSide &operator = (ServerSide const &rhs)
+    {
+        SocketInfo::operator =(rhs);
+        return *this;
+    }
+
+    ServerSide &operator = (ServerSide &&rhs)
+    {
+        SocketInfo::operator =(std::move(rhs));
+        return *this;
+    }
+
     /**
      * Destructor
      */
@@ -85,10 +101,6 @@ private:
      */
     const bool sslHandshake(const std::string &host);
 
-    // Delete uneeded constructors/operators
-    ServerSide(ServerSide &&) = delete;
-    ServerSide &operator = (ServerSide &) = delete;
-    ServerSide &operator = (ServerSide &&) = delete;
 };
 
 } //namespace tlslookieloo

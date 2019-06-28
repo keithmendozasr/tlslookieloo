@@ -14,27 +14,24 @@
  * limitations under the License.
  */
 
-#include <iostream>
-#include <cstring>
-#include <memory>
-#include <optional>
-#include <string>
-#include <ios>
-#include <regex>
+#include <thread>
+#include <csignal>
 
 #include <argp.h>
 
-#include <log4cplus/initializer.h>
-#include <log4cplus/logger.h>
-#include <log4cplus/loggingmacros.h>
-#include <log4cplus/configurator.h>
-#include <log4cplus/hierarchy.h>
-
 #include <yaml-cpp/yaml.h>
+
+#include "log4cplus/initializer.h"
+#include "log4cplus/logger.h"
+#include "log4cplus/loggingmacros.h"
+#include "log4cplus/configurator.h"
+#include "log4cplus/hierarchy.h"
+
 
 #include "version.h"
 #include "init.h"
 #include "serverside.h"
+#include "target.h"
 
 using namespace std;
 using namespace tlslookieloo;
@@ -42,6 +39,42 @@ using namespace log4cplus;
 
 const char *argp_program_version = tlslookieloo::version().c_str();
 const char *argp_program_bug_address = "keith@homepluspower.info";
+
+/**
+ * Hold info about a running target
+ */
+struct TargetRunner
+{
+    Target target;
+    std::thread runner;
+};
+
+vector<TargetRunner> targetThreads;
+
+/**
+ * Signal handler
+ *
+ * \arg sig Signal received
+ */
+void sigHandler(int sig)
+{
+	Logger logger = Logger::getRoot();
+	LOG4CPLUS_INFO(logger, "Stopping program"); // NOLINT
+
+    auto myTid = this_thread::get_id();
+    for(auto &t : targetThreads)
+    {
+        auto tid = t.runner.get_id();
+        t.target.stop();
+        if(tid != myTid)
+        {
+            LOG4CPLUS_TRACE(logger, "Signaling thread " << tid);
+            pthread_kill(t.runner.native_handle(), sig);
+        }
+        else
+            LOG4CPLUS_TRACE(logger, "Not signaling ourself");
+    }
+}
 
 /**
  * Used in argp_parser to hold arg state
@@ -86,6 +119,9 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
     return 0;
 }
 
+/**
+ * Start handling targets
+ */
 static void start(const string &targets)
 {
     auto logger = Logger::getRoot();
@@ -95,23 +131,20 @@ static void start(const string &targets)
         for(auto item : parseTargetsFile(targets))
         {
             // NOLINTNEXTLINE
-            LOG4CPLUS_INFO(logger, "Starting " << get<0>(item) << " bridge");
-
-            LOG4CPLUS_TRACE(logger, "Server Port: " << get<2>(item) << // NOLINT
-                " Host: " << get<1>(item));
-            ServerSide s;
-            if(s.connect(get<2>(item), get<1>(item)))
-            {
-                // NOLINTNEXTLINE
-                LOG4CPLUS_INFO(logger, "Connected to " << get<1>(item) << ":"
-                    << get<2>(item));
-            }
-            else
-            {
-                // NOLINTNEXTLINE
-                LOG4CPLUS_INFO(logger, "Failed to connect to "
-                    << get<1>(item) << ":" << get<2>(item));
-            }
+            string name, serverHost, clientCert, clientKey;
+            unsigned int serverPort, clientPort;
+            tie(name, serverHost, serverPort, clientPort, clientCert, clientKey) =
+                item;
+            LOG4CPLUS_INFO(logger, "Starting " << name << " bridge");
+            targetThreads.emplace_back();
+            auto &t = targetThreads.back();
+            t.target = Target(name, serverHost, serverPort, clientPort, clientCert,
+                clientKey);
+            t.runner = std::thread([](Target &tgt)
+                {
+                    tgt.start();
+                }, std::ref(t.target)
+            );
         }
     }
     catch(const YAML::Exception &e)
@@ -126,6 +159,22 @@ int main(int argc, char *argv[])
 {
     Initializer initializer;
     BasicConfigurator::doConfigure();
+
+    struct sigaction sa;
+    sa.sa_handler = sigHandler; // NOLINT
+    sa.sa_flags = 0; // NOLINT
+    sigemptyset(&sa.sa_mask);
+    if(sigaction(SIGINT, &sa, nullptr) == -1)
+    {
+        perror("Set SIGINT signal handler");
+        return EXIT_FAILURE;
+    }
+
+    if(sigaction(SIGTERM, &sa, nullptr) == -1)
+    {
+        perror("Set SIGTERM signal handler");
+        return EXIT_FAILURE;
+    }
 
     struct ArgState argState;
     argState.logger = Logger::getRoot();
@@ -161,6 +210,13 @@ int main(int argc, char *argv[])
         LOG4CPLUS_ERROR(logger, "Targets file to use not provided"); // NOLINT
         return -1;
     }
+
+    LOG4CPLUS_TRACE(logger, "Waiting for target threads to exit");
+    for(auto &t : targetThreads)
+        t.runner.join();
+    // So the SocketInfo logging doesn't trigger log4cplus to complain
+    targetThreads.clear();
+    LOG4CPLUS_INFO(logger, "tlslookieloo exiting");
 
     return 0;
 }

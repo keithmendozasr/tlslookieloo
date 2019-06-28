@@ -54,6 +54,21 @@ public:
     SocketInfo(const SocketInfo &rhs);
 
     /**
+     * Move constructor
+     */
+    SocketInfo(SocketInfo &&rhs);
+
+    /**
+     * Copy assignment operator
+     */
+    SocketInfo & operator = (SocketInfo const &rhs);
+
+    /**
+     * Move assignment operator
+     */
+    SocketInfo & operator = (SocketInfo &&rhs);
+
+    /**
      * Destructor
      */
     virtual ~SocketInfo(){}
@@ -298,9 +313,6 @@ private:
     std::shared_ptr<SSL> sslObj;
 
     // Delete unneeded constructors/operators
-    SocketInfo(SocketInfo &&) = delete;
-    SocketInfo & operator = (SocketInfo const &) = delete;
-    SocketInfo & operator = (SocketInfo &&) = delete;
 
     FRIEND_TEST(SocketInfo, waitForReadingReady);
     FRIEND_TEST(SocketInfo, waitForReadingTimeout);
