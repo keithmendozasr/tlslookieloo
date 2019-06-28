@@ -342,14 +342,8 @@ TEST(SocketInfo, readDataNoData) // NOLINT
     s.newSSLCtx();
     s.newSSLObj();
 
-    SSLErrCode = SSL_ERROR_SYSCALL;
-    errno = 0;
+    setNoReadableData();
     char buf[1];
-    sslReadFunc =
-        [](SSL *ssl, void *buf, int num)
-        {
-            return -1;
-        };
     auto rslt = s.readData(&buf[0], 1);
     EXPECT_FALSE(rslt);
 }
@@ -413,14 +407,7 @@ TEST(SocketInfo, writeDataRemoteDisconnect) // NOLINT
     s.newSSLCtx();
     s.newSSLObj();
 
-    SSLErrCode = SSL_ERROR_ZERO_RETURN;
-    errno = 0;
-    sslWriteFunc =
-        [](SSL *, const void *, int)
-        {
-            return -1;
-        };
-
+    setRemoteDisconnectWrite();
     char buf[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g' };
     auto rslt = s.writeData(&buf[0], 7);
     EXPECT_EQ(rslt, 0ul);

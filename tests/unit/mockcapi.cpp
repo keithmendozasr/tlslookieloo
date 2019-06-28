@@ -30,6 +30,36 @@ int SSLErrCode;
 
 function<int(SSL *, const void *, int)> sslWriteFunc;
 
+void setNoReadableData()
+{
+    SSLErrCode = SSL_ERROR_SYSCALL;
+    errno = 0;
+    sslReadFunc =
+        [](SSL *ssl, void *buf, int num)
+        {
+            return -1;
+        };
+}
+
+void setRemoteDisconnectWrite()
+{
+    SSLErrCode = SSL_ERROR_ZERO_RETURN;
+    errno = 0;
+    sslWriteFunc =
+        [](SSL *, const void *, int)
+        {
+            return -1;
+        };
+}
+
+void setSelectTimeout()
+{
+    selectFunc =
+        [](int, fd_set *readFds, fd_set *, fd_set *, struct timeval *)->int {
+            return 0;
+        };
+}
+
 extern "C"
 {
 

@@ -32,4 +32,10 @@ extern int SSLErrCode;
 
 extern std::function<int(SSL *, const void *, int)> sslWriteFunc;
 
+void setNoReadableData();
+
+void setRemoteDisconnectWrite();
+
+void setSelectTimeout();
+
 } // namespace
