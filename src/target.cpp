@@ -45,9 +45,7 @@ Target::Target(const Target &rhs) :
     clientCert(rhs.clientCert),
     clientKey(rhs.clientKey),
     serverPort(rhs.serverPort),
-    clientPort(rhs.clientPort),
-    server(rhs.server),
-    client(rhs.client)
+    clientPort(rhs.clientPort)
 {}
 
 Target & Target::operator = (const Target &rhs)
@@ -58,8 +56,6 @@ Target & Target::operator = (const Target &rhs)
     clientKey = rhs.clientKey;
     serverPort = rhs.serverPort;
     clientPort = rhs.clientPort;
-    server = rhs.server;
-    client = rhs.client;
 
     return *this;
 }
@@ -71,9 +67,7 @@ Target::Target(Target && rhs) :
     clientCert(std::move(clientCert)),
     clientKey(std::move(clientKey)),
     serverPort(std::move(serverPort)),
-    clientPort(std::move(clientPort)),
-    server(std::move(server)),
-    client(std::move(client))
+    clientPort(std::move(clientPort))
 {}
 
 Target & Target::operator = (Target && rhs)
@@ -84,8 +78,6 @@ Target & Target::operator = (Target && rhs)
     clientKey = std::move(rhs.clientKey);
     serverPort = std::move(rhs.serverPort);
     clientPort = std::move(rhs.clientPort);
-    server = std::move(rhs.server);
-    client = std::move(rhs.client);
 
     return *this;
 }
@@ -94,15 +86,16 @@ void Target::start()
 {
     log4cplus::NDCContextCreator ndc(tgtName);
 
-    client.startListener(clientPort, 2);
+    ClientSide clientListener;
+    clientListener.startListener(clientPort, 2);
     // NOLINTNEXTLINE
     LOG4CPLUS_INFO(logger, "Listening on " << clientPort);
 
     while(keepRunning)
     {
         LOG4CPLUS_DEBUG(logger, "Wait for clientside connection");
-        auto acceptVal = client.acceptClient();
-        if(!acceptVal)
+        auto acceptRslt = clientListener.acceptClient();
+        if(!acceptRslt)
         {
             LOG4CPLUS_INFO(logger, "Client accepting issue"); // NOLINT
             break;
@@ -110,10 +103,39 @@ void Target::start()
         else
             LOG4CPLUS_INFO(logger, "Clientside connected");
 
-        handleClient(acceptVal.value());
+        handleClient(acceptRslt.value());
     }
 
     LOG4CPLUS_INFO(logger, "Target " << tgtName << " stopping");
+}
+
+bool Target::passClientToServer(ClientSide &client, ServerSide &server)
+{
+    bool retVal = false;
+    char buf[1024];
+    auto readLen = client.readData(&buf[0], 1024);
+    if(readLen)
+    {
+        // NOLINTNEXTLINE
+        LOG4CPLUS_TRACE(logger, "readLen: " << readLen.value());
+        if(readLen.value() > 0)
+        {
+            LOG4CPLUS_INFO(logger, "Data from client: " << // NOLINT
+                string(buf, readLen.value()));
+            LOG4CPLUS_DEBUG(logger, "Send data to server");
+            server.writeData(&buf[0], readLen.value());
+            retVal = true;
+        }
+        else
+        {
+            // NOLINTNEXTLINE
+            LOG4CPLUS_INFO(logger, "No data received from remote end");
+        }
+    }
+    else
+        LOG4CPLUS_DEBUG(logger, "No data received from clientside");
+
+    return retVal;
 }
 
 void Target::handleClient(ClientSide client)
@@ -126,6 +148,7 @@ void Target::handleClient(ClientSide client)
         return;
     }
 
+    ServerSide server;
     if(!server.connect(serverPort, serverHost))
     {
         LOG4CPLUS_INFO(logger, "Failed to connect to server " <<
@@ -137,24 +160,8 @@ void Target::handleClient(ClientSide client)
     {
         while(keepRunning)
         {
-            char buf[1024];
-            auto readLen = client.readData(&buf[0], 1024);
-            if(readLen)
-            {
-                // NOLINTNEXTLINE
-                LOG4CPLUS_TRACE(logger, "readLen: " << readLen.value());
-                if(readLen.value() > 0)
-                {
-                    LOG4CPLUS_INFO(logger, "Data from client: " << // NOLINT
-                        string(buf, readLen.value()));
-                    server.writeData(&buf[0], readLen.value());
-
-                    client.writeData("Bye", 4);
-                }
-                else
-                    // NOLINTNEXTLINE
-                    LOG4CPLUS_INFO(logger, "No data received from remote end");
-            }
+            if(passClientToServer(client, server))
+                LOG4CPLUS_TRACE(logger, "Message sent from client to server");
             else
             {
                 LOG4CPLUS_INFO(logger, "Client went away"); // NOLINT

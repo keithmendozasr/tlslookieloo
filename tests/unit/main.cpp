@@ -30,6 +30,7 @@ using namespace std;
 namespace tlslookieloo
 {
     string tgtFilesPath;
+    string certFilesPath;
 }
 
 string logConfig;
@@ -43,6 +44,9 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
         break;
     case 'l':
         logConfig = arg;
+        break;
+    case 'c':
+        tlslookieloo::certFilesPath = arg;
         break;
     default:
         return ARGP_ERR_UNKNOWN;
@@ -62,6 +66,8 @@ int main(int argc, char *argv[])
 
     struct argp_option options[] = {
         { "targets", 't', "tgtfile", 0, "Path to test target files" },
+        { "logconfig", 'l', "logcfg", 0, "log4cplus configuration file" },
+        { "certs", 'c', "certpath", 0, "Path to the test certificate files" },
         { 0 }
     };
 

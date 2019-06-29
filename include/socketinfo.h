@@ -341,6 +341,8 @@ private:
     FRIEND_TEST(SocketInfo, writeDataExact);
     FRIEND_TEST(SocketInfo, writeDataShort);
     FRIEND_TEST(SocketInfo, writeDataRemoteDisconnect);
+
+    friend class TargetTest;
 };
 
 } //namespace tlslookieloo

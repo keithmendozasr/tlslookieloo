@@ -26,28 +26,61 @@
 #include "log4cplus/logger.h"
 #include "log4cplus/loggingmacros.h"
 
+#include "gtest/gtest_prod.h"
+
 namespace tlslookieloo
 {
 
 class Target
 {
 public:
+    /**
+     * Default constructor
+     */
     explicit Target(){}
 
+    /**
+     * Constructor that takes the target information.
+     *
+     * \arg tgtName Target name to use in logs
+     * \arg serverHost Hostname of server-side
+     * \arg serverPort Port server-side is listening on
+     * \arg clientPort Port to listen for client-side
+     * \arg clientCert SSL public key for client-side listener
+     * \arg clientKey Private key for client-side listener
+     */
     Target(const std::string &tgtName, const std::string &serverHost,
         const unsigned int serverPort, const unsigned int clientPort,
         const std::string &clientCert, const std::string &clientKey);
 
+    /**
+     * Copy constructor
+     */
     Target(const Target &rhs);
 
+    /**
+     * Copy assignment operator
+     */
     Target & operator = (const Target &rhs);
 
+    /**
+     * Move constructor
+     */
     Target(Target && rhs);
 
+    /**
+     * Move assignment operator
+     */
     Target & operator = (Target && rhs);
 
+    /**
+     * Start listening for client-side
+     */
     void start();
 
+    /**
+     * Stop processing client request
+     */
     void stop()
     {
         LOG4CPLUS_INFO(logger, "Stopping " << tgtName << " target handling");
@@ -60,12 +93,23 @@ private:
     unsigned int serverPort = 0;
     unsigned int clientPort = 0;
 
-    ServerSide server;
-    ClientSide client;
-
     std::atomic_bool keepRunning = true;
 
+    /**
+     * Bridge message from server to client
+     */
+    bool passClientToServer(ClientSide &client, ServerSide &server);
+
+    /**
+     * Handle clientside connection and message processing
+     * \arg client ClientSide object containing the client connection info
+     */
     void handleClient(ClientSide client);
+
+    friend class TargetTest;
+    FRIEND_TEST(TargetTest, passClientToServerGood);
+    FRIEND_TEST(TargetTest, passClientToServerNoData);
+    FRIEND_TEST(TargetTest, passClientToServerRemoteDisconnect);
 
 };
 

@@ -22,5 +22,6 @@ namespace tlslookieloo
 {
 
 extern std::string tgtFilesPath;
+extern std::string certFilesPath;
 
 } //namespace tlslookieloo
