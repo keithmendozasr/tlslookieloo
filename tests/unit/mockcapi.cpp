@@ -20,10 +20,6 @@ using namespace std;
 
 namespace tlslookieloo
 {
-
-function<int(int, fd_set *, fd_set *, fd_set *, struct timeval *)>
-    selectFunc;
-
 function<int(SSL *, void *, int)> sslReadFunc;
 
 int SSLErrCode;
@@ -52,22 +48,8 @@ void setRemoteDisconnectWrite()
         };
 }
 
-void setSelectTimeout()
-{
-    selectFunc =
-        [](int, fd_set *readFds, fd_set *, fd_set *, struct timeval *)->int {
-            return 0;
-        };
-}
-
 extern "C"
 {
-
-int select(int nfds, fd_set *readFds, fd_set *writeFds, fd_set *exceptFds,
-    struct timeval *timeout)
-{
-    return selectFunc(nfds, readFds, writeFds, exceptFds, timeout);
-}
 
 int SSL_read(SSL *ssl, void *buf, int num)
 {

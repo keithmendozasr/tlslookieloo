@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 #include <cerrno>
 #include <system_error>
 
 #include "mockcapi.h"
+#include "wrapper.h"
 #include "socketinfo.h"
 
 using namespace testing;
@@ -28,244 +30,340 @@ using namespace std;
 namespace tlslookieloo
 {
 
+MATCHER_P(IsFdSet, fd, "fd is set")
+{
+    return arg != nullptr && FD_ISSET(fd, arg);
+}
+
+class MockWrapper : public Wrapper
+{
+public:
+    MOCK_METHOD5(select, int(int nfds, fd_set *readfds, fd_set *writefds,
+        fd_set *exceptfds, struct timeval *timeout));
+};
+
 TEST(SocketInfo, waitForReadingReady) // NOLINT
 {
-    SocketInfo s;
-    s.setSocket(4);
+    const int fd = 4;
+    auto mock = make_shared<MockWrapper>();
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
+            NotNull()))
+        .WillOnce(Return(1));
 
-    selectFunc =
-        [](int, fd_set *readFds, fd_set *, fd_set *, struct timeval *)->int{
-            EXPECT_TRUE(FD_ISSET(4, readFds));
-            FD_ZERO(readFds);
-            FD_SET(4, readFds);
-
-            return 1;
-        };
+    SocketInfo s(mock);
+    s.setSocket(fd);
 
     EXPECT_TRUE(s.waitForReading());
 }
 
 TEST(SocketInfo, waitForReadingTimeout) // NOLINT
 {
-    SocketInfo s;
-    s.setSocket(4);
+    const int fd = 4;
+    auto mock = make_shared<MockWrapper>();
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
+            NotNull()))
+        .WillOnce(Return(0));
 
-    selectFunc =
-        [](int, fd_set *readFds, fd_set *, fd_set *, struct timeval *)->int {
-            EXPECT_TRUE(FD_ISSET(4, readFds));
-            return 0;
-        };
-
+    SocketInfo s(mock);
+    s.setSocket(fd);
     EXPECT_FALSE(s.waitForReading());
 }
 
 TEST(SocketInfo, waitForReadingSetTimeout) // NOLINT
 {
-    SocketInfo s;
-    s.setSocket(10);
-    s.setTimeout(100);
+    const int fd = 10;
+    const long timeout = 100;
+    auto mock = make_shared<MockWrapper>();
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
+            AllOf(NotNull(), Field(&timeval::tv_sec, timeout))))
+        .WillOnce(Return(0));
 
-    selectFunc =
-        [](int, fd_set *, fd_set *, fd_set *, struct timeval *timeout)->int {
-            EXPECT_NE(timeout, nullptr);
-            if(timeout)
-                EXPECT_EQ(100, timeout->tv_sec);
-            else
-                ADD_FAILURE() << "timeout param is nullptr";
-            return 1;
-        };
-
-    s.waitForReading();
+    SocketInfo s(mock);
+    s.setSocket(fd);
+    s.setTimeout(timeout);
+    EXPECT_FALSE(s.waitForReading());
 }
 
 TEST(SocketInfo, waitForReadingInterrupted) // NOLINT
 {
-    SocketInfo s;
-    s.setSocket(5);
+    {
+        const int fd = 5;
+        auto mock = make_shared<MockWrapper>();
+        errno = EINTR;
+        EXPECT_CALL(
+            (*mock),
+            select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
+                NotNull()))
+            .WillOnce(Return(-1));
 
-    selectFunc =
-        [](int, fd_set *readFds, fd_set *, fd_set *, struct timeval *)->int{
-            EXPECT_TRUE(FD_ISSET(5, readFds));
-            errno = 0;
-            return -1;
-        };
+        SocketInfo s(mock);
+        s.setSocket(fd);
+        EXPECT_FALSE(s.waitForReading());
+    }
 
-    EXPECT_FALSE(s.waitForReading());
+    {
+        const int fd = 5;
+        auto mock = make_shared<MockWrapper>();
+        errno = 0;
+        EXPECT_CALL(
+            (*mock),
+            select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
+                NotNull()))
+            .WillOnce(Return(-1));
+
+        SocketInfo s(mock);
+        s.setSocket(fd);
+        EXPECT_FALSE(s.waitForReading());
+    }
 }
 
 TEST(SocketInfo, waitForReadingError) // NOLINT
 {
-    SocketInfo s;
-    s.setSocket(5);
+    const int fd = 5;
+    auto mock = make_shared<MockWrapper>();
+    errno = EBADF;
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
+            NotNull()))
+        .WillOnce(Return(-1));
 
-    selectFunc =
-        [](int, fd_set *readFds, fd_set *, fd_set *, struct timeval *)->int{
-            errno = EBADF;
-            return -1;
-        };
-
+    SocketInfo s(mock);
+    s.setSocket(fd);
     EXPECT_THROW(s.waitForReading(), system_error); // NOLINT
+    errno = 0;
 }
 
 TEST(SocketInfo, waitForReadingNoTimeout) // NOLINT
 {
-    SocketInfo s;
-    s.setSocket(3);
+    const int fd = 4;
+    auto mock = make_shared<MockWrapper>();
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
+            IsNull()))
+        .WillOnce(Return(1));
 
-    selectFunc =
-        [](int, fd_set *readFds, fd_set *, fd_set *, struct timeval *timeout)->int{
-            EXPECT_EQ(timeout, nullptr);
-            return 1;
-        };
-
+    SocketInfo s(mock);
+    s.setSocket(fd);
     EXPECT_TRUE(s.waitForReading(false));
 }
 
 TEST(SocketInfo, waitForWritingReady) // NOLINT
 {
-    SocketInfo s;
-    s.setSocket(4);
+    const int fd = 4;
+    auto mock = make_shared<MockWrapper>();
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), Not(IsFdSet(fd)), IsFdSet(fd), Not(IsFdSet(fd)),
+            NotNull()))
+        .WillOnce(Return(1));
 
-    selectFunc =
-        [](int, fd_set *readFds, fd_set *writeFds, fd_set *exceptFds, struct timeval *timeout)->int{
-            EXPECT_EQ(readFds, nullptr);
-            EXPECT_EQ(exceptFds, nullptr);
-            EXPECT_TRUE(FD_ISSET(4, writeFds));
-            FD_ZERO(writeFds);
-            FD_SET(4, writeFds);
-
-            return 1;
-        };
-
+    SocketInfo s(mock);
+    s.setSocket(fd);
     EXPECT_TRUE(s.waitForWriting());
 }
 
 TEST(SocketInfo, waitForWritingTimeout) // NOLINT
 {
-    SocketInfo s;
-    s.setSocket(4);
+    const int fd = 4;
+    auto mock = make_shared<MockWrapper>();
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), Not(IsFdSet(fd)), IsFdSet(fd), Not(IsFdSet(fd)),
+            NotNull()))
+        .WillOnce(Return(0));
 
-    selectFunc =
-        [](int, fd_set *, fd_set *writeFds, fd_set *, struct timeval *)->int{
-            EXPECT_TRUE(FD_ISSET(4, writeFds));
-            return 0;
-        };
-
+    SocketInfo s(mock);
+    s.setSocket(fd);
     EXPECT_FALSE(s.waitForWriting());
 }
 
 TEST(SocketInfo, waitForWritingSetTimeout) // NOLINT
 {
-    SocketInfo s;
-    s.setSocket(10);
-    s.setTimeout(100);
+    const int fd = 10;
+    const long timeout = 100;
+    auto mock = make_shared<MockWrapper>();
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
+            AllOf(NotNull(), Field(&timeval::tv_sec, timeout))))
+        .WillOnce(Return(0));
 
-    selectFunc =
-        [](int, fd_set *, fd_set *, fd_set *, struct timeval *timeout)->int {
-            EXPECT_NE(timeout, nullptr);
-            if(timeout)
-                EXPECT_EQ(100, timeout->tv_sec);
-            else
-                ADD_FAILURE() << "timeout param is nullptr";
-            return 1;
-        };
-
-    s.waitForWriting();
+    SocketInfo s(mock);
+    s.setSocket(fd);
+    s.setTimeout(timeout);
+    EXPECT_FALSE(s.waitForReading());
 }
 
 TEST(SocketInfo, waitForWritingInterrupted) // NOLINT
 {
-    SocketInfo s;
-    s.setSocket(5);
+    {
+        const int fd = 5;
+        auto mock = make_shared<MockWrapper>();
+        errno = EINTR;
+        EXPECT_CALL(
+            (*mock),
+            select(Ge(fd), Not(IsFdSet(fd)), IsFdSet(fd), Not(IsFdSet(fd)),
+                NotNull()))
+            .WillOnce(Return(-1));
 
-    selectFunc =
-        [](int, fd_set *, fd_set *writeFds, fd_set *, struct timeval *)->int{
-            EXPECT_TRUE(FD_ISSET(5, writeFds));
-            errno = 0;
-            return -1;
-        };
+        SocketInfo s(mock);
+        s.setSocket(fd);
+        EXPECT_FALSE(s.waitForWriting());
+    }
 
-    EXPECT_FALSE(s.waitForWriting());
+    {
+        const int fd = 5;
+        auto mock = make_shared<MockWrapper>();
+        errno = 0;
+        EXPECT_CALL(
+            (*mock),
+            select(Ge(fd), Not(IsFdSet(fd)), IsFdSet(fd), Not(IsFdSet(fd)),
+                NotNull()))
+            .WillOnce(Return(-1));
+
+        SocketInfo s(mock);
+        s.setSocket(fd);
+        EXPECT_FALSE(s.waitForWriting());
+    }
 }
 
 TEST(SocketInfo, waitForWritingError) // NOLINT
 {
-    SocketInfo s;
-    s.setSocket(5);
+    const int fd = 5;
+    auto mock = make_shared<MockWrapper>();
+    errno = EBADF;
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), Not(IsFdSet(fd)), IsFdSet(fd), Not(IsFdSet(fd)),
+            NotNull()))
+        .WillOnce(Return(-1));
 
-    selectFunc =
-        [](int, fd_set *, fd_set *, fd_set *, struct timeval *)->int{
-            errno = EBADF;
-            return -1;
-        };
-
+    SocketInfo s(mock);
+    s.setSocket(fd);
     EXPECT_THROW(s.waitForWriting(), system_error); // NOLINT
+    errno = 0;
 }
 
 TEST(SocketInfo, waitForWritingNoTimeout) // NOLINT
 {
-    SocketInfo s;
-    s.setSocket(3);
+    const int fd = 5;
+    auto mock = make_shared<MockWrapper>();
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), Not(IsFdSet(fd)), IsFdSet(fd), Not(IsFdSet(fd)),
+            IsNull()))
+        .WillOnce(Return(1));
 
-    selectFunc =
-        [](int, fd_set *, fd_set *, fd_set *, struct timeval *timeout)->int{
-            EXPECT_EQ(timeout, nullptr);
-            return 1;
-        };
-
+    SocketInfo s(mock);
+    s.setSocket(fd);
     EXPECT_TRUE(s.waitForWriting(false));
 }
 
 TEST(SocketInfo, handleRetryWantReadOK) // NOLINT
 {
-    SocketInfo s;
-    s.setSocket(4);
+    const int fd = 5;
+    auto mock = make_shared<MockWrapper>();
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
+            NotNull()))
+        .WillOnce(Return(1));
+
+    SocketInfo s(mock);
+    s.setSocket(fd);
     s.newSSLCtx();
     s.newSSLObj();
 
     SSLErrCode = SSL_ERROR_WANT_READ;
-    selectFunc =
-        [](int, fd_set *, fd_set *, fd_set *, struct timeval *) { return 1; };
     EXPECT_TRUE(s.handleRetry(-1));
 }
 
 TEST(SocketInfo, handleRetryWantReadFail) // NOLINT
 {
-    SocketInfo s;
-    s.setSocket(4);
+    const int fd = 41;
+    auto mock = make_shared<MockWrapper>();
+    errno = EBADF;
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
+            NotNull()))
+        .WillOnce(Return(-1));
+
+    SocketInfo s(mock);
+    s.setSocket(fd);
     s.newSSLCtx();
     s.newSSLObj();
 
     SSLErrCode = SSL_ERROR_WANT_READ;
-    selectFunc =
-        [](int, fd_set *, fd_set *, fd_set *, struct timeval *) { return 0; };
+    EXPECT_THROW(s.handleRetry(-1), system_error);
+    errno = 0;
+}
+
+TEST(SocketInfo, handleRetryWantReadTimeout) // NOLINT
+{
+    const int fd = 41;
+    auto mock = make_shared<MockWrapper>();
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
+            NotNull()))
+        .WillOnce(Return(0));
+
+    SocketInfo s(mock);
+    s.setSocket(fd);
+    s.newSSLCtx();
+    s.newSSLObj();
+
+    SSLErrCode = SSL_ERROR_WANT_READ;
     EXPECT_FALSE(s.handleRetry(-1));
 }
 
 TEST(SocketInfo, handleRetryWantWriteOK) // NOLINT
 {
-    SocketInfo s;
-    s.setSocket(4);
+    const int fd = 4;
+    auto mock = make_shared<MockWrapper>();
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), Not(IsFdSet(fd)), IsFdSet(fd), Not(IsFdSet(fd)),
+            NotNull()))
+        .WillOnce(Return(1));
+
+    SocketInfo s(mock);
+    s.setSocket(fd);
     s.newSSLCtx();
     s.newSSLObj();
 
     SSLErrCode = SSL_ERROR_WANT_WRITE;
-    selectFunc =
-        [](int, fd_set *, fd_set *, fd_set *, struct timeval *) { return 1; };
     EXPECT_TRUE(s.handleRetry(-1));
 }
 
 TEST(SocketInfo, handleRetryWantWriteFail) // NOLINT
 {
-    SocketInfo s;
-    s.setSocket(4);
+    const int fd = 4;
+    auto mock = make_shared<MockWrapper>();
+    errno = EBADF;
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), Not(IsFdSet(fd)), IsFdSet(fd), Not(IsFdSet(fd)),
+            NotNull()))
+        .WillOnce(Return(-1));
+
+    SocketInfo s(mock);
+    s.setSocket(fd);
     s.newSSLCtx();
     s.newSSLObj();
 
     SSLErrCode = SSL_ERROR_WANT_WRITE;
-    selectFunc =
-        [](int, fd_set *, fd_set *, fd_set *, struct timeval *) { return 0; };
-    EXPECT_FALSE(s.handleRetry(-1));
+    EXPECT_THROW(s.handleRetry(-1), system_error);
+    errno = 0;
 }
 
 TEST(SocketInfo, handleRetryRemoteDisconnect) // NOLINT

@@ -14,22 +14,17 @@
  * limitations under the License.
  */
 
-#pragma once
+#include <sys/select.h>
 
-#include <functional>
-
-#include <openssl/ssl.h>
+#include "concretewrapper.h"
 
 namespace tlslookieloo
 {
-extern std::function<int(SSL *, void *, int)> sslReadFunc;
 
-extern int SSLErrCode;
-
-extern std::function<int(SSL *, const void *, int)> sslWriteFunc;
-
-void setNoReadableData();
-
-void setRemoteDisconnectWrite();
+int ConcreteWrapper::select(int nfds, fd_set *readfds, fd_set *writefds,
+    fd_set *exceptfds, struct timeval *timeout)
+{
+    return ::select(nfds, readfds, writefds, exceptfds, timeout);
+}
 
 } // namespace

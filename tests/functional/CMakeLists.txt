@@ -13,6 +13,7 @@
 # limitations under the License.
 
 add_executable(serverside_test
+    ${CMAKE_SOURCE_DIR}/src/concretewrapper.cpp
     ${CMAKE_SOURCE_DIR}/src/socketinfo.cpp
     ${CMAKE_SOURCE_DIR}/src/serverside.cpp
     serverside.cpp
@@ -22,6 +23,7 @@ target_link_libraries(serverside_test
 )
 
 add_executable(clientside_test
+    ${CMAKE_SOURCE_DIR}/src/concretewrapper.cpp
     ${CMAKE_SOURCE_DIR}/src/socketinfo.cpp
     ${CMAKE_SOURCE_DIR}/src/clientside.cpp
     clientside.cpp

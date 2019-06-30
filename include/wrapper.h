@@ -13,23 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-
-#include <functional>
-
-#include <openssl/ssl.h>
 
 namespace tlslookieloo
 {
-extern std::function<int(SSL *, void *, int)> sslReadFunc;
 
-extern int SSLErrCode;
-
-extern std::function<int(SSL *, const void *, int)> sslWriteFunc;
-
-void setNoReadableData();
-
-void setRemoteDisconnectWrite();
+/**
+ * Abstract class to wrap C API functions.
+ *
+ * The purpose of this class is to make unit testing easy to deal with.
+ * The function name matches the API function its wrapping
+ */
+class Wrapper
+{
+public:
+    /**
+     * Wrap POSIX select()
+     */
+    virtual int select(int nfds, fd_set *readfds, fd_set *writefds,
+        fd_set *exceptfds, struct timeval *timeout) = 0;
+};
 
 } // namespace

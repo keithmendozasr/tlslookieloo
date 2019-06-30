@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     log4cplus::Initializer initializer;
     log4cplus::BasicConfigurator::doConfigure();
     auto logger = log4cplus::Logger::getRoot();
-    logger.setLogLevel(log4cplus::ERROR_LOG_LEVEL);
+    logger.setLogLevel(log4cplus::FATAL_LOG_LEVEL);
 
     ::testing::InitGoogleTest(&argc, argv);
 

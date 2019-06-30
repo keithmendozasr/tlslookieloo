@@ -13,23 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
 
-#include <functional>
-
-#include <openssl/ssl.h>
+#include "wrapper.h"
 
 namespace tlslookieloo
 {
-extern std::function<int(SSL *, void *, int)> sslReadFunc;
 
-extern int SSLErrCode;
-
-extern std::function<int(SSL *, const void *, int)> sslWriteFunc;
-
-void setNoReadableData();
-
-void setRemoteDisconnectWrite();
+/**
+ * Default implementation of Wrapper class
+ */
+class ConcreteWrapper : public Wrapper
+{
+public:
+    virtual int select(int nfds, fd_set *readfds, fd_set *writefds,
+        fd_set *exceptfds, struct timeval *timeout) override;
+};
 
 } // namespace

@@ -14,7 +14,8 @@
 
 link_directories(${CMAKE_BINARY_DIR}/googletest/lib)
 add_executable(unittests main.cpp
-    mockcapi.cpp
+    mockcapi.cpp 
+    ${CMAKE_SOURCE_DIR}/src/concretewrapper.cpp
     ${CMAKE_SOURCE_DIR}/src/init.cpp init.cpp
     ${CMAKE_SOURCE_DIR}/src/socketinfo.cpp socketinfo.cpp
     ${CMAKE_SOURCE_DIR}/src/clientside.cpp ${CMAKE_SOURCE_DIR}/src/serverside.cpp
@@ -26,7 +27,7 @@ target_include_directories(unittests
     PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googlemock/include
 )
 
-target_link_libraries(unittests gtest pthread
+target_link_libraries(unittests gtest gmock pthread
     ${CMAKE_BINARY_DIR}/log4cplus/lib/liblog4cplus.a
     yaml-cpp ssl crypto
 )

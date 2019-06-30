@@ -34,6 +34,8 @@
 
 #include "gtest/gtest_prod.h"
 
+#include "concretewrapper.h"
+
 namespace tlslookieloo
 {
 
@@ -46,7 +48,8 @@ public:
     /**
      * Constructor
      */
-    explicit SocketInfo();
+    SocketInfo(std::shared_ptr<Wrapper> wrapper =
+        std::make_shared<ConcreteWrapper>());
 
     /**
      * Copy constructor
@@ -270,6 +273,8 @@ protected:
 
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("SocketInfo");
+    std::shared_ptr<Wrapper> wrapper;
+
     std::optional<std::string> socketIP;
 
     // Use shared_ptr on the sockfd holder to allow this class to be copyable
@@ -330,6 +335,8 @@ private:
 
     FRIEND_TEST(SocketInfo, handleRetryWantReadOK);
     FRIEND_TEST(SocketInfo, handleRetryWantReadFail);
+    FRIEND_TEST(SocketInfo, handleRetryWantReadTimeout);
+
     FRIEND_TEST(SocketInfo, handleRetryWantWriteOK);
     FRIEND_TEST(SocketInfo, handleRetryWantWriteFail);
     FRIEND_TEST(SocketInfo, handleRetryRemoteDisconnect);

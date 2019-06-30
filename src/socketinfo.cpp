@@ -17,6 +17,7 @@
 #include <memory>
 #include <stdexcept>
 #include <csignal>
+#include <algorithm>
 
 #include <log4cplus/loggingmacros.h>
 
@@ -28,7 +29,8 @@ using namespace log4cplus;
 namespace tlslookieloo
 {
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-SocketInfo::SocketInfo() :
+SocketInfo::SocketInfo(shared_ptr<Wrapper> wrapper) :
+    wrapper(wrapper),
     sslCtx(nullptr, &SSL_CTX_free)
 {}
 
@@ -41,9 +43,12 @@ SocketInfo::SocketInfo(const SocketInfo &rhs) :
     timeout(rhs.timeout),
     sslCtx(nullptr, &SSL_CTX_free),
     sslObj(rhs.sslObj)
-{}
+{
+    wrapper = rhs.wrapper;
+}
 
 SocketInfo::SocketInfo(SocketInfo &&rhs) :
+    wrapper(std::move(rhs.wrapper)),
     socketIP(std::move(rhs.socketIP)),
     sockfd(std::move(rhs.sockfd)),
     servInfo(std::move(rhs.servInfo)),
@@ -56,6 +61,7 @@ SocketInfo::SocketInfo(SocketInfo &&rhs) :
 
 SocketInfo &SocketInfo::operator =(const SocketInfo &rhs)
 {
+    wrapper = rhs.wrapper;
     socketIP = rhs.socketIP;
     sockfd = rhs.sockfd;
     servInfo = rhs.servInfo;
@@ -69,6 +75,7 @@ SocketInfo &SocketInfo::operator =(const SocketInfo &rhs)
 
 SocketInfo &SocketInfo::operator =(SocketInfo &&rhs)
 {
+    wrapper = std::move(rhs.wrapper);
     socketIP = std::move(rhs.socketIP);
     sockfd = std::move(rhs.sockfd);
     servInfo = std::move(rhs.servInfo);
@@ -235,14 +242,15 @@ const bool SocketInfo::waitForReading(const bool &withTimeout)
     do
     {
         LOG4CPLUS_TRACE(logger, "Wait on " << *sockfd); // NOLINT
-        auto rslt = select((*sockfd)+1, &readFd, nullptr, nullptr, timevalPtr);
+        auto rslt = wrapper->select((*sockfd)+1, &readFd, nullptr, nullptr,
+            timevalPtr);
         LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt); // NOLINT
         if(rslt == -1)
         {
             auto err = errno;
             LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
                 << strerror(err));
-            if(err)
+            if(err != 0 && err != EINTR)
             {
                 throwSystemError(err,
                     "Error waiting for socket to be ready for reading.");
@@ -309,6 +317,9 @@ optional<const size_t> SocketInfo::readData(char *data, const size_t &dataSize)
 
 const bool SocketInfo::waitForWriting(const bool &withTimeout)
 {
+    if(!sockfd)
+        throw logic_error("no socket");
+
     fd_set writeFd;
     FD_ZERO(&writeFd);
     FD_SET(*sockfd, &writeFd); // NOLINT
@@ -329,13 +340,14 @@ const bool SocketInfo::waitForWriting(const bool &withTimeout)
 
     do
     {
-        auto rslt = select((*sockfd)+1, nullptr, &writeFd, nullptr, timevalPtr);
+        auto rslt = wrapper->select((*sockfd)+1, nullptr, &writeFd, nullptr,
+            timevalPtr);
         if(rslt == -1)
         {
             auto err = errno;
             LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
                 << strerror(err));
-            if(err)
+            if(err != 0 && err != EINTR)
             {
                 throwSystemError(err,
                     "Error waiting for socket to be ready for writing.");
