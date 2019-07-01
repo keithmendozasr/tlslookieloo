@@ -22,31 +22,7 @@ namespace tlslookieloo
 {
 function<int(SSL *, void *, int)> sslReadFunc;
 
-int SSLErrCode;
-
 function<int(SSL *, const void *, int)> sslWriteFunc;
-
-void setNoReadableData()
-{
-    SSLErrCode = SSL_ERROR_SYSCALL;
-    errno = 0;
-    sslReadFunc =
-        [](SSL *ssl, void *buf, int num)
-        {
-            return -1;
-        };
-}
-
-void setRemoteDisconnectWrite()
-{
-    SSLErrCode = SSL_ERROR_ZERO_RETURN;
-    errno = 0;
-    sslWriteFunc =
-        [](SSL *, const void *, int)
-        {
-            return -1;
-        };
-}
 
 extern "C"
 {
@@ -54,11 +30,6 @@ extern "C"
 int SSL_read(SSL *ssl, void *buf, int num)
 {
     return sslReadFunc(ssl, buf, num);
-}
-
-int SSL_get_error(const SSL *, int)
-{
-    return SSLErrCode;
 }
 
 int SSL_write(SSL *ssl, const void *buf, int num)

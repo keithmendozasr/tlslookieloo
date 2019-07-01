@@ -21,7 +21,7 @@
 #include <system_error>
 
 #include "mockcapi.h"
-#include "wrapper.h"
+#include "mockwrapper.h"
 #include "socketinfo.h"
 
 using namespace testing;
@@ -34,13 +34,6 @@ MATCHER_P(IsFdSet, fd, "fd is set")
 {
     return arg != nullptr && FD_ISSET(fd, arg);
 }
-
-class MockWrapper : public Wrapper
-{
-public:
-    MOCK_METHOD5(select, int(int nfds, fd_set *readfds, fd_set *writefds,
-        fd_set *exceptfds, struct timeval *timeout));
-};
 
 TEST(SocketInfo, waitForReadingReady) // NOLINT
 {
@@ -277,12 +270,13 @@ TEST(SocketInfo, handleRetryWantReadOK) // NOLINT
             NotNull()))
         .WillOnce(Return(1));
 
+    EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
+        .WillOnce(Return(SSL_ERROR_WANT_READ));
+
     SocketInfo s(mock);
     s.setSocket(fd);
     s.newSSLCtx();
     s.newSSLObj();
-
-    SSLErrCode = SSL_ERROR_WANT_READ;
     EXPECT_TRUE(s.handleRetry(-1));
 }
 
@@ -297,12 +291,13 @@ TEST(SocketInfo, handleRetryWantReadFail) // NOLINT
             NotNull()))
         .WillOnce(Return(-1));
 
+    EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
+        .WillOnce(Return(SSL_ERROR_WANT_READ));
+
     SocketInfo s(mock);
     s.setSocket(fd);
     s.newSSLCtx();
     s.newSSLObj();
-
-    SSLErrCode = SSL_ERROR_WANT_READ;
     EXPECT_THROW(s.handleRetry(-1), system_error);
     errno = 0;
 }
@@ -317,12 +312,13 @@ TEST(SocketInfo, handleRetryWantReadTimeout) // NOLINT
             NotNull()))
         .WillOnce(Return(0));
 
+    EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
+        .WillOnce(Return(SSL_ERROR_WANT_READ));
+
     SocketInfo s(mock);
     s.setSocket(fd);
     s.newSSLCtx();
     s.newSSLObj();
-
-    SSLErrCode = SSL_ERROR_WANT_READ;
     EXPECT_FALSE(s.handleRetry(-1));
 }
 
@@ -336,12 +332,13 @@ TEST(SocketInfo, handleRetryWantWriteOK) // NOLINT
             NotNull()))
         .WillOnce(Return(1));
 
+    EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
+        .WillOnce(Return(SSL_ERROR_WANT_WRITE));
+
     SocketInfo s(mock);
     s.setSocket(fd);
     s.newSSLCtx();
     s.newSSLObj();
-
-    SSLErrCode = SSL_ERROR_WANT_WRITE;
     EXPECT_TRUE(s.handleRetry(-1));
 }
 
@@ -356,24 +353,28 @@ TEST(SocketInfo, handleRetryWantWriteFail) // NOLINT
             NotNull()))
         .WillOnce(Return(-1));
 
+    EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
+        .WillOnce(Return(SSL_ERROR_WANT_WRITE));
+
     SocketInfo s(mock);
     s.setSocket(fd);
     s.newSSLCtx();
     s.newSSLObj();
-
-    SSLErrCode = SSL_ERROR_WANT_WRITE;
     EXPECT_THROW(s.handleRetry(-1), system_error);
     errno = 0;
 }
 
 TEST(SocketInfo, handleRetryRemoteDisconnect) // NOLINT
 {
-    SocketInfo s;
+    auto mock = make_shared<MockWrapper>();
+    EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
+        .WillOnce(Return(SSL_ERROR_ZERO_RETURN));
+
+    SocketInfo s(mock);
     s.setSocket(4);
     s.newSSLCtx();
     s.newSSLObj();
 
-    SSLErrCode = SSL_ERROR_ZERO_RETURN;
     EXPECT_FALSE(s.handleRetry(-1));
 }
 
@@ -436,12 +437,26 @@ TEST(SocketInfo, readDataShort) // NOLINT
 
 TEST(SocketInfo, readDataNoData) // NOLINT
 {
-    SocketInfo s;
+    auto mock = make_shared<MockWrapper>();
+    EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
+        .WillOnce(Return(SSL_ERROR_SYSCALL));
+    errno = 0;
+
+    SocketInfo s(mock);
     s.newSSLCtx();
     s.newSSLObj();
 
-    setNoReadableData();
+    sslReadFunc =
+        [](SSL *, void *, int)
+        {
+            return -1;
+        };
     char buf[1];
+    sslReadFunc =
+        [](SSL *, void *buf, int num)
+        {
+            return -1;
+        };
     auto rslt = s.readData(&buf[0], 1);
     EXPECT_FALSE(rslt);
 }
@@ -501,11 +516,20 @@ TEST(SocketInfo, writeDataShort) // NOLINT
 
 TEST(SocketInfo, writeDataRemoteDisconnect) // NOLINT
 {
-    SocketInfo s;
+    auto mock = make_shared<MockWrapper>();
+    EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
+        .WillOnce(Return(SSL_ERROR_ZERO_RETURN));
+    errno = 0;
+
+    SocketInfo s(mock);
     s.newSSLCtx();
     s.newSSLObj();
 
-    setRemoteDisconnectWrite();
+    sslWriteFunc =
+        [](SSL *, const void *, int)
+        {
+            return -1;
+        };
     char buf[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g' };
     auto rslt = s.writeData(&buf[0], 7);
     EXPECT_EQ(rslt, 0ul);

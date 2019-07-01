@@ -28,6 +28,8 @@ class ConcreteWrapper : public Wrapper
 public:
     virtual int select(int nfds, fd_set *readfds, fd_set *writefds,
         fd_set *exceptfds, struct timeval *timeout) override;
+    
+    virtual int SSL_get_error(const SSL *, int) override;
 };
 
 } // namespace

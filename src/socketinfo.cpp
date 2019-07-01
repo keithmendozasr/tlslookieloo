@@ -291,7 +291,7 @@ optional<const size_t> SocketInfo::readData(char *data, const size_t &dataSize)
         if(rslt <= 0)
         {
             LOG4CPLUS_TRACE(logger, "SSL_read reporting error"); // NOLINT
-            if(SSL_get_error(ptr, rslt) == SSL_ERROR_SYSCALL && errno == 0)
+            if(wrapper->SSL_get_error(ptr, rslt) == SSL_ERROR_SYSCALL && errno == 0)
             {
                 LOG4CPLUS_TRACE(logger, "No more data to read"); // NOLINT
                 shouldRetry = false;
@@ -463,7 +463,7 @@ const bool SocketInfo::handleRetry(const int &rslt)
     bool retVal = true;
 
     auto ptr = getSSLPtr();
-    auto code = SSL_get_error(ptr, rslt);
+    auto code = wrapper->SSL_get_error(ptr, rslt);
 
     LOG4CPLUS_TRACE(logger, "Code: " << code); // NOLINT
 

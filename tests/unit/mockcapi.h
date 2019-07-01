@@ -22,14 +22,9 @@
 
 namespace tlslookieloo
 {
+
 extern std::function<int(SSL *, void *, int)> sslReadFunc;
 
-extern int SSLErrCode;
-
 extern std::function<int(SSL *, const void *, int)> sslWriteFunc;
-
-void setNoReadableData();
-
-void setRemoteDisconnectWrite();
 
 } // namespace

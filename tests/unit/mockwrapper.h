@@ -15,30 +15,18 @@
  */
 #pragma once
 
-#include <openssl/ssl.h>
+#include "wrapper.h"
 
 namespace tlslookieloo
 {
 
-/**
- * Abstract class to wrap C API functions.
- *
- * The purpose of this class is to make unit testing easy to deal with.
- * The function name matches the API function its wrapping
- */
-class Wrapper
+class MockWrapper : public Wrapper
 {
 public:
-    /**
-     * Wrap POSIX select()
-     */
-    virtual int select(int nfds, fd_set *readfds, fd_set *writefds,
-        fd_set *exceptfds, struct timeval *timeout) = 0;
+    MOCK_METHOD5(select, int(int nfds, fd_set *readfds, fd_set *writefds,
+        fd_set *exceptfds, struct timeval *timeout));
 
-    /**
-     * Wrap SSL_get_error()
-     */
-    virtual int SSL_get_error(const SSL *, int) = 0;
+    MOCK_METHOD2(SSL_get_error, int(const SSL *, int));
 };
 
-} // namespace
+}

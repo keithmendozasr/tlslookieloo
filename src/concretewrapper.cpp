@@ -15,6 +15,7 @@
  */
 
 #include <sys/select.h>
+#include <openssl/ssl.h>
 
 #include "concretewrapper.h"
 
@@ -25,6 +26,11 @@ int ConcreteWrapper::select(int nfds, fd_set *readfds, fd_set *writefds,
     fd_set *exceptfds, struct timeval *timeout)
 {
     return ::select(nfds, readfds, writefds, exceptfds, timeout);
+}
+
+int ConcreteWrapper::SSL_get_error(const SSL *ssl, int ret)
+{
+    return ::SSL_get_error(ssl, ret);
 }
 
 } // namespace
