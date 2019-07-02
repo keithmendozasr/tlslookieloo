@@ -30,6 +30,12 @@ using namespace std;
 namespace tlslookieloo
 {
 
+class SocketInfoTest : public ::testing::Test
+{
+protected:
+    shared_ptr<MockWrapper> mock = make_shared<MockWrapper>();
+};
+
 MATCHER_P(IsFdSet, fd, "fd is set")
 {
     return arg != nullptr && FD_ISSET(fd, arg);
@@ -40,10 +46,9 @@ MATCHER_P2(IsVoidEqStr, str, len, "")
     return string(static_cast<const char*>(arg), len) == str;
 }
 
-TEST(SocketInfo, waitForReadingReady) // NOLINT
+TEST_F(SocketInfoTest, waitForReadingReady) // NOLINT
 {
     const int fd = 4;
-    auto mock = make_shared<MockWrapper>();
     EXPECT_CALL(
         (*mock),
         select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
@@ -56,10 +61,9 @@ TEST(SocketInfo, waitForReadingReady) // NOLINT
     EXPECT_TRUE(s.waitForReading());
 }
 
-TEST(SocketInfo, waitForReadingTimeout) // NOLINT
+TEST_F(SocketInfoTest, waitForReadingTimeout) // NOLINT
 {
     const int fd = 4;
-    auto mock = make_shared<MockWrapper>();
     EXPECT_CALL(
         (*mock),
         select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
@@ -71,11 +75,10 @@ TEST(SocketInfo, waitForReadingTimeout) // NOLINT
     EXPECT_FALSE(s.waitForReading());
 }
 
-TEST(SocketInfo, waitForReadingSetTimeout) // NOLINT
+TEST_F(SocketInfoTest, waitForReadingSetTimeout) // NOLINT
 {
     const int fd = 10;
     const long timeout = 100;
-    auto mock = make_shared<MockWrapper>();
     EXPECT_CALL(
         (*mock),
         select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
@@ -88,11 +91,10 @@ TEST(SocketInfo, waitForReadingSetTimeout) // NOLINT
     EXPECT_FALSE(s.waitForReading());
 }
 
-TEST(SocketInfo, waitForReadingInterrupted) // NOLINT
+TEST_F(SocketInfoTest, waitForReadingInterrupted) // NOLINT
 {
     {
         const int fd = 5;
-        auto mock = make_shared<MockWrapper>();
         errno = EINTR;
         EXPECT_CALL(
             (*mock),
@@ -107,7 +109,6 @@ TEST(SocketInfo, waitForReadingInterrupted) // NOLINT
 
     {
         const int fd = 5;
-        auto mock = make_shared<MockWrapper>();
         errno = 0;
         EXPECT_CALL(
             (*mock),
@@ -121,10 +122,9 @@ TEST(SocketInfo, waitForReadingInterrupted) // NOLINT
     }
 }
 
-TEST(SocketInfo, waitForReadingError) // NOLINT
+TEST_F(SocketInfoTest, waitForReadingError) // NOLINT
 {
     const int fd = 5;
-    auto mock = make_shared<MockWrapper>();
     errno = EBADF;
     EXPECT_CALL(
         (*mock),
@@ -138,10 +138,9 @@ TEST(SocketInfo, waitForReadingError) // NOLINT
     errno = 0;
 }
 
-TEST(SocketInfo, waitForReadingNoTimeout) // NOLINT
+TEST_F(SocketInfoTest, waitForReadingNoTimeout) // NOLINT
 {
     const int fd = 4;
-    auto mock = make_shared<MockWrapper>();
     EXPECT_CALL(
         (*mock),
         select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
@@ -153,10 +152,9 @@ TEST(SocketInfo, waitForReadingNoTimeout) // NOLINT
     EXPECT_TRUE(s.waitForReading(false));
 }
 
-TEST(SocketInfo, waitForWritingReady) // NOLINT
+TEST_F(SocketInfoTest, waitForWritingReady) // NOLINT
 {
     const int fd = 4;
-    auto mock = make_shared<MockWrapper>();
     EXPECT_CALL(
         (*mock),
         select(Ge(fd), Not(IsFdSet(fd)), IsFdSet(fd), Not(IsFdSet(fd)),
@@ -168,10 +166,9 @@ TEST(SocketInfo, waitForWritingReady) // NOLINT
     EXPECT_TRUE(s.waitForWriting());
 }
 
-TEST(SocketInfo, waitForWritingTimeout) // NOLINT
+TEST_F(SocketInfoTest, waitForWritingTimeout) // NOLINT
 {
     const int fd = 4;
-    auto mock = make_shared<MockWrapper>();
     EXPECT_CALL(
         (*mock),
         select(Ge(fd), Not(IsFdSet(fd)), IsFdSet(fd), Not(IsFdSet(fd)),
@@ -183,11 +180,10 @@ TEST(SocketInfo, waitForWritingTimeout) // NOLINT
     EXPECT_FALSE(s.waitForWriting());
 }
 
-TEST(SocketInfo, waitForWritingSetTimeout) // NOLINT
+TEST_F(SocketInfoTest, waitForWritingSetTimeout) // NOLINT
 {
     const int fd = 10;
     const long timeout = 100;
-    auto mock = make_shared<MockWrapper>();
     EXPECT_CALL(
         (*mock),
         select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
@@ -200,11 +196,10 @@ TEST(SocketInfo, waitForWritingSetTimeout) // NOLINT
     EXPECT_FALSE(s.waitForReading());
 }
 
-TEST(SocketInfo, waitForWritingInterrupted) // NOLINT
+TEST_F(SocketInfoTest, waitForWritingInterrupted) // NOLINT
 {
     {
         const int fd = 5;
-        auto mock = make_shared<MockWrapper>();
         errno = EINTR;
         EXPECT_CALL(
             (*mock),
@@ -219,7 +214,6 @@ TEST(SocketInfo, waitForWritingInterrupted) // NOLINT
 
     {
         const int fd = 5;
-        auto mock = make_shared<MockWrapper>();
         errno = 0;
         EXPECT_CALL(
             (*mock),
@@ -233,10 +227,9 @@ TEST(SocketInfo, waitForWritingInterrupted) // NOLINT
     }
 }
 
-TEST(SocketInfo, waitForWritingError) // NOLINT
+TEST_F(SocketInfoTest, waitForWritingError) // NOLINT
 {
     const int fd = 5;
-    auto mock = make_shared<MockWrapper>();
     errno = EBADF;
     EXPECT_CALL(
         (*mock),
@@ -250,10 +243,9 @@ TEST(SocketInfo, waitForWritingError) // NOLINT
     errno = 0;
 }
 
-TEST(SocketInfo, waitForWritingNoTimeout) // NOLINT
+TEST_F(SocketInfoTest, waitForWritingNoTimeout) // NOLINT
 {
     const int fd = 5;
-    auto mock = make_shared<MockWrapper>();
     EXPECT_CALL(
         (*mock),
         select(Ge(fd), Not(IsFdSet(fd)), IsFdSet(fd), Not(IsFdSet(fd)),
@@ -265,10 +257,9 @@ TEST(SocketInfo, waitForWritingNoTimeout) // NOLINT
     EXPECT_TRUE(s.waitForWriting(false));
 }
 
-TEST(SocketInfo, handleRetryWantReadOK) // NOLINT
+TEST_F(SocketInfoTest, handleRetryWantReadOK) // NOLINT
 {
     const int fd = 5;
-    auto mock = make_shared<MockWrapper>();
     EXPECT_CALL(
         (*mock),
         select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
@@ -285,10 +276,9 @@ TEST(SocketInfo, handleRetryWantReadOK) // NOLINT
     EXPECT_TRUE(s.handleRetry(-1));
 }
 
-TEST(SocketInfo, handleRetryWantReadFail) // NOLINT
+TEST_F(SocketInfoTest, handleRetryWantReadFail) // NOLINT
 {
     const int fd = 41;
-    auto mock = make_shared<MockWrapper>();
     errno = EBADF;
     EXPECT_CALL(
         (*mock),
@@ -307,10 +297,9 @@ TEST(SocketInfo, handleRetryWantReadFail) // NOLINT
     errno = 0;
 }
 
-TEST(SocketInfo, handleRetryWantReadTimeout) // NOLINT
+TEST_F(SocketInfoTest, handleRetryWantReadTimeout) // NOLINT
 {
     const int fd = 41;
-    auto mock = make_shared<MockWrapper>();
     EXPECT_CALL(
         (*mock),
         select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)),
@@ -327,10 +316,9 @@ TEST(SocketInfo, handleRetryWantReadTimeout) // NOLINT
     EXPECT_FALSE(s.handleRetry(-1));
 }
 
-TEST(SocketInfo, handleRetryWantWriteOK) // NOLINT
+TEST_F(SocketInfoTest, handleRetryWantWriteOK) // NOLINT
 {
     const int fd = 4;
-    auto mock = make_shared<MockWrapper>();
     EXPECT_CALL(
         (*mock),
         select(Ge(fd), Not(IsFdSet(fd)), IsFdSet(fd), Not(IsFdSet(fd)),
@@ -347,10 +335,9 @@ TEST(SocketInfo, handleRetryWantWriteOK) // NOLINT
     EXPECT_TRUE(s.handleRetry(-1));
 }
 
-TEST(SocketInfo, handleRetryWantWriteFail) // NOLINT
+TEST_F(SocketInfoTest, handleRetryWantWriteFail) // NOLINT
 {
     const int fd = 4;
-    auto mock = make_shared<MockWrapper>();
     errno = EBADF;
     EXPECT_CALL(
         (*mock),
@@ -369,9 +356,8 @@ TEST(SocketInfo, handleRetryWantWriteFail) // NOLINT
     errno = 0;
 }
 
-TEST(SocketInfo, handleRetryRemoteDisconnect) // NOLINT
+TEST_F(SocketInfoTest, handleRetryRemoteDisconnect) // NOLINT
 {
-    auto mock = make_shared<MockWrapper>();
     EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
         .WillOnce(Return(SSL_ERROR_ZERO_RETURN));
 
@@ -383,9 +369,8 @@ TEST(SocketInfo, handleRetryRemoteDisconnect) // NOLINT
     EXPECT_FALSE(s.handleRetry(-1));
 }
 
-TEST(SocketInfo, readDataExact) // NOLINT
+TEST_F(SocketInfoTest, readDataExact) // NOLINT
 {
-    auto mock = make_shared<MockWrapper>();
     ON_CALL((*mock), select(_, _, _, _, _))
         .WillByDefault(Return(1));
 
@@ -407,9 +392,8 @@ TEST(SocketInfo, readDataExact) // NOLINT
     EXPECT_STREQ(buf, "abc");
 }
 
-TEST(SocketInfo, readDataShort) // NOLINT
+TEST_F(SocketInfoTest, readDataShort) // NOLINT
 {
-    auto mock = make_shared<MockWrapper>();
     ON_CALL((*mock), select(_, _, _, _, _))
         .WillByDefault(Return(1));
 
@@ -431,9 +415,8 @@ TEST(SocketInfo, readDataShort) // NOLINT
     EXPECT_STREQ(&buf[0], "abcde");
 }
 
-TEST(SocketInfo, readDataNoData) // NOLINT
+TEST_F(SocketInfoTest, readDataNoData) // NOLINT
 {
-    auto mock = make_shared<MockWrapper>();
     EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
         .WillOnce(Return(SSL_ERROR_SYSCALL));
     errno = 0;
@@ -450,9 +433,8 @@ TEST(SocketInfo, readDataNoData) // NOLINT
     EXPECT_FALSE(rslt);
 }
 
-TEST(SocketInfo, writeDataExact) // NOLINT
+TEST_F(SocketInfoTest, writeDataExact) // NOLINT
 {
-    auto mock = make_shared<MockWrapper>();
     EXPECT_CALL((*mock), SSL_write(NotNull(), IsVoidEqStr("abc", 3), 4))
         .WillOnce(Return(4));
 
@@ -465,9 +447,8 @@ TEST(SocketInfo, writeDataExact) // NOLINT
     EXPECT_EQ(rslt, 4ul);
 }
 
-TEST(SocketInfo, writeDataShort) // NOLINT
+TEST_F(SocketInfoTest, writeDataShort) // NOLINT
 {
-    auto mock = make_shared<MockWrapper>();
     EXPECT_CALL((*mock), SSL_write(NotNull(), IsVoidEqStr("abcdefg", 7), 7))
         .WillOnce(Return(2));
 
@@ -480,9 +461,8 @@ TEST(SocketInfo, writeDataShort) // NOLINT
     EXPECT_EQ(rslt, 2ul);
 }
 
-TEST(SocketInfo, writeDataRemoteDisconnect) // NOLINT
+TEST_F(SocketInfoTest, writeDataRemoteDisconnect) // NOLINT
 {
-    auto mock = make_shared<MockWrapper>();
     EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
         .WillOnce(Return(SSL_ERROR_ZERO_RETURN));
     errno = 0;

@@ -319,35 +319,35 @@ private:
 
     // Delete unneeded constructors/operators
 
-    FRIEND_TEST(SocketInfo, waitForReadingReady);
-    FRIEND_TEST(SocketInfo, waitForReadingTimeout);
-    FRIEND_TEST(SocketInfo, waitForReadingSetTimeout);
-    FRIEND_TEST(SocketInfo, waitForReadingInterrupted);
-    FRIEND_TEST(SocketInfo, waitForReadingError);
-    FRIEND_TEST(SocketInfo, waitForReadingNoTimeout);
+    FRIEND_TEST(SocketInfoTest, waitForReadingReady);
+    FRIEND_TEST(SocketInfoTest, waitForReadingTimeout);
+    FRIEND_TEST(SocketInfoTest, waitForReadingSetTimeout);
+    FRIEND_TEST(SocketInfoTest, waitForReadingInterrupted);
+    FRIEND_TEST(SocketInfoTest, waitForReadingError);
+    FRIEND_TEST(SocketInfoTest, waitForReadingNoTimeout);
 
-    FRIEND_TEST(SocketInfo, waitForWritingReady);
-    FRIEND_TEST(SocketInfo, waitForWritingTimeout);
-    FRIEND_TEST(SocketInfo, waitForWritingSetTimeout);
-    FRIEND_TEST(SocketInfo, waitForWritingInterrupted);
-    FRIEND_TEST(SocketInfo, waitForWritingError);
-    FRIEND_TEST(SocketInfo, waitForWritingNoTimeout);
+    FRIEND_TEST(SocketInfoTest, waitForWritingReady);
+    FRIEND_TEST(SocketInfoTest, waitForWritingTimeout);
+    FRIEND_TEST(SocketInfoTest, waitForWritingSetTimeout);
+    FRIEND_TEST(SocketInfoTest, waitForWritingInterrupted);
+    FRIEND_TEST(SocketInfoTest, waitForWritingError);
+    FRIEND_TEST(SocketInfoTest, waitForWritingNoTimeout);
 
-    FRIEND_TEST(SocketInfo, handleRetryWantReadOK);
-    FRIEND_TEST(SocketInfo, handleRetryWantReadFail);
-    FRIEND_TEST(SocketInfo, handleRetryWantReadTimeout);
+    FRIEND_TEST(SocketInfoTest, handleRetryWantReadOK);
+    FRIEND_TEST(SocketInfoTest, handleRetryWantReadFail);
+    FRIEND_TEST(SocketInfoTest, handleRetryWantReadTimeout);
 
-    FRIEND_TEST(SocketInfo, handleRetryWantWriteOK);
-    FRIEND_TEST(SocketInfo, handleRetryWantWriteFail);
-    FRIEND_TEST(SocketInfo, handleRetryRemoteDisconnect);
+    FRIEND_TEST(SocketInfoTest, handleRetryWantWriteOK);
+    FRIEND_TEST(SocketInfoTest, handleRetryWantWriteFail);
+    FRIEND_TEST(SocketInfoTest, handleRetryRemoteDisconnect);
 
-    FRIEND_TEST(SocketInfo, readDataExact);
-    FRIEND_TEST(SocketInfo, readDataShort);
-    FRIEND_TEST(SocketInfo, readDataNoData);
+    FRIEND_TEST(SocketInfoTest, readDataExact);
+    FRIEND_TEST(SocketInfoTest, readDataShort);
+    FRIEND_TEST(SocketInfoTest, readDataNoData);
 
-    FRIEND_TEST(SocketInfo, writeDataExact);
-    FRIEND_TEST(SocketInfo, writeDataShort);
-    FRIEND_TEST(SocketInfo, writeDataRemoteDisconnect);
+    FRIEND_TEST(SocketInfoTest, writeDataExact);
+    FRIEND_TEST(SocketInfoTest, writeDataShort);
+    FRIEND_TEST(SocketInfoTest, writeDataRemoteDisconnect);
 
     friend class TargetTest;
 };
