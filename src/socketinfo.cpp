@@ -286,7 +286,7 @@ optional<const size_t> SocketInfo::readData(char *data, const size_t &dataSize)
     optional<size_t> retVal;
     do
     {
-        auto rslt = SSL_read(ptr, data, dataSize);
+        auto rslt = wrapper->SSL_read(ptr, data, dataSize);
         LOG4CPLUS_TRACE(logger, "SSL_read return: " << rslt); // NOLINT
         if(rslt <= 0)
         {

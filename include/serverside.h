@@ -34,6 +34,13 @@ public:
     ServerSide(){}
 
     /**
+     * Constructor taking Wrapper
+     */
+    ServerSide(std::shared_ptr<Wrapper> wrapper) :
+        SocketInfo(wrapper)
+    {}
+
+    /**
      * Copy constructor
      */
     ServerSide(const ServerSide &rhs) :

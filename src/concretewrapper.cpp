@@ -33,4 +33,9 @@ int ConcreteWrapper::SSL_get_error(const SSL *ssl, int ret)
     return ::SSL_get_error(ssl, ret);
 }
 
+int ConcreteWrapper::SSL_read(SSL *ssl, void *buf, int num)
+{
+    return ::SSL_read(ssl, buf, num);
+}
+
 } // namespace

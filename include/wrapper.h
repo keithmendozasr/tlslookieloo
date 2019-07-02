@@ -39,6 +39,11 @@ public:
      * Wrap SSL_get_error()
      */
     virtual int SSL_get_error(const SSL *, int) = 0;
+
+    /**
+     * Wrap SSL_read()
+     */
+    virtual int SSL_read(SSL *, void *, int) = 0;
 };
 
 } // namespace

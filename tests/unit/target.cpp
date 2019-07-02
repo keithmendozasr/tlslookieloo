@@ -23,6 +23,7 @@
 #include "config.h"
 #include "mockcapi.h"
 #include "target.h"
+#include "mockwrapper.h"
 
 using namespace testing;
 using namespace std;
@@ -33,8 +34,14 @@ namespace tlslookieloo
 class TargetTest : public ::testing::Test
 {
 protected:
+    shared_ptr<MockWrapper> mock = make_shared<MockWrapper>();
     ClientSide client;
     ServerSide server;
+
+    TargetTest() :
+        client(mock),
+        server(mock)
+    {}
 
     void SetUp() override
     {
@@ -51,13 +58,8 @@ TEST_F(TargetTest, passClientToServerGood) // NOLINT
     Target obj;
 
     const char expectData[] = "abc";
-    sslReadFunc =
-        [&obj, &expectData](SSL *ssl, void *buf, int num)
-        {
-            obj.stop();
-            memcpy(buf, &expectData[0], 4);
-            return 4;
-        };
+    EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 4))
+        .WillOnce(Return(4));
 
     sslWriteFunc =
         [&expectData](SSL *ssl, const void *buf, int num)
@@ -70,13 +72,15 @@ TEST_F(TargetTest, passClientToServerGood) // NOLINT
     EXPECT_TRUE(obj.passClientToServer(client, server));
 }
 
-/*TEST_F(TargetTest, passClientToServerNoData) // NOLINT
+TEST_F(TargetTest, passClientToServerNoData) // NOLINT
 {
-    log4cplus::NDCContextCreator logCtx("passClientToServerNoData");
+    EXPECT_CALL((*mock), SSL_get_error(_, _))
+        .WillOnce(Return(SSL_ERROR_SYSCALL));
+    errno = 0;
 
-    Target obj;
+    EXPECT_CALL((*mock), SSL_read(_, _, _))
+        .WillOnce(Return(-1));
 
-    setNoReadableData();
     sslWriteFunc =
         [](SSL *ssl, const void *buf, int num)
         {
@@ -84,15 +88,24 @@ TEST_F(TargetTest, passClientToServerGood) // NOLINT
             return -1;
         };
 
+    Target obj;
     EXPECT_FALSE(obj.passClientToServer(client, server));
 }
 
 TEST_F(TargetTest, passClientToServerRemoteDisconnect)
 {
-    Target obj;
+    EXPECT_CALL((*mock), SSL_get_error(_, _))
+        .WillOnce(Return(SSL_ERROR_SYSCALL));
+    errno = 0;
 
-    setRemoteDisconnectWrite();
+    sslWriteFunc =
+        [](SSL *ssl, const void *buf, int num)
+        {
+            return -1;
+        };
+
+    Target obj;
     EXPECT_FALSE(obj.passClientToServer(client, server));
-}*/
+}
 
 } //namespace tlslookieloo

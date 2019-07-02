@@ -20,17 +20,11 @@ using namespace std;
 
 namespace tlslookieloo
 {
-function<int(SSL *, void *, int)> sslReadFunc;
 
 function<int(SSL *, const void *, int)> sslWriteFunc;
 
 extern "C"
 {
-
-int SSL_read(SSL *ssl, void *buf, int num)
-{
-    return sslReadFunc(ssl, buf, num);
-}
 
 int SSL_write(SSL *ssl, const void *buf, int num)
 {

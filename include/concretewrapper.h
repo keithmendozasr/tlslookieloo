@@ -30,6 +30,8 @@ public:
         fd_set *exceptfds, struct timeval *timeout) override;
     
     virtual int SSL_get_error(const SSL *, int) override;
+
+    virtual int SSL_read(SSL *, void *, int) override;
 };
 
 } // namespace

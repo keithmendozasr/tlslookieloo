@@ -380,55 +380,46 @@ TEST(SocketInfo, handleRetryRemoteDisconnect) // NOLINT
 
 TEST(SocketInfo, readDataExact) // NOLINT
 {
-    SocketInfo s;
+    auto mock = make_shared<MockWrapper>();
+    ON_CALL((*mock), select(_, _, _, _, _))
+        .WillByDefault(Return(1));
+
+    EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 4))
+        .WillOnce(DoAll(WithArg<1>(Invoke(
+            [](void *ptr){
+                memcpy(ptr, "abc", 4);
+            })),
+            Return(4)));
+
+    SocketInfo s(mock);
     s.newSSLCtx();
     s.newSSLObj();
 
-    char buf[3];
-    sslReadFunc =
-        [](SSL *ssl, void *buf, int num)
-        {
-            EXPECT_NE(ssl, nullptr);
-            EXPECT_NE(buf, nullptr);
-            EXPECT_EQ(num, 3);
-            
-            char *tmp = reinterpret_cast<char *>(buf); // NOLINT
-            tmp[0] = 'a'; // NOLINT
-            tmp[1] = 'b'; // NOLINT
-            tmp[2] = 'c'; // NOLINT
-
-            return 3;
-        };
-    auto rslt = s.readData(&buf[0], 3);
+    char buf[4];
+    auto rslt = s.readData(&buf[0], 4);
     EXPECT_TRUE(rslt);
-    EXPECT_EQ(rslt.value(), 3ul);
-    EXPECT_EQ(string(&buf[0], 3), string("abc"));
+    EXPECT_EQ(rslt.value(), 4ul);
+    EXPECT_STREQ(buf, "abc");
 }
 
 TEST(SocketInfo, readDataShort) // NOLINT
 {
-    SocketInfo s;
+    auto mock = make_shared<MockWrapper>();
+    ON_CALL((*mock), select(_, _, _, _, _))
+        .WillByDefault(Return(1));
+
+    EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 30))
+        .WillOnce(DoAll(WithArg<1>(Invoke(
+            [](void *ptr){
+                memcpy(ptr, "abcde", 6);
+            })),
+            Return(6)));
+
+    SocketInfo s(mock);
     s.newSSLCtx();
     s.newSSLObj();
 
     char buf[30];
-    sslReadFunc =
-        [](SSL *ssl, void *buf, int num)
-        {
-            EXPECT_NE(ssl, nullptr);
-            EXPECT_NE(buf, nullptr);
-            EXPECT_EQ(num, 30);
-            
-            char *tmp = reinterpret_cast<char *>(buf); // NOLINT
-            tmp[0] = 'a'; // NOLINT
-            tmp[1] = 'b'; // NOLINT
-            tmp[2] = 'c'; // NOLINT
-            tmp[3] = 'd'; // NOLINT
-            tmp[4] = 'e'; // NOLINT
-            tmp[5] = '\0'; // NOLINT
-
-            return 6;
-        };
     auto rslt = s.readData(&buf[0], 30);
     EXPECT_TRUE(rslt);
     EXPECT_EQ(rslt.value(), 6ul);
@@ -442,21 +433,14 @@ TEST(SocketInfo, readDataNoData) // NOLINT
         .WillOnce(Return(SSL_ERROR_SYSCALL));
     errno = 0;
 
+    EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 1))
+        .WillOnce(Return(-1));
+
     SocketInfo s(mock);
     s.newSSLCtx();
     s.newSSLObj();
 
-    sslReadFunc =
-        [](SSL *, void *, int)
-        {
-            return -1;
-        };
     char buf[1];
-    sslReadFunc =
-        [](SSL *, void *buf, int num)
-        {
-            return -1;
-        };
     auto rslt = s.readData(&buf[0], 1);
     EXPECT_FALSE(rslt);
 }

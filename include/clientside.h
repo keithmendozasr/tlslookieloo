@@ -35,6 +35,13 @@ public:
     explicit ClientSide(){}
 
     /**
+     * Constructor taking Wrapper
+     */
+    ClientSide(std::shared_ptr<Wrapper> wrapper) :
+        SocketInfo(wrapper)
+    {}
+
+    /**
      * Copy constructor
      */
     ClientSide(const ClientSide &rhs) :

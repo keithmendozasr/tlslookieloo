@@ -23,8 +23,6 @@
 namespace tlslookieloo
 {
 
-extern std::function<int(SSL *, void *, int)> sslReadFunc;
-
 extern std::function<int(SSL *, const void *, int)> sslWriteFunc;
 
 } // namespace

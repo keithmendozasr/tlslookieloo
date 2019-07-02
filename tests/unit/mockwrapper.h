@@ -15,6 +15,8 @@
  */
 #pragma once
 
+#include "gmock/gmock.h"
+
 #include "wrapper.h"
 
 namespace tlslookieloo
@@ -27,6 +29,8 @@ public:
         fd_set *exceptfds, struct timeval *timeout));
 
     MOCK_METHOD2(SSL_get_error, int(const SSL *, int));
+
+    MOCK_METHOD3(SSL_read, int(SSL *, void *, int));
 };
 
 }
