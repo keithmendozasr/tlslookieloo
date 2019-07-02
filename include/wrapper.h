@@ -44,6 +44,11 @@ public:
      * Wrap SSL_read()
      */
     virtual int SSL_read(SSL *, void *, int) = 0;
+
+    /**
+     * Wrap SSL_write()
+     */
+    virtual int SSL_write(SSL *, const void *, int) = 0;
 };
 
 } // namespace

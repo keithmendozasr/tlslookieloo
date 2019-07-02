@@ -383,7 +383,7 @@ const size_t SocketInfo::writeData(const char *msg, const size_t &msgSize)
     size_t retVal = 0;
     do
     {
-        auto rslt = SSL_write(ptr, msg, msgSize);
+        auto rslt = wrapper->SSL_write(ptr, msg, msgSize);
         LOG4CPLUS_TRACE(logger, "SSL_write return: " << rslt); // NOLINT
         if(rslt <= 0)
         {

@@ -19,8 +19,8 @@
 
 #include <cerrno>
 #include <system_error>
+#include <string>
 
-#include "mockcapi.h"
 #include "mockwrapper.h"
 #include "socketinfo.h"
 
@@ -33,6 +33,11 @@ namespace tlslookieloo
 MATCHER_P(IsFdSet, fd, "fd is set")
 {
     return arg != nullptr && FD_ISSET(fd, arg);
+}
+
+MATCHER_P2(IsVoidEqStr, str, len, "")
+{
+    return string(static_cast<const char*>(arg), len) == str;
 }
 
 TEST(SocketInfo, waitForReadingReady) // NOLINT
@@ -447,51 +452,28 @@ TEST(SocketInfo, readDataNoData) // NOLINT
 
 TEST(SocketInfo, writeDataExact) // NOLINT
 {
-    SocketInfo s;
+    auto mock = make_shared<MockWrapper>();
+    EXPECT_CALL((*mock), SSL_write(NotNull(), IsVoidEqStr("abc", 3), 4))
+        .WillOnce(Return(4));
+
+    SocketInfo s(mock);
     s.newSSLCtx();
     s.newSSLObj();
 
-    sslWriteFunc =
-        [](SSL *ssl, const void *buf, int num)
-        {
-            EXPECT_NE(ssl, nullptr);
-            EXPECT_NE(buf, nullptr);
-            EXPECT_EQ(num, 3);
-
-            // NOLINTNEXTLINE
-            EXPECT_EQ(
-                string(reinterpret_cast<const char *>(buf), num),
-                "abc");
-
-            return 3;
-        };
-
-    char buf[] = { 'a', 'b', 'c' };
-    auto rslt = s.writeData(&buf[0], 3);
-    EXPECT_EQ(rslt, 3ul);
+    char buf[] = "abc";
+    auto rslt = s.writeData(&buf[0], 4);
+    EXPECT_EQ(rslt, 4ul);
 }
 
 TEST(SocketInfo, writeDataShort) // NOLINT
 {
-    SocketInfo s;
+    auto mock = make_shared<MockWrapper>();
+    EXPECT_CALL((*mock), SSL_write(NotNull(), IsVoidEqStr("abcdefg", 7), 7))
+        .WillOnce(Return(2));
+
+    SocketInfo s(mock);
     s.newSSLCtx();
     s.newSSLObj();
-
-    sslWriteFunc =
-        [](SSL *ssl, const void *buf, int num)
-        {
-            EXPECT_NE(ssl, nullptr);
-            EXPECT_NE(buf, nullptr);
-            EXPECT_EQ(num, 7);
-
-            // NOLINTNEXTLINE
-            EXPECT_EQ(
-                string(reinterpret_cast<const char *>(buf), num),
-                "abcdefg"
-            );
-
-            return 2;
-        };
 
     char buf[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g' };
     auto rslt = s.writeData(&buf[0], 7);
@@ -505,15 +487,12 @@ TEST(SocketInfo, writeDataRemoteDisconnect) // NOLINT
         .WillOnce(Return(SSL_ERROR_ZERO_RETURN));
     errno = 0;
 
+    EXPECT_CALL((*mock), SSL_write(NotNull(), IsVoidEqStr("abcdefg", 7), 7))
+        .WillOnce(Return(-1));
+
     SocketInfo s(mock);
     s.newSSLCtx();
     s.newSSLObj();
-
-    sslWriteFunc =
-        [](SSL *, const void *, int)
-        {
-            return -1;
-        };
     char buf[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g' };
     auto rslt = s.writeData(&buf[0], 7);
     EXPECT_EQ(rslt, 0ul);

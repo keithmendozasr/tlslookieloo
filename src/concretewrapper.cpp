@@ -38,4 +38,9 @@ int ConcreteWrapper::SSL_read(SSL *ssl, void *buf, int num)
     return ::SSL_read(ssl, buf, num);
 }
 
+int ConcreteWrapper::SSL_write(SSL *ssl, const void *buf, int num)
+{
+    return ::SSL_write(ssl, buf, num);
+}
+
 } // namespace

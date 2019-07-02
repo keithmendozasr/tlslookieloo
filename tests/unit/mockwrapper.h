@@ -27,10 +27,9 @@ class MockWrapper : public Wrapper
 public:
     MOCK_METHOD5(select, int(int nfds, fd_set *readfds, fd_set *writefds,
         fd_set *exceptfds, struct timeval *timeout));
-
     MOCK_METHOD2(SSL_get_error, int(const SSL *, int));
-
     MOCK_METHOD3(SSL_read, int(SSL *, void *, int));
+    MOCK_METHOD3(SSL_write, int(SSL *, const void *, int));
 };
 
 }

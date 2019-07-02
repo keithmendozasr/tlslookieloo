@@ -26,12 +26,13 @@ namespace tlslookieloo
 class ConcreteWrapper : public Wrapper
 {
 public:
-    virtual int select(int nfds, fd_set *readfds, fd_set *writefds,
-        fd_set *exceptfds, struct timeval *timeout) override;
+    virtual int select(int, fd_set *, fd_set *, fd_set *, struct timeval *) override;
     
     virtual int SSL_get_error(const SSL *, int) override;
 
     virtual int SSL_read(SSL *, void *, int) override;
+
+    virtual int SSL_write(SSL *, const void *, int) override;
 };
 
 } // namespace
