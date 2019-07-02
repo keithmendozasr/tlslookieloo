@@ -22,6 +22,8 @@
 #include <log4cplus/logger.h>
 
 #include "socketinfo.h"
+#include "wrapper.h"
+#include "concretewrapper.h"
 
 namespace tlslookieloo
 {
@@ -30,14 +32,10 @@ class ClientSide : public SocketInfo
 {
 public:
     /**
-     * Constructor
-     */
-    explicit ClientSide(){}
-
-    /**
      * Constructor taking Wrapper
      */
-    ClientSide(std::shared_ptr<Wrapper> wrapper) :
+    ClientSide(std::shared_ptr<Wrapper> wrapper =
+        std::make_shared<ConcreteWrapper>()) :
         SocketInfo(wrapper)
     {}
 

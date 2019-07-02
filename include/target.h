@@ -19,7 +19,7 @@
 #include <string>
 #include <atomic>
 
-#include "socketinfo.h"
+#include "concretewrapper.h"
 #include "serverside.h"
 #include "clientside.h"
 
@@ -35,9 +35,14 @@ class Target
 {
 public:
     /**
-     * Default constructor
+     * "Default" constructor
+     *
+     * \arg wrapper Wrapper instance
      */
-    explicit Target(){}
+    Target(std::shared_ptr<Wrapper> wrapper =
+        std::make_shared<ConcreteWrapper>()) :
+        wrapper(wrapper)
+    {}
 
     /**
      * Constructor that takes the target information.
@@ -92,6 +97,8 @@ private:
     std::string tgtName, serverHost, clientCert, clientKey;
     unsigned int serverPort = 0;
     unsigned int clientPort = 0;
+    std::shared_ptr<Wrapper> wrapper;
+    int timeout = 5;
 
     std::atomic_bool keepRunning = true;
 

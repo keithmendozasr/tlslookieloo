@@ -15,6 +15,8 @@
  */
 
 #include <stdexcept>
+#include <vector>
+#include <cstring>
 
 #include "log4cplus/loggingmacros.h"
 #include "log4cplus/ndc.h"
@@ -35,7 +37,8 @@ Target::Target(
     clientCert(clientCert),
     clientKey(clientKey),
     serverPort(serverPort),
-    clientPort(clientPort)
+    clientPort(clientPort),
+    wrapper(make_shared<ConcreteWrapper>())
 {}
 
 Target::Target(const Target &rhs) :
@@ -45,7 +48,8 @@ Target::Target(const Target &rhs) :
     clientCert(rhs.clientCert),
     clientKey(rhs.clientKey),
     serverPort(rhs.serverPort),
-    clientPort(rhs.clientPort)
+    clientPort(rhs.clientPort),
+    wrapper(rhs.wrapper)
 {}
 
 Target & Target::operator = (const Target &rhs)
@@ -56,18 +60,20 @@ Target & Target::operator = (const Target &rhs)
     clientKey = rhs.clientKey;
     serverPort = rhs.serverPort;
     clientPort = rhs.clientPort;
+    wrapper = rhs.wrapper;
 
     return *this;
 }
 
 Target::Target(Target && rhs) :
     logger(log4cplus::Logger::getInstance("Target")),
-    tgtName(std::move(tgtName)),
-    serverHost(std::move(serverHost)),
-    clientCert(std::move(clientCert)),
-    clientKey(std::move(clientKey)),
-    serverPort(std::move(serverPort)),
-    clientPort(std::move(clientPort))
+    tgtName(std::move(rhs.tgtName)),
+    serverHost(std::move(rhs.serverHost)),
+    clientCert(std::move(rhs.clientCert)),
+    clientKey(std::move(rhs.clientKey)),
+    serverPort(std::move(rhs.serverPort)),
+    clientPort(std::move(rhs.clientPort)),
+    wrapper(std::move(rhs.wrapper))
 {}
 
 Target & Target::operator = (Target && rhs)
@@ -78,6 +84,7 @@ Target & Target::operator = (Target && rhs)
     clientKey = std::move(rhs.clientKey);
     serverPort = std::move(rhs.serverPort);
     clientPort = std::move(rhs.clientPort);
+    wrapper = std::move(rhs.wrapper);
 
     return *this;
 }
@@ -86,7 +93,7 @@ void Target::start()
 {
     log4cplus::NDCContextCreator ndc(tgtName);
 
-    ClientSide clientListener;
+    ClientSide clientListener(wrapper);
     clientListener.startListener(clientPort, 2);
     // NOLINTNEXTLINE
     LOG4CPLUS_INFO(logger, "Listening on " << clientPort);
@@ -123,8 +130,7 @@ bool Target::passClientToServer(ClientSide &client, ServerSide &server)
             LOG4CPLUS_INFO(logger, "Data from client: " << // NOLINT
                 string(buf, readLen.value()));
             LOG4CPLUS_DEBUG(logger, "Send data to server");
-            server.writeData(&buf[0], readLen.value());
-            retVal = true;
+            retVal = server.writeData(&buf[0], readLen.value());
         }
         else
         {

@@ -35,10 +35,15 @@ MATCHER_P(IsVoidEqStr, str, "")
     return string(static_cast<const char*>(arg)) == str;
 }
 
+MATCHER_P2(IsFdSet, clientFd, serverFd, "fd is set")
+{
+    return arg != nullptr && FD_ISSET(clientFd, arg) && FD_ISSET(serverFd, arg);
+}
+
 class TargetTest : public ::testing::Test
 {
 protected:
-    shared_ptr<MockWrapper> mock = make_shared<MockWrapper>();
+    shared_ptr<MockWrapper> mock;
     ClientSide client;
     ServerSide server;
 
@@ -49,21 +54,29 @@ protected:
 
     void SetUp() override
     {
+        mock = make_shared<MockWrapper>();
+        client = ClientSide(mock);
         client.newSSLCtx();
         client.newSSLObj();
 
+        server = ServerSide(mock);
         server.newSSLCtx();
         server.newSSLObj();
     }
+
+    void TearDown() override
+    {
+        mock = nullptr;
+    };
 };
 
 TEST_F(TargetTest, passClientToServerGood) // NOLINT
 {
     const char expectData[] = "abc";
-    EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 4))
+    EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 1024))
         .WillOnce(DoAll(WithArg<1>(Invoke(
             [expectData](void *ptr){
-                memcpy(ptr, "expectData", 4);
+                memcpy(ptr, expectData, 4);
             })),
             Return(4)));
 
@@ -90,14 +103,22 @@ TEST_F(TargetTest, passClientToServerNoData) // NOLINT
     EXPECT_FALSE(obj.passClientToServer(client, server));
 }
 
-TEST_F(TargetTest, passClientToServerRemoteDisconnect)
+TEST_F(TargetTest, passClientToServerRemoteDisconnect) // NOLINT
 {
+    const char expectData[] = "abc";
+    EXPECT_CALL((*mock), SSL_read(_, _, _))
+        .WillRepeatedly(DoAll(WithArg<1>(Invoke(
+            [expectData](void *ptr){
+                memcpy(ptr, expectData, 4);
+            })),
+            Return(4)));
+
     EXPECT_CALL((*mock), SSL_get_error(_, _))
-        .WillOnce(Return(SSL_ERROR_SYSCALL));
+        .WillOnce(Return(SSL_ERROR_ZERO_RETURN));
     errno = 0;
 
     EXPECT_CALL((*mock), SSL_write(_, _, _))
-        .Times(-1);
+        .WillOnce(Return(-1));
 
     Target obj;
     EXPECT_FALSE(obj.passClientToServer(client, server));
