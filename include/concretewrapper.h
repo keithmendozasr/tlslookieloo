@@ -15,6 +15,8 @@
  */
 #pragma once
 
+#include <ostream>
+
 #include "wrapper.h"
 
 namespace tlslookieloo
@@ -33,6 +35,9 @@ public:
     virtual int SSL_read(SSL *, void *, int) override;
 
     virtual int SSL_write(SSL *, const void *, int) override;
+
+    virtual void ostream_write(std::ostream & ostream,
+        const char * const data, const size_t &len) override;
 };
 
 } // namespace

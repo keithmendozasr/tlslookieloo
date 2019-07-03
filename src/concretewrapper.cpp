@@ -16,6 +16,7 @@
 
 #include <sys/select.h>
 #include <openssl/ssl.h>
+#include <ostream>
 
 #include "concretewrapper.h"
 
@@ -41,6 +42,12 @@ int ConcreteWrapper::SSL_read(SSL *ssl, void *buf, int num)
 int ConcreteWrapper::SSL_write(SSL *ssl, const void *buf, int num)
 {
     return ::SSL_write(ssl, buf, num);
+}
+
+void ConcreteWrapper::ostream_write(std::ostream & ostream,
+    const char * const data, const size_t &len)
+{
+    ostream.write(data, len);
 }
 
 } // namespace

@@ -30,6 +30,7 @@ public:
     MOCK_METHOD2(SSL_get_error, int(const SSL *, int));
     MOCK_METHOD3(SSL_read, int(SSL *, void *, int));
     MOCK_METHOD3(SSL_write, int(SSL *, const void *, int));
+    MOCK_METHOD3(ostream_write, void(std::ostream &, const char * const, const size_t &));
 };
 
 }

@@ -49,6 +49,15 @@ public:
      * Wrap SSL_write()
      */
     virtual int SSL_write(SSL *, const void *, int) = 0;
+
+    /**
+     * Wrap basic_ostream::write()
+     * \arg ostream basic_ostream instance to actually write to
+     * \arg data Raw data to write
+     * \arg len Length of data
+     */
+    virtual void ostream_write(std::ostream & ostream,
+        const char * const data, const size_t &len) = 0;
 };
 
 } // namespace
