@@ -113,11 +113,31 @@ private:
      */
     void handleClient(ClientSide client);
 
-    friend class TargetTest;
     FRIEND_TEST(TargetTest, passClientToServerGood);
     FRIEND_TEST(TargetTest, passClientToServerNoData);
     FRIEND_TEST(TargetTest, passClientToServerRemoteDisconnect);
 
+    enum READREADYSTATE
+    {
+        CLIENT_READY,
+        SERVER_READY,
+        TIMEOUT,
+        SIGNAL
+    };
+
+    /**
+     * Wait for either socket to have data for reading
+     *
+     * \arg client ClientSide object
+     * \arg server ServerSide object
+     */
+    READREADYSTATE waitForReadable(ClientSide &client, ServerSide &server);
+
+    FRIEND_TEST(TargetTest, waitForReadableTimeout);
+    FRIEND_TEST(TargetTest, waitForReadableClient);
+    FRIEND_TEST(TargetTest, waitForReadableServer);
+    FRIEND_TEST(TargetTest, waitForReadableInterrupted);
+    FRIEND_TEST(TargetTest, waitForReadableError);
 };
 
 } // namespace tlslookieloo

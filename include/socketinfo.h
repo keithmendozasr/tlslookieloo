@@ -360,6 +360,10 @@ private:
     FRIEND_TEST(TargetTest, passClientToServerNoData);
     FRIEND_TEST(TargetTest, passClientToServerRemoteDisconnect);
     FRIEND_TEST(TargetTest, waitForReadableTimeout);
+    FRIEND_TEST(TargetTest, waitForReadableClient);
+    FRIEND_TEST(TargetTest, waitForReadableServer);
+    FRIEND_TEST(TargetTest, waitForReadableInterrupted);
+    FRIEND_TEST(TargetTest, waitForReadableError);
 };
 
 } //namespace tlslookieloo

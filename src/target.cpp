@@ -166,13 +166,31 @@ void Target::handleClient(ClientSide client)
     {
         while(keepRunning)
         {
-            if(passClientToServer(client, server))
-                LOG4CPLUS_TRACE(logger, "Message sent from client to server");
-            else
+            auto readable = waitForReadable(client, server);
+            LOG4CPLUS_TRACE(logger, "Value of readable: " << readable);
+            if(readable == CLIENT_READY)
             {
-                LOG4CPLUS_INFO(logger, "Client went away"); // NOLINT
+                LOG4CPLUS_DEBUG(logger, "Client ready for reading");
+                if(passClientToServer(client, server))
+                    LOG4CPLUS_DEBUG(logger, "Message sent from client to server");
+                else
+                {
+                    LOG4CPLUS_INFO(logger, "Client went away"); // NOLINT
+                    break;
+                }
+            }
+            else if(readable == TIMEOUT)
+            {
+                LOG4CPLUS_INFO(logger, "Timed-out waiting for message");
                 break;
             }
+            else if(readable == SIGNAL)
+            {
+                LOG4CPLUS_DEBUG(logger,
+                    "Received signal while waiting for readable FD");
+            }
+            else
+                throw logic_error("Unexpected readable value");
         } // while(keepReading)
     }
     catch(const system_error &e)
@@ -182,6 +200,72 @@ void Target::handleClient(ClientSide client)
     }
 
     LOG4CPLUS_INFO(logger, "Exiting");
+}
+
+Target::READREADYSTATE Target::waitForReadable(ClientSide &client, ServerSide &server)
+{
+    READREADYSTATE retVal;
+
+    vector<int> socketList = {
+        client.getSocket(),
+        server.getSocket()
+    };
+
+    fd_set readFd;
+    FD_ZERO(&readFd);
+    FD_SET(client.getSocket(), &readFd); // NOLINT
+    FD_SET(server.getSocket(), &readFd); // NOLINT
+
+    auto maxSocket = max({ client.getSocket(), server.getSocket() });
+    LOG4CPLUS_TRACE(logger, "Value of maxSocket: " << maxSocket);
+
+    timeval waitTime; // NOLINT
+    LOG4CPLUS_TRACE(logger, "Setting timeout to " << timeout << " seconds");
+    waitTime.tv_sec=timeout;
+    waitTime.tv_usec=0;
+
+    LOG4CPLUS_TRACE(logger, "Wait for one side to be ready"); // NOLINT
+    auto rslt = wrapper->select(maxSocket+1, &readFd, nullptr, nullptr,
+        &waitTime);
+    LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt); // NOLINT
+    if(rslt == 0)
+    {
+        LOG4CPLUS_DEBUG(logger, "Read wait time expired"); // NOLINT
+        retVal = TIMEOUT;
+    }
+    else if(rslt == -1)
+    {
+        auto err = errno;
+        LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
+            << strerror(err));
+        if(err != 0 && err != EINTR)
+        {
+            throw system_error(err, std::generic_category(),
+                "Error waiting for socket to be ready for reading.");
+        }
+        else
+        {
+            LOG4CPLUS_TRACE(logger, "Caught signal"); // NOLINT
+            retVal = SIGNAL;
+        }
+    }
+    else
+    {
+        if(FD_ISSET(client.getSocket(), &readFd)) // NOLINT
+        {
+            LOG4CPLUS_DEBUG(logger, "Client ready for reading"); // NOLINT
+            retVal = CLIENT_READY;
+        }
+        else if(FD_ISSET(server.getSocket(), &readFd)) // NOLINT
+        {
+            LOG4CPLUS_DEBUG(logger, "Server ready for reading"); // NOLINT
+            retVal = SERVER_READY;
+        }
+        else
+            throw logic_error("Expected FD's not set");
+    }
+
+    return retVal;
 }
 
 } // namespace

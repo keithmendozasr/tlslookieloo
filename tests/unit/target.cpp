@@ -124,4 +124,130 @@ TEST_F(TargetTest, passClientToServerRemoteDisconnect) // NOLINT
     EXPECT_FALSE(obj.passClientToServer(client, server));
 }
 
+TEST_F(TargetTest, waitForReadableTimeout) // NOLINT
+{
+    client.setSocket(4);
+    server.setSocket(5);
+
+    EXPECT_CALL(
+        (*mock),
+        select(6, IsFdSet(4, 5), Not(IsFdSet(4, 5)), Not(IsFdSet(4, 5)),
+            NotNull()))
+        .WillOnce(Return(0));
+    
+    Target t(mock);
+    EXPECT_EQ(Target::READREADYSTATE::TIMEOUT, t.waitForReadable(client, server));
+}
+
+TEST_F(TargetTest, waitForReadableClient) // NOLINT
+{
+    client.setSocket(4);
+    server.setSocket(5);
+
+    EXPECT_CALL(
+        (*mock),
+        select(6, IsFdSet(4, 5), Not(IsFdSet(4, 5)), Not(IsFdSet(4, 5)),
+            NotNull()))
+        .WillOnce(DoAll(WithArg<1>(Invoke(
+            [](fd_set *ptr){
+                FD_ZERO(ptr);
+                FD_SET(4, ptr);
+            })),
+            Return(1)));
+    
+    Target t(mock);
+    EXPECT_EQ(Target::READREADYSTATE::CLIENT_READY, t.waitForReadable(client, server));
+}
+
+TEST_F(TargetTest, waitForReadableServer) // NOLINT
+{
+    client.setSocket(4);
+    server.setSocket(5);
+
+    EXPECT_CALL(
+        (*mock),
+        select(6, IsFdSet(4, 5), Not(IsFdSet(4, 5)), Not(IsFdSet(4, 5)),
+            NotNull()))
+        .WillOnce(DoAll(WithArg<1>(Invoke(
+            [](fd_set *ptr){
+                FD_ZERO(ptr);
+                FD_SET(5, ptr);
+            })),
+            Return(1)));
+    
+    Target t(mock);
+    EXPECT_EQ(Target::READREADYSTATE::SERVER_READY, t.waitForReadable(client, server));
+}
+
+TEST_F(TargetTest, waitForReadableInterrupted) // NOLINT
+{
+    {
+        client.setSocket(4);
+        server.setSocket(5);
+
+        EXPECT_CALL(
+            (*mock),
+            select(6, IsFdSet(4, 5), Not(IsFdSet(4, 5)), Not(IsFdSet(4, 5)),
+                NotNull()))
+            .WillOnce(Return(-1));
+        errno = 0;
+
+        Target t(mock);
+        EXPECT_EQ(Target::READREADYSTATE::SIGNAL,
+            t.waitForReadable(client, server));
+    }
+
+    {
+        client.setSocket(4);
+        server.setSocket(5);
+
+        EXPECT_CALL(
+            (*mock),
+            select(6, IsFdSet(4, 5), Not(IsFdSet(4, 5)), Not(IsFdSet(4, 5)),
+                NotNull()))
+            .WillOnce(Return(-1));
+        errno = EINTR;
+
+        Target t(mock);
+        EXPECT_EQ(Target::READREADYSTATE::SIGNAL,
+            t.waitForReadable(client, server));
+    }
+}
+
+TEST_F(TargetTest, waitForReadableError) // NOLINT
+{
+    {
+        client.setSocket(4);
+        server.setSocket(5);
+
+        EXPECT_CALL(
+            (*mock),
+            select(6, IsFdSet(4, 5), Not(IsFdSet(4, 5)), Not(IsFdSet(4, 5)),
+                NotNull()))
+            .WillOnce(Return(-1));
+        errno = EBADF;
+
+        Target t(mock);
+        EXPECT_THROW(t.waitForReadable(client, server), system_error);
+    }
+
+    {
+        client.setSocket(4);
+        server.setSocket(5);
+
+        EXPECT_CALL(
+            (*mock),
+            select(6, IsFdSet(4, 5), Not(IsFdSet(4, 5)), Not(IsFdSet(4, 5)),
+                NotNull()))
+            .WillOnce(DoAll(WithArg<1>(Invoke(
+                [](fd_set *ptr){
+                    FD_ZERO(ptr);
+                })),
+                Return(1)));
+
+        Target t(mock);
+        EXPECT_THROW(t.waitForReadable(client, server), logic_error);
+    }
+}
+
 } //namespace tlslookieloo
