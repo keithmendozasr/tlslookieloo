@@ -18,6 +18,7 @@
 
 #include <string>
 #include <atomic>
+#include <fstream>
 
 #include "concretewrapper.h"
 #include "serverside.h"
@@ -56,7 +57,8 @@ public:
      */
     Target(const std::string &tgtName, const std::string &serverHost,
         const unsigned int serverPort, const unsigned int clientPort,
-        const std::string &clientCert, const std::string &clientKey);
+        const std::string &clientCert, const std::string &clientKey,
+        const std::string &msgFileName);
 
     /**
      * Copy constructor
@@ -94,13 +96,15 @@ public:
 
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("Target");
-    std::string tgtName, serverHost, clientCert, clientKey;
+    std::string tgtName, serverHost, clientCert, clientKey, msgFileName;
     unsigned int serverPort = 0;
     unsigned int clientPort = 0;
     std::shared_ptr<Wrapper> wrapper;
     int timeout = 5;
 
     std::atomic_bool keepRunning = true;
+
+    std::ofstream msgFile;
 
     /**
      * Bridge message from server to client
@@ -133,11 +137,32 @@ private:
      */
     READREADYSTATE waitForReadable(ClientSide &client, ServerSide &server);
 
+    enum MSGOWNER
+    {
+        CLIENT,
+        SERVER
+    };
+
+    /**
+     * Log the data received with indicator of origin
+     *
+     * \arg data char pointer to the data to store
+     * \arg len Length of data
+     * \arg owner Which side sent the message
+     */
+    void storeMessage(const char *data, const size_t &len,
+        const MSGOWNER & owner); 
+
     FRIEND_TEST(TargetTest, waitForReadableTimeout);
     FRIEND_TEST(TargetTest, waitForReadableClient);
     FRIEND_TEST(TargetTest, waitForReadableServer);
     FRIEND_TEST(TargetTest, waitForReadableInterrupted);
     FRIEND_TEST(TargetTest, waitForReadableError);
+
+    FRIEND_TEST(TargetTest, storeMessageClient);
+    FRIEND_TEST(TargetTest, storeMessageServer);
+    FRIEND_TEST(TargetTest, storeMessageBinary);
+    FRIEND_TEST(TargetTest, storeMessageNullPtr);
 };
 
 } // namespace tlslookieloo

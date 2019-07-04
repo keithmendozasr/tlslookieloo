@@ -250,4 +250,56 @@ TEST_F(TargetTest, waitForReadableError) // NOLINT
     }
 }
 
+TEST_F(TargetTest, storeMessageClient)
+{
+    string expectMsg("client-->server\nTesting<00>");
+    EXPECT_CALL((*mock),
+        ostream_write(_, StrEq(expectMsg),
+        static_cast<const size_t>(expectMsg.size())))
+        .Times(1);
+
+    Target t(mock);
+    auto payload = "Testing";
+    EXPECT_NO_THROW(
+        t.storeMessage(payload, sizeof(payload), t.MSGOWNER::CLIENT));
+}
+
+TEST_F(TargetTest, storeMessageServer)
+{
+    string expectMsg("server-->client\nTesting<00>");
+    EXPECT_CALL((*mock),
+        ostream_write(_, StrEq(expectMsg), expectMsg.size()))
+        .Times(1);
+
+    Target t(mock);
+    auto payload = "Testing";
+    EXPECT_NO_THROW(
+        t.storeMessage(payload, sizeof(payload), t.MSGOWNER::SERVER));
+}
+
+TEST_F(TargetTest, storeMessageBinary)
+{
+    string expectMsg("server-->client\n<00><7f><10>");
+    EXPECT_CALL((*mock),
+        ostream_write(_, StrEq(expectMsg), expectMsg.size()))
+        .Times(1);
+
+    Target t(mock);
+    char payload[] = { 0x0, 0x7f, 0x10 };
+    EXPECT_NO_THROW(
+        t.storeMessage(payload, sizeof(payload), t.MSGOWNER::SERVER));
+}
+
+TEST_F(TargetTest, storeMessageNullPtr)
+{
+    EXPECT_CALL((*mock),
+        ostream_write(_, _, _))
+        .Times(0);
+
+    Target t(mock);
+    EXPECT_THROW(
+        t.storeMessage(nullptr, 1, t.MSGOWNER::CLIENT),
+        logic_error);
+}
+
 } //namespace tlslookieloo

@@ -17,6 +17,7 @@
 #include <stdexcept>
 #include <vector>
 #include <cstring>
+#include <iomanip>
 
 #include "log4cplus/loggingmacros.h"
 #include "log4cplus/ndc.h"
@@ -29,17 +30,26 @@ namespace tlslookieloo
 {
 
 Target::Target(
-    const std::string &tgtName, const std::string &serverHost,
+    const string &tgtName, const string &serverHost,
     const unsigned int serverPort, const unsigned int clientPort,
-    const std::string &clientCert, const std::string &clientKey) :
+    const string &clientCert, const string &clientKey, const string &msgFileName) :
     tgtName(tgtName),
     serverHost(serverHost),
     clientCert(clientCert),
     clientKey(clientKey),
+    msgFileName(msgFileName),
     serverPort(serverPort),
     clientPort(clientPort),
     wrapper(make_shared<ConcreteWrapper>())
-{}
+{
+    msgFile.open(msgFileName);
+    if(!msgFile.is_open())
+    {
+        auto err = errno;
+        throw std::system_error(err, std::generic_category(),
+            "Failed to open " + msgFileName);
+    }
+}
 
 Target::Target(const Target &rhs) :
     logger(log4cplus::Logger::getInstance("Target")),
@@ -47,6 +57,7 @@ Target::Target(const Target &rhs) :
     serverHost(rhs.serverHost),
     clientCert(rhs.clientCert),
     clientKey(rhs.clientKey),
+    msgFileName(rhs.msgFileName),
     serverPort(rhs.serverPort),
     clientPort(rhs.clientPort),
     wrapper(rhs.wrapper)
@@ -58,6 +69,7 @@ Target & Target::operator = (const Target &rhs)
     serverHost = rhs.serverHost;
     clientCert = rhs.clientCert;
     clientKey = rhs.clientKey;
+    msgFileName = rhs.msgFileName;
     serverPort = rhs.serverPort;
     clientPort = rhs.clientPort;
     wrapper = rhs.wrapper;
@@ -71,6 +83,7 @@ Target::Target(Target && rhs) :
     serverHost(std::move(rhs.serverHost)),
     clientCert(std::move(rhs.clientCert)),
     clientKey(std::move(rhs.clientKey)),
+    msgFileName(std::move(rhs.msgFileName)),
     serverPort(std::move(rhs.serverPort)),
     clientPort(std::move(rhs.clientPort)),
     wrapper(std::move(rhs.wrapper))
@@ -82,6 +95,7 @@ Target & Target::operator = (Target && rhs)
     serverHost = std::move(rhs.serverHost);
     clientCert = std::move(rhs.clientCert);
     clientKey = std::move(rhs.clientKey);
+    msgFileName = std::move(rhs.msgFileName);
     serverPort = std::move(rhs.serverPort);
     clientPort = std::move(rhs.clientPort);
     wrapper = std::move(rhs.wrapper);
@@ -266,6 +280,40 @@ Target::READREADYSTATE Target::waitForReadable(ClientSide &client, ServerSide &s
     }
 
     return retVal;
+}
+
+void Target::storeMessage(const char * data, const size_t &len,
+    const MSGOWNER &owner)
+{
+    if(data == nullptr)
+        throw logic_error("data is nullptr");
+
+    ostringstream cleandata;
+    switch(owner)
+    {
+    case MSGOWNER::CLIENT:
+        cleandata << "client-->server";
+        break;
+    case MSGOWNER::SERVER:
+        cleandata << "server-->client";
+        break;
+    default:
+        logic_error("Unexpected owner value");
+    }
+    cleandata << "\n";
+
+    for(size_t i=0; i<len; i++)
+    {
+        if(isprint(static_cast<unsigned char>(data[i])))
+            cleandata << data[i];
+        else
+            cleandata << "<" << std::setw(2) << std::setfill('0') << std::hex
+                << static_cast<unsigned int>(data[i]) << ">";
+    }
+
+    LOG4CPLUS_TRACE(logger, "Value of cleandata: " << cleandata.str());
+    wrapper->ostream_write(msgFile, cleandata.str().c_str(),
+        cleandata.str().size());
 }
 
 } // namespace

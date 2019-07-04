@@ -138,8 +138,10 @@ static void start(const string &targets)
             LOG4CPLUS_INFO(logger, "Starting " << name << " bridge");
             targetThreads.emplace_back();
             auto &t = targetThreads.back();
+
+            // TODO: Fix message file name
             t.target = Target(name, serverHost, serverPort, clientPort, clientCert,
-                clientKey);
+                clientKey, name + ".msgs");
             t.runner = std::thread([](Target &tgt)
                 {
                     tgt.start();

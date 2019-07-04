@@ -37,7 +37,7 @@ public:
     virtual int SSL_write(SSL *, const void *, int) override;
 
     virtual void ostream_write(std::ostream & ostream,
-        const char * const data, const size_t &len) override;
+        const char * data, const size_t &len) override;
 };
 
 } // namespace

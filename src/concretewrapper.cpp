@@ -45,7 +45,7 @@ int ConcreteWrapper::SSL_write(SSL *ssl, const void *buf, int num)
 }
 
 void ConcreteWrapper::ostream_write(std::ostream & ostream,
-    const char * const data, const size_t &len)
+    const char * data, const size_t &len)
 {
     ostream.write(data, len);
 }

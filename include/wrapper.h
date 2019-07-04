@@ -57,7 +57,7 @@ public:
      * \arg len Length of data
      */
     virtual void ostream_write(std::ostream & ostream,
-        const char * const data, const size_t &len) = 0;
+        const char * data, const size_t &len) = 0;
 };
 
 } // namespace
