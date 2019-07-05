@@ -132,7 +132,7 @@ bool Target::passClientToServer(ClientSide &client, ServerSide &server)
         LOG4CPLUS_TRACE(logger, "readLen: " << readLen.value());
         if(readLen.value() > 0)
         {
-            LOG4CPLUS_INFO(logger, "Data from client: " << // NOLINT
+            LOG4CPLUS_TRACE(logger, "Data from client: " << // NOLINT
                 string(buf, readLen.value()));
             storeMessage(&buf[0], readLen.value(), MSGOWNER::CLIENT);
             LOG4CPLUS_DEBUG(logger, "Send data to server");
@@ -162,7 +162,7 @@ bool Target::passServerToClient(ClientSide &client, ServerSide &server)
         LOG4CPLUS_TRACE(logger, "readLen: " << readLen.value());
         if(readLen.value() > 0)
         {
-            LOG4CPLUS_INFO(logger, "Data from server: " << // NOLINT
+            LOG4CPLUS_TRACE(logger, "Data from server: " << // NOLINT
                 string(buf, readLen.value()));
             storeMessage(&buf[0], readLen.value(), MSGOWNER::SERVER);
             LOG4CPLUS_DEBUG(logger, "Send data to client");
