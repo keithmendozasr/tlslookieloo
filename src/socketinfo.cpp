@@ -19,7 +19,9 @@
 #include <csignal>
 #include <algorithm>
 
-#include <log4cplus/loggingmacros.h>
+#include <openssl/err.h>
+
+#include "log4cplus/loggingmacros.h"
 
 #include "socketinfo.h"
 
@@ -495,8 +497,13 @@ const bool SocketInfo::handleRetry(const int &rslt)
         retVal = false;
         break;
     default:
-        logSSLErrorStack();
-        throw logic_error(string("SSL error"));
+        if(ERR_FATAL_ERROR(ERR_peek_error()))
+        {
+            logSSLErrorStack();
+            throw logic_error(string("SSL error"));
+        }
+        else
+            logSSLErrorStack();
     }
 
     return retVal;
