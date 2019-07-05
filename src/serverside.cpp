@@ -59,6 +59,12 @@ const bool ServerSide::connect(const unsigned int &port, const string &host)
                 // NOLINTNEXTLINE
                 LOG4CPLUS_INFO(logger, "Connection to " << host << ":" << port <<
                     " successful");
+
+                // Flush any protocol-related message
+                auto oldTime = getTimeout();
+                setTimeout(1);
+                readData(nullptr, 0);
+                setTimeout(oldTime);
             }
         }
         catch(const exception &e)

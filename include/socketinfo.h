@@ -85,6 +85,15 @@ public:
     }
 
     /**
+     * Get the network timeout to use for all operations
+     *
+     */
+    inline unsigned int getTimeout() const
+    {
+        return timeout;
+    }
+
+    /**
      * Return the socket descriptor
      */
     inline const int &getSocket() const
