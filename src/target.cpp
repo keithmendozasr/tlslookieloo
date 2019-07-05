@@ -41,15 +41,7 @@ Target::Target(
     serverPort(serverPort),
     clientPort(clientPort),
     wrapper(make_shared<ConcreteWrapper>())
-{
-    msgFile.open(msgFileName);
-    if(!msgFile.is_open())
-    {
-        auto err = errno;
-        throw std::system_error(err, std::generic_category(),
-            "Failed to open " + msgFileName);
-    }
-}
+{}
 
 Target::Target(const Target &rhs) :
     logger(log4cplus::Logger::getInstance("Target")),
@@ -143,6 +135,7 @@ bool Target::passClientToServer(ClientSide &client, ServerSide &server)
         {
             LOG4CPLUS_INFO(logger, "Data from client: " << // NOLINT
                 string(buf, readLen.value()));
+            storeMessage(&buf[0], readLen.value(), MSGOWNER::CLIENT);
             LOG4CPLUS_DEBUG(logger, "Send data to server");
             retVal = server.writeData(&buf[0], readLen.value());
         }
@@ -176,6 +169,15 @@ void Target::handleClient(ClientSide client)
         return;
     }
 
+    msgFile.open(msgFileName);
+    if(!msgFile.is_open())
+    {
+        auto err = errno;
+        throw std::system_error(err, std::generic_category(),
+            "Failed to open " + msgFileName);
+    }
+    else
+        LOG4CPLUS_DEBUG(logger, msgFileName << " open");
     try
     {
         while(keepRunning)
@@ -192,6 +194,10 @@ void Target::handleClient(ClientSide client)
                     LOG4CPLUS_INFO(logger, "Client went away"); // NOLINT
                     break;
                 }
+            }
+            else if(readable == SERVER_READY)
+            {
+                LOG4CPLUS_DEBUG(logger, "Server ready for reading. Ignoring for now");
             }
             else if(readable == TIMEOUT)
             {
