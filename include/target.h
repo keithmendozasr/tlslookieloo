@@ -107,9 +107,14 @@ private:
     std::ofstream msgFile;
 
     /**
-     * Bridge message from server to client
+     * Bridge message from client to server
      */
     bool passClientToServer(ClientSide &client, ServerSide &server);
+
+    /**
+     * Bridge message from server to client
+     */
+    bool passServerToClient(ClientSide &client, ServerSide &server);
 
     /**
      * Handle clientside connection and message processing
@@ -151,7 +156,7 @@ private:
      * \arg owner Which side sent the message
      */
     void storeMessage(const char *data, const size_t &len,
-        const MSGOWNER & owner); 
+        const MSGOWNER & owner);
 
     FRIEND_TEST(TargetTest, waitForReadableTimeout);
     FRIEND_TEST(TargetTest, waitForReadableClient);

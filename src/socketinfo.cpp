@@ -293,12 +293,12 @@ optional<const size_t> SocketInfo::readData(char *data, const size_t &dataSize)
             LOG4CPLUS_TRACE(logger, "SSL_read reporting error"); // NOLINT
             if(wrapper->SSL_get_error(ptr, rslt) == SSL_ERROR_SYSCALL && errno == 0)
             {
-                LOG4CPLUS_TRACE(logger, "No more data to read"); // NOLINT
+                LOG4CPLUS_DEBUG(logger, "Remote-end disconnected while reading"); // NOLINT
                 shouldRetry = false;
             }
             else
             {
-                LOG4CPLUS_TRACE(logger, "Wait for read ready"); // NOLINT
+                LOG4CPLUS_DEBUG(logger, "Wait for read ready"); // NOLINT
                 shouldRetry = handleRetry(rslt);
             }
         }

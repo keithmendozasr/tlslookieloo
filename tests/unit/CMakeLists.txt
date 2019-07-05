@@ -33,4 +33,4 @@ target_link_libraries(unittests gtest gmock pthread
 
 add_test(parseTargetsFile unittests -t${CMAKE_SOURCE_DIR}/tests/unit/targets_files --gtest_filter=parseTargetsFile)
 add_test(SocketInfo unittests --gtest_filter=SocketInfo.*)
-add_test(Target unittests --gtest_filter=Target.* -c${CMAKE_SOURCE_DIR}/tests/unit/test_cert)
+add_test(Target unittests --gtest_filter=TargetTest.* -c${CMAKE_SOURCE_DIR}/tests/unit/test_cert)

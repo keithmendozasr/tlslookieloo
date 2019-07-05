@@ -252,7 +252,7 @@ TEST_F(TargetTest, waitForReadableError) // NOLINT
 
 TEST_F(TargetTest, storeMessageClient)
 {
-    string expectMsg("client-->server\nTesting<00>");
+    string expectMsg("===BEGIN client-->server===\nTesting<00>\n===END===\n");
     EXPECT_CALL((*mock),
         ostream_write(_, StrEq(expectMsg),
         static_cast<const size_t>(expectMsg.size())))
@@ -266,7 +266,7 @@ TEST_F(TargetTest, storeMessageClient)
 
 TEST_F(TargetTest, storeMessageServer)
 {
-    string expectMsg("server-->client\nTesting<00>");
+    string expectMsg("===BEGIN server-->client===\nTesting<00>\n===END===\n");
     EXPECT_CALL((*mock),
         ostream_write(_, StrEq(expectMsg), expectMsg.size()))
         .Times(1);
@@ -279,7 +279,7 @@ TEST_F(TargetTest, storeMessageServer)
 
 TEST_F(TargetTest, storeMessageBinary)
 {
-    string expectMsg("server-->client\n<00><7f><10>");
+    string expectMsg("===BEGIN server-->client===\n<00><7f><10>\n===END===\n");
     EXPECT_CALL((*mock),
         ostream_write(_, StrEq(expectMsg), expectMsg.size()))
         .Times(1);

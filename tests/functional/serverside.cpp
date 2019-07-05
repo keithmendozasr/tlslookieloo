@@ -126,6 +126,7 @@ int main(int argc, char *argv[])
         // NOLINTNEXTLINE
         LOG4CPLUS_INFO(logger, "Connected to " << argState.args[1] << ":" <<
             argState.args[0]);
+
         LOG4CPLUS_INFO(logger, "Send data to server"); // NOLINT
         const char msg[] = "Hello from serverside";
         s.writeData(&msg[0], sizeof(msg));

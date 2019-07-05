@@ -25,6 +25,7 @@
 #include "target.h"
 
 using namespace std;
+using namespace log4cplus;
 
 namespace tlslookieloo
 {
@@ -44,7 +45,6 @@ Target::Target(
 {}
 
 Target::Target(const Target &rhs) :
-    logger(log4cplus::Logger::getInstance("Target")),
     tgtName(rhs.tgtName),
     serverHost(rhs.serverHost),
     clientCert(rhs.clientCert),
@@ -70,7 +70,6 @@ Target & Target::operator = (const Target &rhs)
 }
 
 Target::Target(Target && rhs) :
-    logger(log4cplus::Logger::getInstance("Target")),
     tgtName(std::move(rhs.tgtName)),
     serverHost(std::move(rhs.serverHost)),
     clientCert(std::move(rhs.clientCert)),
@@ -97,7 +96,7 @@ Target & Target::operator = (Target && rhs)
 
 void Target::start()
 {
-    log4cplus::NDCContextCreator ndc(tgtName);
+    NDCContextCreator ndc(tgtName);
 
     ClientSide clientListener(wrapper);
     clientListener.startListener(clientPort, 2);
@@ -137,23 +136,56 @@ bool Target::passClientToServer(ClientSide &client, ServerSide &server)
                 string(buf, readLen.value()));
             storeMessage(&buf[0], readLen.value(), MSGOWNER::CLIENT);
             LOG4CPLUS_DEBUG(logger, "Send data to server");
-            retVal = server.writeData(&buf[0], readLen.value());
+
+            retVal = (server.writeData(&buf[0], readLen.value()) > 0);
         }
         else
         {
             // NOLINTNEXTLINE
-            LOG4CPLUS_INFO(logger, "No data received from remote end");
+            LOG4CPLUS_INFO(logger, "No actual data from server");
         }
     }
     else
-        LOG4CPLUS_DEBUG(logger, "No data received from clientside");
+        LOG4CPLUS_DEBUG(logger, "Client-side disconnected");
+
+    return retVal;
+}
+
+bool Target::passServerToClient(ClientSide &client, ServerSide &server)
+{
+    bool retVal = false;
+    char buf[1024];
+    auto readLen = server.readData(&buf[0], 1024);
+    if(readLen)
+    {
+        // NOLINTNEXTLINE
+        LOG4CPLUS_TRACE(logger, "readLen: " << readLen.value());
+        if(readLen.value() > 0)
+        {
+            LOG4CPLUS_INFO(logger, "Data from server: " << // NOLINT
+                string(buf, readLen.value()));
+            storeMessage(&buf[0], readLen.value(), MSGOWNER::SERVER);
+            LOG4CPLUS_DEBUG(logger, "Send data to client");
+
+            retVal = (client.writeData(&buf[0], readLen.value()) > 0);
+        }
+        else
+        {
+            // NOLINTNEXTLINE
+            LOG4CPLUS_INFO(logger, "No actual data from server");
+        }
+    }
+    else
+        LOG4CPLUS_DEBUG(logger, "Server-side disconnected");
 
     return retVal;
 }
 
 void Target::handleClient(ClientSide client)
 {
+    timeout = 30;
     LOG4CPLUS_INFO(logger, "Start monitoring");
+    client.setTimeout(timeout);
 
     if(!client.startSSL(clientCert, clientKey))
     {
@@ -162,6 +194,7 @@ void Target::handleClient(ClientSide client)
     }
 
     ServerSide server;
+    server.setTimeout(timeout);
     if(!server.connect(serverPort, serverHost))
     {
         LOG4CPLUS_INFO(logger, "Failed to connect to server " <<
@@ -186,18 +219,27 @@ void Target::handleClient(ClientSide client)
             LOG4CPLUS_TRACE(logger, "Value of readable: " << readable);
             if(readable == CLIENT_READY)
             {
+                NDCContextCreator ctx("ClientToServer");
                 LOG4CPLUS_DEBUG(logger, "Client ready for reading");
                 if(passClientToServer(client, server))
                     LOG4CPLUS_DEBUG(logger, "Message sent from client to server");
                 else
                 {
-                    LOG4CPLUS_INFO(logger, "Client went away"); // NOLINT
+                    LOG4CPLUS_DEBUG(logger, "Client-side disconnected");
                     break;
                 }
             }
             else if(readable == SERVER_READY)
             {
-                LOG4CPLUS_DEBUG(logger, "Server ready for reading. Ignoring for now");
+                NDCContextCreator ctx("ServerToClient");
+                LOG4CPLUS_TRACE(logger, "Server ready for reading");
+                if(passServerToClient(client, server))
+                    LOG4CPLUS_DEBUG(logger, "Message sent from server to client");
+                else
+                {
+                    LOG4CPLUS_INFO(logger, "Server-side disconnected");
+                    break;
+                }
             }
             else if(readable == TIMEOUT)
             {
@@ -226,17 +268,18 @@ Target::READREADYSTATE Target::waitForReadable(ClientSide &client, ServerSide &s
 {
     READREADYSTATE retVal;
 
-    vector<int> socketList = {
-        client.getSocket(),
-        server.getSocket()
-    };
+    auto clientFd = client.getSocket();
+    auto serverFd = server.getSocket();
+
+    LOG4CPLUS_TRACE(logger, "Client FD: " << clientFd);
+    LOG4CPLUS_TRACE(logger, "Server FD: " << serverFd);
 
     fd_set readFd;
     FD_ZERO(&readFd);
-    FD_SET(client.getSocket(), &readFd); // NOLINT
-    FD_SET(server.getSocket(), &readFd); // NOLINT
+    FD_SET(clientFd, &readFd); // NOLINT
+    FD_SET(serverFd, &readFd); // NOLINT
 
-    auto maxSocket = max({ client.getSocket(), server.getSocket() });
+    auto maxSocket = max({ clientFd, serverFd });
     LOG4CPLUS_TRACE(logger, "Value of maxSocket: " << maxSocket);
 
     timeval waitTime; // NOLINT
@@ -294,14 +337,14 @@ void Target::storeMessage(const char * data, const size_t &len,
     if(data == nullptr)
         throw logic_error("data is nullptr");
 
-    ostringstream cleandata;
+    ostringstream cleandata("===BEGIN ", ios_base::ate);
     switch(owner)
     {
     case MSGOWNER::CLIENT:
-        cleandata << "client-->server";
+        cleandata << "client-->server===";
         break;
     case MSGOWNER::SERVER:
-        cleandata << "server-->client";
+        cleandata << "server-->client===";
         break;
     default:
         logic_error("Unexpected owner value");
@@ -316,6 +359,7 @@ void Target::storeMessage(const char * data, const size_t &len,
             cleandata << "<" << std::setw(2) << std::setfill('0') << std::hex
                 << static_cast<unsigned int>(data[i]) << ">";
     }
+    cleandata << "\n===END===\n";
 
     LOG4CPLUS_TRACE(logger, "Value of cleandata: " << cleandata.str());
     wrapper->ostream_write(msgFile, cleandata.str().c_str(),
