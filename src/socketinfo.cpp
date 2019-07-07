@@ -218,63 +218,120 @@ void SocketInfo::saveSocketIP(const sockaddr_storage *addrInfo)
     LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__<<" Value of ip: "<< socketIP.value()); // NOLINT
 }
 
-const bool SocketInfo::waitForReading(const bool &withTimeout)
+const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt, const bool withTimeout)
 {
-    if(!sockfd)
-        throw logic_error("no socket");
+    fd_set monitorFd;
+    FD_ZERO(&monitorFd);
+    FD_SET(*sockfd, &monitorFd); // NOLINT
+    fd_set *readFds, *writeFds;
 
-    fd_set readFd;
-    FD_ZERO(&readFd);
-    FD_SET(*sockfd, &readFd); // NOLINT
+    OP_STATUS retVal = OP_STATUS::INITIALIZED;
 
-    timeval waitTime; // NOLINT
-    timeval *timevalPtr = nullptr;
-
-    bool retVal = false;
-
-    if(withTimeout)
+    auto code = wrapper->SSL_get_error(getSSLPtr(), rslt);
+    LOG4CPLUS_TRACE(logger, "Code: " << code); // NOLINT
+    switch(code)
     {
-        // NOLINTNEXTLINE
-        LOG4CPLUS_TRACE(logger, "Setting timeout to " << timeout << " seconds");
-        waitTime.tv_sec=timeout;
-        waitTime.tv_usec=0;
-        timevalPtr = &waitTime;
-    }
-
-    do
-    {
-        LOG4CPLUS_TRACE(logger, "Wait on " << *sockfd); // NOLINT
-        auto rslt = wrapper->select((*sockfd)+1, &readFd, nullptr, nullptr,
-            timevalPtr);
-        LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt); // NOLINT
-        if(rslt == -1)
+    case SSL_ERROR_WANT_READ:
+        LOG4CPLUS_TRACE(logger, "SSL operation wants to read from socket");
+        readFds = &monitorFd;
+        writeFds = nullptr;
+        break;
+    case SSL_ERROR_WANT_WRITE:
+        LOG4CPLUS_TRACE(logger, "SSL operation wants to write to socket");
+        readFds = nullptr;
+        writeFds = &monitorFd;
+        break;
+    case SSL_ERROR_ZERO_RETURN:
+        // Handle case of an orderly shutdown from remote
+        LOG4CPLUS_DEBUG(logger, "Remote side closed SSL connection during operation");
+        retVal = OP_STATUS::DISCONNECTED;
+        break;
+    case SSL_ERROR_SYSCALL:
         {
             auto err = errno;
-            LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
-                << strerror(err));
-            if(err != 0 && err != EINTR)
+            // Handle case where connection to remote system was lost. Think
+            // someone pulled the network cable
+            if(err == 0)
             {
-                throwSystemError(err,
-                    "Error waiting for socket to be ready for reading.");
+                LOG4CPLUS_DEBUG(logger, "Network link to remote-side lost during operation");
+                retVal = OP_STATUS::DISCONNECTED;
+            }
+            else
+                throwSystemError(err, "Error during SSL-related operation");
+        }
+        break;
+    default:
+        if(ERR_FATAL_ERROR(ERR_peek_error()))
+        {
+            logSSLErrorStack();
+            throw runtime_error(string("SSL API-related error encountered"));
+        }
+        else
+        {
+            // Log the issue; but, move on
+            logSSLErrorStack();
+            retVal = OP_STATUS::SUCCESS;
+        }
+    }
+
+    // Error was either SSL_ERROR_WANT_READ or SSL_ERROR_WANT_WRITE
+    if(retVal == OP_STATUS::INITIALIZED)
+    {
+        LOG4CPLUS_DEBUG(logger, "Wait for socket to be ready");
+        unique_ptr<timeval> waitTime = nullptr;
+        if(withTimeout)
+        {
+            // NOLINTNEXTLINE
+            LOG4CPLUS_TRACE(logger, "Setting timeout to " << timeout << " seconds");
+            waitTime = unique_ptr<timeval>(new timeval);
+            if(!waitTime)
+                throw bad_alloc();
+            else
+            {
+                waitTime->tv_sec = timeout;
+                waitTime->tv_usec = 0;
+            }
+        }
+
+        switch(wrapper->select((*sockfd)+1, readFds, writeFds, nullptr,
+            waitTime.get()))
+        {
+        case -1:
+            {
+                auto err = errno;
+                LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
+                    << strerror(err));
+                if(err != 0 && err != EINTR)
+                {
+                    throwSystemError(err,
+                        "Error waiting for socket to be ready for reading.");
+                }
+                else
+                {
+                    LOG4CPLUS_TRACE(logger, "Caught signal"); // NOLINT
+                    retVal = OP_STATUS::INTERRUPTED;
+                }
+            }
+            break;
+        case 0:
+            LOG4CPLUS_DEBUG(logger, "Wait time expired"); // NOLINT
+            retVal = OP_STATUS::TIMEOUT;
+            break;
+        default:
+            if(FD_ISSET(*sockfd, &monitorFd)) // NOLINT
+            {
+                LOG4CPLUS_DEBUG(logger, "Socket ready for reading"); // NOLINT
+                retVal = OP_STATUS::SUCCESS;
             }
             else
             {
-                LOG4CPLUS_TRACE(logger, "Caught signal"); // NOLINT
-                break;
+                auto err = errno;
+                throwSystemError(err, "Socket not marked as ready");
             }
         }
-        else if(rslt == 0)
-        {
-            LOG4CPLUS_DEBUG(logger, "Read wait time expired"); // NOLINT
-            break;
-        }
-        else if(FD_ISSET(*sockfd, &readFd)) // NOLINT
-        {
-            LOG4CPLUS_DEBUG(logger, "Socket ready for reading"); // NOLINT
-            retVal = true;
-            break;
-        }
-    } while(true);
+    }
+    else
+        LOG4CPLUS_DEBUG(logger, "No need to wait for socket");
 
     return retVal;
 }
@@ -301,7 +358,8 @@ optional<const size_t> SocketInfo::readData(char *data, const size_t &dataSize)
             else
             {
                 LOG4CPLUS_DEBUG(logger, "Wait for read ready"); // NOLINT
-                shouldRetry = handleRetry(rslt);
+                // TODO: Refine
+                shouldRetry = handleRetry(rslt) == OP_STATUS::SUCCESS;
             }
         }
         else
@@ -313,65 +371,6 @@ optional<const size_t> SocketInfo::readData(char *data, const size_t &dataSize)
         }
 
     } while(shouldRetry);
-
-    return retVal;
-}
-
-const bool SocketInfo::waitForWriting(const bool &withTimeout)
-{
-    if(!sockfd)
-        throw logic_error("no socket");
-
-    fd_set writeFd;
-    FD_ZERO(&writeFd);
-    FD_SET(*sockfd, &writeFd); // NOLINT
-
-    timeval waitTime; // NOLINT
-    timeval *timevalPtr = nullptr;
-    
-    bool retVal = false;
-
-    if(withTimeout)
-    {
-        LOG4CPLUS_TRACE(logger, "Setting timeout to " << timeout << // NOLINT
-            " seconds");
-        waitTime.tv_sec = timeout;
-        waitTime.tv_usec = 0;
-        timevalPtr = &waitTime;
-    }
-
-    do
-    {
-        auto rslt = wrapper->select((*sockfd)+1, nullptr, &writeFd, nullptr,
-            timevalPtr);
-        if(rslt == -1)
-        {
-            auto err = errno;
-            LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
-                << strerror(err));
-            if(err != 0 && err != EINTR)
-            {
-                throwSystemError(err,
-                    "Error waiting for socket to be ready for writing.");
-            }
-            else
-            {
-                LOG4CPLUS_TRACE(logger, "Caught signal"); // NOLINT
-                break;
-            }
-        }
-        else if(rslt == 0)
-        {
-            LOG4CPLUS_DEBUG(logger, "Write wait time expired"); // NOLINT
-            break;
-        }
-        else if(FD_ISSET(*sockfd, &writeFd)) // NOLINT
-        {
-            LOG4CPLUS_DEBUG(logger, "Socket ready for writing"); // NOLINT
-            retVal = true;
-            break;
-        }
-    } while(true);
 
     return retVal;
 }
@@ -390,7 +389,8 @@ const size_t SocketInfo::writeData(const char *msg, const size_t &msgSize)
         if(rslt <= 0)
         {
             LOG4CPLUS_TRACE(logger, "SSL_write reporting error"); // NOLINT
-            shouldRetry = handleRetry(rslt);
+            // TODO: Refine
+            shouldRetry = handleRetry(rslt) == OP_STATUS::SUCCESS;
         }
         else
         {
@@ -458,55 +458,6 @@ void SocketInfo::logSSLErrorStack()
                 (msg != nullptr ? msg : "Code " + to_string(errCode)));
         }
     } while(errCode != 0);
-}
-
-const bool SocketInfo::handleRetry(const int &rslt)
-{
-    bool retVal = true;
-
-    auto ptr = getSSLPtr();
-    auto code = wrapper->SSL_get_error(ptr, rslt);
-
-    LOG4CPLUS_TRACE(logger, "Code: " << code); // NOLINT
-
-    switch(code)
-    {
-    case SSL_ERROR_WANT_READ:
-        LOG4CPLUS_TRACE(logger, "Wait for read ready"); // NOLINT
-        if(!waitForReading())
-        {
-            // NOLINTNEXTLINE
-            LOG4CPLUS_INFO(logger, "Network timeout waiting to read data");
-            retVal = false;
-        }
-        else
-            LOG4CPLUS_TRACE(logger, "Socket ready for reading"); // NOLINT
-        break;
-    case SSL_ERROR_WANT_WRITE:
-        LOG4CPLUS_TRACE(logger, "Wait for write ready"); // NOLINT
-        if(!waitForWriting())
-        {
-            LOG4CPLUS_INFO(logger, "Network timeout waiting to write data"); // NOLINT
-            retVal = false;
-        }
-        else
-            LOG4CPLUS_TRACE(logger, "Socket ready for writing"); // NOLINT
-        break;
-    case SSL_ERROR_ZERO_RETURN:
-        LOG4CPLUS_TRACE(logger, "Remote closed SSL session"); // NOLINT
-        retVal = false;
-        break;
-    default:
-        if(ERR_FATAL_ERROR(ERR_peek_error()))
-        {
-            logSSLErrorStack();
-            throw logic_error(string("SSL error"));
-        }
-        else
-            logSSLErrorStack();
-    }
-
-    return retVal;
 }
 
 } //namespace tlslookieloo

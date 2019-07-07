@@ -17,8 +17,8 @@ add_executable(unittests main.cpp
     ${CMAKE_SOURCE_DIR}/src/concretewrapper.cpp
     ${CMAKE_SOURCE_DIR}/src/init.cpp init.cpp
     ${CMAKE_SOURCE_DIR}/src/socketinfo.cpp socketinfo.cpp
-    ${CMAKE_SOURCE_DIR}/src/clientside.cpp ${CMAKE_SOURCE_DIR}/src/serverside.cpp
-    ${CMAKE_SOURCE_DIR}/src/target.cpp target.cpp
+#    ${CMAKE_SOURCE_DIR}/src/clientside.cpp ${CMAKE_SOURCE_DIR}/src/serverside.cpp
+#    ${CMAKE_SOURCE_DIR}/src/target.cpp target.cpp
 )
 target_include_directories(unittests
     PRIVATE ${CMAKE_SOURCE_DIR}/tests/unit
@@ -31,6 +31,6 @@ target_link_libraries(unittests gtest gmock pthread
     yaml-cpp ssl crypto
 )
 
-add_test(parseTargetsFile unittests -t${CMAKE_SOURCE_DIR}/tests/unit/targets_files --gtest_filter=parseTargetsFile)
-add_test(SocketInfo unittests --gtest_filter=SocketInfo.*)
-add_test(Target unittests --gtest_filter=TargetTest.* -c${CMAKE_SOURCE_DIR}/tests/unit/test_cert)
+add_test(parseTargetsFile unittests -t${CMAKE_SOURCE_DIR}/tests/unit/targets_files --gtest_filter=parseTargetsFile.*)
+add_test(SocketInfoTest unittests --gtest_filter=SocketInfoTest.*)
+# add_test(Target unittests --gtest_filter=TargetTest.* -c${CMAKE_SOURCE_DIR}/tests/unit/test_cert)

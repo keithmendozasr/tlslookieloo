@@ -17,7 +17,6 @@
 
 #include <string>
 #include <memory>
-#include <optional>
 #include <stdexcept>
 
 #include <netdb.h>
@@ -123,14 +122,17 @@ public:
     }
 
     /**
-     * Wait for data to be available for reading
-     *
-     * \throws std::system_error Error encountered while waiting for message to
-     *  arrive
-     * \param timeout Number of seconds to wait for data. 0 for no timeout
-     * \return true if the socket is ready for reading before timeout expires
+     * Operation status
      */
-    const bool waitForReading(const bool &withTimeout = true);
+    enum OP_STATUS
+    {
+        INITIALIZED,    //< Variable is in an initialized state. Should never
+                        //< be returned.
+        SUCCESS,        //< See individual functions returning this enum
+        DISCONNECTED,     //< Remote-side disconnected
+        TIMEOUT,        //< Operation timed-out
+        INTERRUPTED,    //< Signal received
+    };
 
     /**
      * Attempt to read from client.
@@ -141,17 +143,6 @@ public:
      * \return Number of bytes received
      */
     std::optional<const size_t> readData(char *data, const size_t &dataSize);
-
-    /**
-     * Wait for socket to be ready for writing
-     *
-     * \throws std::system_error Error encountered while waiting for socket to
-     *  be ready to send message
-     * \param timeout Number of seconds to wait for socket to be writable. 0
-     *  for no timeout
-     * \return true if the socket is ready for writing before timeout expires
-     */
-    const bool waitForWriting(const bool &withTimeout = true);
 
     /**
      * Attempt to send to client
@@ -262,6 +253,18 @@ protected:
     void logSSLErrorStack();
 
     /**
+     * Save the socket IP information
+     *
+     * \arg addrInfo Address info to get the IP from
+     */
+    void saveSocketIP(const struct sockaddr_storage *addrInfo);
+
+    std::shared_ptr<Wrapper> getWrapper()
+    {
+        return wrapper;
+    }
+
+    /**
      * Handle SSL conditions that requires a retry
      *
      * \arg rslt Error code returned by the last operation
@@ -269,22 +272,7 @@ protected:
      * \throw logic_error When an unexpected code was received
      *  from SSL_get_error
      */
-    const bool handleRetry(const int &rslt);
-
-    /**
-     * Save the socket IP information
-     *
-     * \arg addrInfo Address info to get the IP from
-     */
-    void saveSocketIP(const struct sockaddr_storage *addrInfo);
-
-    /**
-     * Return the Wrapper instance this object is using
-     */
-    std::shared_ptr<Wrapper> getWrapper()
-    {
-        return wrapper;
-    }
+    const OP_STATUS handleRetry(const int &rslt, const bool withTimeout = true);
 
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("SocketInfo");
@@ -332,28 +320,12 @@ private:
     };
     std::shared_ptr<SSL> sslObj;
 
-    // Delete unneeded constructors/operators
-
-    FRIEND_TEST(SocketInfoTest, waitForReadingReady);
-    FRIEND_TEST(SocketInfoTest, waitForReadingTimeout);
-    FRIEND_TEST(SocketInfoTest, waitForReadingSetTimeout);
-    FRIEND_TEST(SocketInfoTest, waitForReadingInterrupted);
-    FRIEND_TEST(SocketInfoTest, waitForReadingError);
-    FRIEND_TEST(SocketInfoTest, waitForReadingNoTimeout);
-
-    FRIEND_TEST(SocketInfoTest, waitForWritingReady);
-    FRIEND_TEST(SocketInfoTest, waitForWritingTimeout);
-    FRIEND_TEST(SocketInfoTest, waitForWritingSetTimeout);
-    FRIEND_TEST(SocketInfoTest, waitForWritingInterrupted);
-    FRIEND_TEST(SocketInfoTest, waitForWritingError);
-    FRIEND_TEST(SocketInfoTest, waitForWritingNoTimeout);
-
-    FRIEND_TEST(SocketInfoTest, handleRetryWantReadOK);
-    FRIEND_TEST(SocketInfoTest, handleRetryWantReadFail);
-    FRIEND_TEST(SocketInfoTest, handleRetryWantReadTimeout);
-
-    FRIEND_TEST(SocketInfoTest, handleRetryWantWriteOK);
-    FRIEND_TEST(SocketInfoTest, handleRetryWantWriteFail);
+    FRIEND_TEST(SocketInfoTest, handleRetryReady);
+    FRIEND_TEST(SocketInfoTest, handleRetryTimeout);
+    FRIEND_TEST(SocketInfoTest, handleRetrySetTimeout);
+    FRIEND_TEST(SocketInfoTest, handleRetryInterrupted);
+    FRIEND_TEST(SocketInfoTest, handleRetryError);
+    FRIEND_TEST(SocketInfoTest, handleRetryNoTimeout);
     FRIEND_TEST(SocketInfoTest, handleRetryRemoteDisconnect);
 
     FRIEND_TEST(SocketInfoTest, readDataExact);
