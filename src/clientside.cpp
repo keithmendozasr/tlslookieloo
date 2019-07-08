@@ -89,37 +89,31 @@ optional<ClientSide> ClientSide::acceptClient()
     socklen_t addrLen = sizeof(addr);
 
     // We're waiting forever, so no need to check timeout
-    if(waitForReading(false))
+    waitSocketReadable();
+    int fd = accept(getSocket(), reinterpret_cast<struct sockaddr *>(&addr), // NOLINT
+        &addrLen);
+    if(fd < 0)
     {
-        int fd = accept(getSocket(), reinterpret_cast<struct sockaddr *>(&addr), // NOLINT
-            &addrLen);
-        if(fd < 0)
-        {
-            int err = errno;
-            throwSystemError(err, "Accept error");
-        }
+        int err = errno;
+        throwSystemError(err, "Accept error");
+    }
 
-        LOG4CPLUS_DEBUG(logger, "Received connection. New FD: " << fd); // NOLINT
+    LOG4CPLUS_DEBUG(logger, "Received connection. New FD: " << fd); // NOLINT
 
-        if(fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK) == -1) // NOLINT
-        {
-            int err = errno;
-            throwSystemError(err, "Failed to set client FD non-blocking");
-        }
-        else
-            LOG4CPLUS_TRACE(logger, "New FD non-blocking set"); // NOLINT
-
-        ClientSide c(getWrapper());
-        c.setSocket(fd);
-        // NOLINTNEXTLINE
-        c.saveSocketIP(reinterpret_cast<struct sockaddr_storage *>(&addr));
-
-        return make_optional(c);
+    if(fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK) == -1) // NOLINT
+    {
+        int err = errno;
+        throwSystemError(err, "Failed to set client FD non-blocking");
     }
     else
-        LOG4CPLUS_TRACE(logger, "waitForReading returned false"); // NOLINT
+        LOG4CPLUS_TRACE(logger, "New FD non-blocking set"); // NOLINT
 
-    return nullopt;
+    ClientSide c(getWrapper());
+    c.setSocket(fd);
+    // NOLINTNEXTLINE
+    c.saveSocketIP(reinterpret_cast<struct sockaddr_storage *>(&addr));
+
+    return make_optional(c);
 }
 
 void ClientSide::initializeSSLContext(const string &certFile, const string &privKeyFile)
@@ -195,6 +189,26 @@ const bool ClientSide::sslHandshake()
     } while(shouldRetry);
 
     return retVal;
+}
+
+void ClientSide::waitSocketReadable()
+{
+    fd_set readFd;
+    FD_ZERO(&readFd);
+    FD_SET(getSocket(), &readFd);
+
+    if(select(getSocket() + 1, &readFd, nullptr, nullptr, nullptr) > 0)
+    {
+        if(!FD_ISSET(getSocket(), &readFd))
+            throw logic_error("Socket FD not set after select returned ready");
+        else
+            LOG4CPLUS_DEBUG(logger, "Socket ready for reading");
+    }
+    else
+    {
+        auto err = errno;
+        throwSystemError(err, "Error encountered waiting for a client to connect");
+    }
 }
 
 } // namespace tlslookieloo

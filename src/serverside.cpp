@@ -82,12 +82,7 @@ const bool ServerSide::connect(const unsigned int &port, const string &host)
 bool ServerSide::waitForConnect()
 {
     bool retVal = true;
-    if(!waitForWriting())
-    {
-        LOG4CPLUS_INFO(logger, "Connection timed out"); // NOLINT
-        retVal = false;
-    }
-    else
+    if(socketReady())
     {
         LOG4CPLUS_DEBUG(logger, "Connection ready"); // NOLINT
 
@@ -109,6 +104,11 @@ bool ServerSide::waitForConnect()
             retVal = false;
         }
     }
+    else
+    {
+        LOG4CPLUS_INFO(logger, "Connection timed out");
+        retVal = false;
+    }
 
     return retVal;
 }
@@ -124,48 +124,39 @@ const bool ServerSide::sockConnect(const unsigned int &port, const string &host)
             string ip;
             do
             {
-                try
+                initNextSocket();
+                ip = getSocketIP();
+                auto addrInfo = getAddrInfo();
+                LOG4CPLUS_DEBUG(logger, "Attempt connecting to " << ip); // NOLINT
+                if(::connect(getSocket(),
+                    reinterpret_cast<const struct sockaddr *>(addrInfo->ai_addr), // NOLINT
+                    addrInfo->ai_addrlen) != 0
+                )
                 {
-                    initNextSocket();
-                    ip = getSocketIP();
-                    auto addrInfo = getAddrInfo();
-                    LOG4CPLUS_DEBUG(logger, "Attempt connecting to " << ip); // NOLINT
-                    if(::connect(getSocket(),
-                        reinterpret_cast<const struct sockaddr *>(addrInfo->ai_addr), // NOLINT
-                        addrInfo->ai_addrlen) != 0
-                    )
+                    auto err = errno;
+                    if(err == EINPROGRESS)
                     {
-                        auto err = errno;
-                        if(err == EINPROGRESS)
+                        if(waitForConnect())
                         {
-                            if(waitForConnect())
-                            {
-                                LOG4CPLUS_DEBUG(logger, "Connected after wait"); // NOLINT
-                                break;
-                            }
-                            else
-                                LOG4CPLUS_DEBUG(logger, // NOLINT
-                                    "Connect failed after wait. Try next IP");
+                            LOG4CPLUS_DEBUG(logger, "Connected after wait"); // NOLINT
+                            break;
                         }
                         else
-                        {
-                            char buf[256];
-                            char *errmsg = strerror_r(err, &buf[0], 256);
                             LOG4CPLUS_DEBUG(logger, // NOLINT
-                                "Failed to connect to IP " << ip <<
-                                ". Error message: " << errmsg << ". Try next IP");
-                        }
+                                "Connect failed after wait. Try next IP");
                     }
                     else
                     {
-                        LOG4CPLUS_DEBUG(logger, "Connected to IP " << ip); // NOLINT
-                        break;
+                        char buf[256];
+                        char *errmsg = strerror_r(err, &buf[0], 256);
+                        LOG4CPLUS_DEBUG(logger, // NOLINT
+                            "Failed to connect to IP " << ip <<
+                            ". Error message: " << errmsg << ". Try next IP");
                     }
                 }
-                catch(const range_error &e)
+                else
                 {
-                    LOG4CPLUS_DEBUG(logger, "Unable to connect to host"); // NOLINT
-                    retVal = false;
+                    LOG4CPLUS_DEBUG(logger, "Connected to IP " << ip); // NOLINT
                     break;
                 }
             }while(1);
@@ -183,6 +174,11 @@ const bool ServerSide::sockConnect(const unsigned int &port, const string &host)
         LOG4CPLUS_ERROR(logger, "System error encountered connecting to remote. " <<
             e.what());
         throw;
+    }
+    catch(const range_error &e)
+    {
+        LOG4CPLUS_DEBUG(logger, "Unable to connect to host"); // NOLINT
+        retVal = false;
     }
 
     return retVal;
@@ -273,6 +269,40 @@ const bool ServerSide::sslHandshake(const std::string &host)
     }
     else
         LOG4CPLUS_DEBUG(logger, "Handshake failed"); // NOLINT
+
+    return retVal;
+}
+
+const bool ServerSide::socketReady()
+{
+    bool retVal = true;
+
+    fd_set writeFd;
+    FD_ZERO(&writeFd);
+    FD_SET(getSocket(), &writeFd);
+
+    timeval waitTime;
+    waitTime.tv_sec = getTimeout();
+    waitTime.tv_usec = 0;
+
+    auto rslt = select(getSocket() + 1, nullptr, &writeFd, nullptr, &waitTime);
+    if(rslt > 0)
+    {
+        if(!FD_ISSET(getSocket(), &writeFd))
+            throw logic_error("Socket FD not set after select returned ready");
+        else
+            LOG4CPLUS_DEBUG(logger, "Socket ready for writing");
+    }
+    else if(rslt == 0)
+    {
+        LOG4CPLUS_DEBUG(logger, "Timed-out waiting for socket");
+        retVal = false;
+    }
+    else
+    {
+        auto err = errno;
+        throwSystemError(err, "Error encountered waiting to connect to server");
+    }
 
     return retVal;
 }

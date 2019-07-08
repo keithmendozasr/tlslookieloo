@@ -106,6 +106,12 @@ private:
      */
     const bool sslHandshake(const std::string &host);
 
+    /**
+     * Wait for socket to be writable
+     * \throws system_error if an error occurred during the select() operation
+     * \return true if socket is writable. False if it times out
+     */
+    const bool socketReady();
 };
 
 } //namespace tlslookieloo

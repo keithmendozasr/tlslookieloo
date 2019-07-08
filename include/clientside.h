@@ -113,6 +113,11 @@ private:
      */
     const bool sslHandshake();
 
+    /**
+     * Wait for socket to be readable
+     * \throws system_error if an error occurred during the select() operation
+     */
+    void waitSocketReadable();
 };
 
 } //namespace tlslookieloo
