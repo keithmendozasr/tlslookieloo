@@ -128,19 +128,20 @@ int main(int argc, char *argv[])
             argState.args[0]);
 
         LOG4CPLUS_INFO(logger, "Send data to server"); // NOLINT
-        const char msg[] = "Hello from serverside";
+        const char msg[] = "GET / HTTP/1.1\r\nHost: www.example.com\r\n\r\n";
         s.writeData(&msg[0], sizeof(msg));
 
-        const size_t msgSize = 1024;
-        char buf[msgSize];
-        auto readLen = s.readData(&buf[0], msgSize);
-        if(readLen)
+        size_t msgSize = 1024;
+        unique_ptr<char[]> buf(new char[msgSize]);
+        auto readLen = s.readData(buf.get(), msgSize);
+        while(readLen == SocketInfo::OP_STATUS::SUCCESS)
         {
             // NOLINTNEXTLINE
-            LOG4CPLUS_INFO(logger, "Data read: " << string(buf, readLen.value()));
+            LOG4CPLUS_INFO(logger, "Data read: " << string(buf.get(), msgSize));
+            readLen = s.readData(buf.get(), msgSize);
         }
-        else
-            LOG4CPLUS_INFO(logger, "Remote disconnected"); // NOLINT
+
+        LOG4CPLUS_INFO(logger, "No more data"); // NOLINT
     }
     else
     {

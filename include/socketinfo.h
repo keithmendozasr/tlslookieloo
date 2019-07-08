@@ -135,14 +135,17 @@ public:
     };
 
     /**
-     * Attempt to read from client.
+     * Attempt to read from remote-side.
      *
      * \throws std::invalid_argument data parameter is null
-     * \param data Buffer to place received data
-     * \param dataSize Size of data
-     * \return Number of bytes received
+     * \param[out] data Buffer to place received data
+     * \param[in,out] dataSize Available space for data. At function end, size
+     *  of data placed in data, if reading is successful
+     * \return read state. If value is not OP_STATUS::SUCCESS data and dataSize
+     *  should be ignored.
      */
-    std::optional<const size_t> readData(char *data, const size_t &dataSize);
+    // TODO: Change "data" param to weak_ptr
+    const OP_STATUS readData(char *data, size_t &dataSize);
 
     /**
      * Attempt to send to client
@@ -330,7 +333,7 @@ private:
 
     FRIEND_TEST(SocketInfoTest, readDataExact);
     FRIEND_TEST(SocketInfoTest, readDataShort);
-    FRIEND_TEST(SocketInfoTest, readDataNoData);
+    FRIEND_TEST(SocketInfoTest, readDataFail);
 
     FRIEND_TEST(SocketInfoTest, writeDataExact);
     FRIEND_TEST(SocketInfoTest, writeDataShort);

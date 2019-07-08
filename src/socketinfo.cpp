@@ -232,18 +232,18 @@ const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt, const bool 
     switch(code)
     {
     case SSL_ERROR_WANT_READ:
-        LOG4CPLUS_TRACE(logger, "SSL operation wants to read from socket");
+        LOG4CPLUS_DEBUG(logger, "Wait for socket to be readable");
         readFds = &monitorFd;
         writeFds = nullptr;
         break;
     case SSL_ERROR_WANT_WRITE:
-        LOG4CPLUS_TRACE(logger, "SSL operation wants to write to socket");
+        LOG4CPLUS_DEBUG(logger, "Wait for socket to be writable");
         readFds = nullptr;
         writeFds = &monitorFd;
         break;
     case SSL_ERROR_ZERO_RETURN:
         // Handle case of an orderly shutdown from remote
-        LOG4CPLUS_DEBUG(logger, "Remote side closed SSL connection during operation");
+        LOG4CPLUS_DEBUG(logger, "Remote side closed TLS connection");
         retVal = OP_STATUS::DISCONNECTED;
         break;
     case SSL_ERROR_SYSCALL:
@@ -253,11 +253,14 @@ const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt, const bool 
             // someone pulled the network cable
             if(err == 0)
             {
-                LOG4CPLUS_DEBUG(logger, "Network link to remote-side lost during operation");
+                LOG4CPLUS_DEBUG(logger, "Socket connection lost");
                 retVal = OP_STATUS::DISCONNECTED;
             }
             else
-                throwSystemError(err, "Error during SSL-related operation");
+            {
+                throwSystemError(err,
+                    "System-level error encountered during TLS operation");
+            }
         }
         break;
     default:
@@ -308,7 +311,7 @@ const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt, const bool 
                 }
                 else
                 {
-                    LOG4CPLUS_TRACE(logger, "Caught signal"); // NOLINT
+                    LOG4CPLUS_DEBUG(logger, "Caught signal"); // NOLINT
                     retVal = OP_STATUS::INTERRUPTED;
                 }
             }
@@ -336,40 +339,35 @@ const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt, const bool 
     return retVal;
 }
 
-optional<const size_t> SocketInfo::readData(char *data, const size_t &dataSize)
+const SocketInfo::OP_STATUS SocketInfo::readData(char *data, size_t &dataSize)
 {
 
-    bool shouldRetry = false;
+    bool shouldRetry = true;
     auto ptr = getSSLPtr();
     ERR_clear_error();
-    optional<size_t> retVal;
+    OP_STATUS retVal = OP_STATUS::INITIALIZED;
     do
     {
         auto rslt = wrapper->SSL_read(ptr, data, dataSize);
         LOG4CPLUS_TRACE(logger, "SSL_read return: " << rslt); // NOLINT
         if(rslt <= 0)
         {
-            LOG4CPLUS_TRACE(logger, "SSL_read reporting error"); // NOLINT
-            if(wrapper->SSL_get_error(ptr, rslt) == SSL_ERROR_SYSCALL && errno == 0)
-            {
-                LOG4CPLUS_DEBUG(logger, "Remote-end disconnected while reading"); // NOLINT
-                shouldRetry = false;
-            }
+            retVal = handleRetry(rslt);
+            if(retVal == OP_STATUS::SUCCESS)
+                LOG4CPLUS_DEBUG(logger, "Retry reading data");
             else
             {
-                LOG4CPLUS_DEBUG(logger, "Wait for read ready"); // NOLINT
-                // TODO: Refine
-                shouldRetry = handleRetry(rslt) == OP_STATUS::SUCCESS;
+                LOG4CPLUS_DEBUG(logger, "Stop attempts to read data");
+                shouldRetry = false;
             }
         }
         else
         {
-            LOG4CPLUS_DEBUG(logger, to_string(rslt) << // NOLINT
-                " received over the wire");
             shouldRetry = false;
-            retVal = rslt;
+            dataSize = rslt;
+            retVal = OP_STATUS::SUCCESS;
+            LOG4CPLUS_DEBUG(logger, "Read " << dataSize << " bytes of data");
         }
-
     } while(shouldRetry);
 
     return retVal;

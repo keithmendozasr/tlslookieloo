@@ -159,16 +159,15 @@ int main(int argc, char *argv[])
 
             while(1)
             {
-                char buf[1024];
-                auto readLen = client.readData(&buf[0], 1024);
-                if(readLen)
+                size_t bufSize = 1024;
+                unique_ptr<char[]> buf(new char[bufSize]);
+                auto readLen = client.readData(&buf[0], bufSize);
+                if(readLen == SocketInfo::OP_STATUS::SUCCESS)
                 {
-                    // NOLINTNEXTLINE
-                    LOG4CPLUS_TRACE(logger, "readLen: " << readLen.value());
-                    if(readLen.value() > 0)
+                    if(bufSize > 0)
                     {
                         LOG4CPLUS_INFO(logger, "Data from server: " << // NOLINT
-                            string(buf, readLen.value()));
+                            string(buf.get(), bufSize));
                         client.writeData("Bye", 4);
                     }
                     else

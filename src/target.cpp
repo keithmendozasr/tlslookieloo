@@ -124,20 +124,19 @@ void Target::start()
 bool Target::passClientToServer(ClientSide &client, ServerSide &server)
 {
     bool retVal = false;
-    char buf[1024];
-    auto readLen = client.readData(&buf[0], 1024);
-    if(readLen)
+    size_t bufSize = 1024;
+    unique_ptr<char[]> buf(new char[1024]);
+    auto readLen = client.readData(buf.get(), bufSize);
+    if(readLen == SocketInfo::OP_STATUS::SUCCESS)
     {
-        // NOLINTNEXTLINE
-        LOG4CPLUS_TRACE(logger, "readLen: " << readLen.value());
-        if(readLen.value() > 0)
+        if(bufSize > 0)
         {
             LOG4CPLUS_TRACE(logger, "Data from client: " << // NOLINT
-                string(buf, readLen.value()));
-            storeMessage(&buf[0], readLen.value(), MSGOWNER::CLIENT);
+                string(buf.get(), bufSize));
+            storeMessage(buf.get(), bufSize, MSGOWNER::CLIENT);
             LOG4CPLUS_DEBUG(logger, "Send data to server");
 
-            retVal = (server.writeData(&buf[0], readLen.value()) > 0);
+            retVal = (server.writeData(buf.get(), bufSize) > 0);
         }
         else
         {
@@ -154,20 +153,19 @@ bool Target::passClientToServer(ClientSide &client, ServerSide &server)
 bool Target::passServerToClient(ClientSide &client, ServerSide &server)
 {
     bool retVal = false;
-    char buf[1024];
-    auto readLen = server.readData(&buf[0], 1024);
-    if(readLen)
+    size_t bufSize = 1024;
+    unique_ptr<char[]> buf(new char[1024]);
+    auto readLen = server.readData(buf.get(), bufSize);
+    if(readLen == SocketInfo::OP_STATUS::SUCCESS)
     {
-        // NOLINTNEXTLINE
-        LOG4CPLUS_TRACE(logger, "readLen: " << readLen.value());
-        if(readLen.value() > 0)
+        if(bufSize > 0)
         {
             LOG4CPLUS_TRACE(logger, "Data from server: " << // NOLINT
-                string(buf, readLen.value()));
-            storeMessage(&buf[0], readLen.value(), MSGOWNER::SERVER);
+                string(buf.get(), bufSize));
+            storeMessage(buf.get(), bufSize, MSGOWNER::SERVER);
             LOG4CPLUS_DEBUG(logger, "Send data to client");
 
-            retVal = (client.writeData(&buf[0], readLen.value()) > 0);
+            retVal = (client.writeData(buf.get(), bufSize) > 0);
         }
         else
         {
