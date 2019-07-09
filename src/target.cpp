@@ -121,67 +121,68 @@ void Target::start()
     LOG4CPLUS_INFO(logger, "Target " << tgtName << " stopping");
 }
 
-bool Target::passClientToServer(ClientSide &client, ServerSide &server)
+bool Target::messageRelay(SocketInfo &src, SocketInfo &dest, const MSGOWNER owner)
 {
-    bool retVal = false;
+    bool retVal = true;
     size_t bufSize = 1024;
-    unique_ptr<char[]> buf(new char[1024]);
-    auto readLen = client.readData(buf.get(), bufSize);
-    if(readLen == SocketInfo::OP_STATUS::SUCCESS)
+    unique_ptr<char[]> buf(new char[bufSize]);
+    bool keepReading = true;
+    switch(src.readData(buf.get(), bufSize))
     {
+    case SocketInfo::OP_STATUS::SUCCESS:
         if(bufSize > 0)
         {
-            LOG4CPLUS_TRACE(logger, "Data from client: " << // NOLINT
+            LOG4CPLUS_TRACE(logger, "Data from src: " << // NOLINT
                 string(buf.get(), bufSize));
-            storeMessage(buf.get(), bufSize, MSGOWNER::CLIENT);
-            LOG4CPLUS_DEBUG(logger, "Send data to server");
+            storeMessage(buf.get(), bufSize, owner);
+            LOG4CPLUS_DEBUG(logger, "Send data to dest");
 
-            retVal = (server.writeData(buf.get(), bufSize) > 0);
+            switch(dest.writeData(buf.get(), bufSize))
+            {
+            case SocketInfo::OP_STATUS::SUCCESS:
+                LOG4CPLUS_DEBUG(logger, "Data sent to destination");
+                break;
+            case SocketInfo::OP_STATUS::TIMEOUT:
+                LOG4CPLUS_INFO(logger,
+                    "Timed-out attempting to send to destination");
+                retVal = keepReading = false;
+                break;
+            case SocketInfo::OP_STATUS::DISCONNECTED:
+                LOG4CPLUS_INFO(logger,
+                    "Destination disconnected while data being sent");
+                retVal = keepReading = false;
+                break;
+            default:
+                throw logic_error("Unexpected OP_STATUS while sending data to destination");
+            }
         }
         else
         {
             // NOLINTNEXTLINE
-            LOG4CPLUS_INFO(logger, "No actual data from server");
+            LOG4CPLUS_INFO(logger, "No more data to relay");
+            keepReading = false;
         }
+        break;
+    case SocketInfo::OP_STATUS::TIMEOUT:
+        LOG4CPLUS_INFO(logger,
+            "Timed-out attempting to receive data from source");
+        retVal = keepReading = false;
+        break;
+    case SocketInfo::OP_STATUS::DISCONNECTED:
+        LOG4CPLUS_INFO(logger,
+            "Source disconnected while getting data");
+        retVal = keepReading = false;
+        break;
+    default:
+        throw logic_error("Unexpected OP_STATUS while reading data from source");
     }
-    else
-        LOG4CPLUS_DEBUG(logger, "Client-side disconnected");
 
-    return retVal;
-}
-
-bool Target::passServerToClient(ClientSide &client, ServerSide &server)
-{
-    bool retVal = false;
-    size_t bufSize = 1024;
-    unique_ptr<char[]> buf(new char[1024]);
-    auto readLen = server.readData(buf.get(), bufSize);
-    if(readLen == SocketInfo::OP_STATUS::SUCCESS)
-    {
-        if(bufSize > 0)
-        {
-            LOG4CPLUS_TRACE(logger, "Data from server: " << // NOLINT
-                string(buf.get(), bufSize));
-            storeMessage(buf.get(), bufSize, MSGOWNER::SERVER);
-            LOG4CPLUS_DEBUG(logger, "Send data to client");
-
-            retVal = (client.writeData(buf.get(), bufSize) > 0);
-        }
-        else
-        {
-            // NOLINTNEXTLINE
-            LOG4CPLUS_INFO(logger, "No actual data from server");
-        }
-    }
-    else
-        LOG4CPLUS_DEBUG(logger, "Server-side disconnected");
-
+    LOG4CPLUS_DEBUG(logger, "Done sending message between source and destination");
     return retVal;
 }
 
 void Target::handleClient(ClientSide client)
 {
-    timeout = 30;
     LOG4CPLUS_INFO(logger, "Start monitoring");
     client.setTimeout(timeout);
 
@@ -190,6 +191,8 @@ void Target::handleClient(ClientSide client)
         LOG4CPLUS_INFO(logger, "SSL handshake failed");
         return;
     }
+    else
+        LOG4CPLUS_DEBUG(logger, "Client-side handshake complete");
 
     ServerSide server;
     server.setTimeout(timeout);
@@ -199,6 +202,8 @@ void Target::handleClient(ClientSide client)
             serverHost << ":" << serverPort);
         return;
     }
+    else
+        LOG4CPLUS_DEBUG(logger, "Connected to server-side");
 
     msgFile.open(msgFileName);
     if(!msgFile.is_open())
@@ -209,49 +214,55 @@ void Target::handleClient(ClientSide client)
     }
     else
         LOG4CPLUS_DEBUG(logger, msgFileName << " open");
+
+    bool keepHandling = true;
     try
     {
-        while(keepRunning)
+        while(keepRunning && keepHandling)
         {
             auto readable = waitForReadable(client, server);
-            LOG4CPLUS_TRACE(logger, "Value of readable: " << readable);
-            if(readable == CLIENT_READY)
+            LOG4CPLUS_TRACE(logger, "Available readable items: " << readable.size());
+            if(readable.size())
             {
-                NDCContextCreator ctx("ClientToServer");
-                LOG4CPLUS_DEBUG(logger, "Client ready for reading");
-                if(passClientToServer(client, server))
-                    LOG4CPLUS_DEBUG(logger, "Message sent from client to server");
-                else
+                for(auto item : readable)
                 {
-                    LOG4CPLUS_DEBUG(logger, "Client-side disconnected");
-                    break;
-                }
-            }
-            else if(readable == SERVER_READY)
-            {
-                NDCContextCreator ctx("ServerToClient");
-                LOG4CPLUS_TRACE(logger, "Server ready for reading");
-                if(passServerToClient(client, server))
-                    LOG4CPLUS_DEBUG(logger, "Message sent from server to client");
-                else
-                {
-                    LOG4CPLUS_INFO(logger, "Server-side disconnected");
-                    break;
-                }
-            }
-            else if(readable == TIMEOUT)
-            {
-                LOG4CPLUS_INFO(logger, "Timed-out waiting for message");
-                break;
-            }
-            else if(readable == SIGNAL)
-            {
-                LOG4CPLUS_DEBUG(logger,
-                    "Received signal while waiting for readable FD");
-            }
+                    switch(item)
+                    {
+                    case CLIENT_READY:
+                        {
+                            NDCContextCreator ctx("ClientToServer");
+                            LOG4CPLUS_DEBUG(logger, "Client ready for reading");
+                            if(messageRelay(client, server, MSGOWNER::CLIENT))
+                                LOG4CPLUS_DEBUG(logger, "Message sent from client to server");
+                            else
+                            {
+                                LOG4CPLUS_DEBUG(logger, "Client-side disconnected");
+                                keepHandling = false;
+                            }
+                        }
+                        break;
+                    case SERVER_READY:
+                        {
+                            NDCContextCreator ctx("ServerToClient");
+                            LOG4CPLUS_TRACE(logger, "Server ready for reading");
+                            if(messageRelay(server, client, MSGOWNER::SERVER))
+                                LOG4CPLUS_DEBUG(logger, "Message sent from server to client");
+                            else
+                            {
+                                LOG4CPLUS_INFO(logger, "Server-side disconnected");
+                                keepHandling = false;
+                            }
+                        }
+                        break;
+                    } // switch(item)
+                } // for(auto item : readable)
+            } // if(readable.size())
             else
-                throw logic_error("Unexpected readable value");
-        } // while(keepReading)
+            {
+                LOG4CPLUS_INFO(logger, "Neither side ready with message. Ending handling");
+                keepHandling = false;
+            }
+        } // while(keepRunning && keepHandling)
     }
     catch(const system_error &e)
     {
@@ -259,12 +270,13 @@ void Target::handleClient(ClientSide client)
             << e.what());
     }
 
+    msgFile.close();
     LOG4CPLUS_INFO(logger, "Exiting");
 }
 
-Target::READREADYSTATE Target::waitForReadable(ClientSide &client, ServerSide &server)
+vector<Target::READREADYSTATE> Target::waitForReadable(ClientSide &client, ServerSide &server)
 {
-    READREADYSTATE retVal;
+    vector<READREADYSTATE> retVal;
 
     auto clientFd = client.getSocket();
     auto serverFd = server.getSocket();
@@ -290,10 +302,7 @@ Target::READREADYSTATE Target::waitForReadable(ClientSide &client, ServerSide &s
         &waitTime);
     LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt); // NOLINT
     if(rslt == 0)
-    {
         LOG4CPLUS_DEBUG(logger, "Read wait time expired"); // NOLINT
-        retVal = TIMEOUT;
-    }
     else if(rslt == -1)
     {
         auto err = errno;
@@ -305,25 +314,21 @@ Target::READREADYSTATE Target::waitForReadable(ClientSide &client, ServerSide &s
                 "Error waiting for socket to be ready for reading.");
         }
         else
-        {
-            LOG4CPLUS_TRACE(logger, "Caught signal"); // NOLINT
-            retVal = SIGNAL;
-        }
+            LOG4CPLUS_DEBUG(logger, "Caught signal"); // NOLINT
     }
     else
     {
         if(FD_ISSET(client.getSocket(), &readFd)) // NOLINT
         {
             LOG4CPLUS_DEBUG(logger, "Client ready for reading"); // NOLINT
-            retVal = CLIENT_READY;
+            retVal.push_back(CLIENT_READY);
         }
-        else if(FD_ISSET(server.getSocket(), &readFd)) // NOLINT
+
+        if(FD_ISSET(server.getSocket(), &readFd)) // NOLINT
         {
             LOG4CPLUS_DEBUG(logger, "Server ready for reading"); // NOLINT
-            retVal = SERVER_READY;
+            retVal.push_back(SERVER_READY);
         }
-        else
-            throw logic_error("Expected FD's not set");
     }
 
     return retVal;

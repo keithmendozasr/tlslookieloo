@@ -226,19 +226,21 @@ const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt, const bool 
     fd_set *readFds, *writeFds;
 
     OP_STATUS retVal = OP_STATUS::INITIALIZED;
+    readFds = writeFds = nullptr;
 
     auto code = wrapper->SSL_get_error(getSSLPtr(), rslt);
     LOG4CPLUS_TRACE(logger, "Code: " << code); // NOLINT
     switch(code)
     {
+    case SSL_ERROR_NONE:
+        throw logic_error("Cannot retry operation on SSL_ERROR_NONE");
+        break;
     case SSL_ERROR_WANT_READ:
         LOG4CPLUS_DEBUG(logger, "Wait for socket to be readable");
         readFds = &monitorFd;
-        writeFds = nullptr;
         break;
     case SSL_ERROR_WANT_WRITE:
         LOG4CPLUS_DEBUG(logger, "Wait for socket to be writable");
-        readFds = nullptr;
         writeFds = &monitorFd;
         break;
     case SSL_ERROR_ZERO_RETURN:
@@ -350,7 +352,21 @@ const SocketInfo::OP_STATUS SocketInfo::readData(char *data, size_t &dataSize)
     {
         auto rslt = wrapper->SSL_read(ptr, data, dataSize);
         LOG4CPLUS_TRACE(logger, "SSL_read return: " << rslt); // NOLINT
-        if(rslt <= 0)
+        if(rslt > 0)
+        {
+            shouldRetry = false;
+            dataSize = rslt;
+            retVal = OP_STATUS::SUCCESS;
+            LOG4CPLUS_DEBUG(logger, "Read " << dataSize << " bytes of data");
+        }
+        else if(wrapper->SSL_get_error(ptr, rslt) == SSL_ERROR_WANT_READ)
+        {
+            LOG4CPLUS_DEBUG(logger, "No application data available");
+            dataSize = 0;
+            retVal = OP_STATUS::SUCCESS;
+            shouldRetry = false;
+        }
+        else
         {
             retVal = handleRetry(rslt);
             if(retVal == OP_STATUS::SUCCESS)
@@ -360,13 +376,6 @@ const SocketInfo::OP_STATUS SocketInfo::readData(char *data, size_t &dataSize)
                 LOG4CPLUS_DEBUG(logger, "Stop attempts to read data");
                 shouldRetry = false;
             }
-        }
-        else
-        {
-            shouldRetry = false;
-            dataSize = rslt;
-            retVal = OP_STATUS::SUCCESS;
-            LOG4CPLUS_DEBUG(logger, "Read " << dataSize << " bytes of data");
         }
     } while(shouldRetry);
 

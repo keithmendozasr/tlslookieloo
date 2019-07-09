@@ -34,6 +34,19 @@ class SocketInfoTest : public ::testing::Test
 {
 protected:
     shared_ptr<MockWrapper> mock = make_shared<MockWrapper>();
+    int fd = 4;
+    SocketInfo s;
+
+    SocketInfoTest() :
+        s(mock)
+    {}
+
+    void SetUp() override
+    {
+        s.setSocket(fd);
+        s.newSSLCtx();
+        s.newSSLObj();
+    }
 };
 
 MATCHER_P(IsFdSet, fd, "fd is set")
@@ -49,7 +62,6 @@ MATCHER_P2(IsVoidEqStr, str, len, "")
 TEST_F(SocketInfoTest, handleRetryReady) // NOLINT
 {
     {
-        const int fd = 4;
         EXPECT_CALL((*mock), SSL_get_error(_, -1))
             .WillOnce(Return(SSL_ERROR_WANT_READ));
 
@@ -59,16 +71,10 @@ TEST_F(SocketInfoTest, handleRetryReady) // NOLINT
                 NotNull()))
             .WillOnce(Return(1));
 
-        SocketInfo s(mock);
-        s.setSocket(fd);
-        s.newSSLCtx();
-        s.newSSLObj();
-
         EXPECT_EQ(SocketInfo::OP_STATUS::SUCCESS, s.handleRetry(-1, true));
     }
 
     {
-        const int fd = 4;
         EXPECT_CALL((*mock), SSL_get_error(_, -1))
             .WillOnce(Return(SSL_ERROR_WANT_WRITE));
 
@@ -77,11 +83,6 @@ TEST_F(SocketInfoTest, handleRetryReady) // NOLINT
             select(Ge(fd), Not(IsFdSet(fd)), IsFdSet(fd), Not(IsFdSet(fd)),
                 NotNull()))
             .WillOnce(Return(1));
-
-        SocketInfo s(mock);
-        s.setSocket(fd);
-        s.newSSLCtx();
-        s.newSSLObj();
 
         EXPECT_EQ(SocketInfo::OP_STATUS::SUCCESS, s.handleRetry(-1, true));
     }
@@ -99,18 +100,13 @@ TEST_F(SocketInfoTest, handleRetryTimeout) // NOLINT
             NotNull()))
         .WillOnce(Return(0));
 
-    SocketInfo s(mock);
-    s.setSocket(fd);
-    s.newSSLCtx();
-    s.newSSLObj();
-
     EXPECT_EQ(SocketInfo::OP_STATUS::TIMEOUT, s.handleRetry(-1));
 }
 
 TEST_F(SocketInfoTest, handleRetrySetTimeout) // NOLINT
 {
-    const int fd = 10;
     const long timeout = 100;
+
     EXPECT_CALL((*mock), SSL_get_error(_, -1))
         .WillOnce(Return(SSL_ERROR_WANT_READ));
 
@@ -120,10 +116,6 @@ TEST_F(SocketInfoTest, handleRetrySetTimeout) // NOLINT
             AllOf(NotNull(), Field(&timeval::tv_sec, timeout))))
         .WillOnce(Return(0));
 
-    SocketInfo s(mock);
-    s.setSocket(fd);
-    s.newSSLCtx();
-    s.newSSLObj();
     s.setTimeout(timeout);
 
     EXPECT_EQ(SocketInfo::OP_STATUS::TIMEOUT, s.handleRetry(-1));
@@ -132,7 +124,6 @@ TEST_F(SocketInfoTest, handleRetrySetTimeout) // NOLINT
 TEST_F(SocketInfoTest, handleRetryInterrupted) // NOLINT
 {
     {
-        const int fd = 5;
         errno = EINTR;
         EXPECT_CALL((*mock), SSL_get_error(_, -1))
             .WillOnce(Return(SSL_ERROR_WANT_READ));
@@ -143,16 +134,10 @@ TEST_F(SocketInfoTest, handleRetryInterrupted) // NOLINT
                 NotNull()))
             .WillOnce(Return(-1));
 
-        SocketInfo s(mock);
-        s.newSSLCtx();
-        s.newSSLObj();
-        s.setSocket(fd);
-
         EXPECT_EQ(SocketInfo::OP_STATUS::INTERRUPTED, s.handleRetry(-1));
     }
 
     {
-        const int fd = 5;
         errno = 0;
         EXPECT_CALL((*mock), SSL_get_error(_, -1))
             .WillOnce(Return(SSL_ERROR_WANT_WRITE));
@@ -163,18 +148,12 @@ TEST_F(SocketInfoTest, handleRetryInterrupted) // NOLINT
                 NotNull()))
             .WillOnce(Return(-1));
 
-        SocketInfo s(mock);
-        s.setSocket(fd);
-        s.newSSLCtx();
-        s.newSSLObj();
-
         EXPECT_EQ(SocketInfo::OP_STATUS::INTERRUPTED, s.handleRetry(-1));
     }
 }
 
 TEST_F(SocketInfoTest, handleRetryError) // NOLINT
 {
-    const int fd = 5;
     errno = EBADF;
     EXPECT_CALL((*mock), SSL_get_error(_, -1))
         .WillOnce(Return(SSL_ERROR_WANT_READ));
@@ -185,18 +164,12 @@ TEST_F(SocketInfoTest, handleRetryError) // NOLINT
             NotNull()))
         .WillOnce(Return(-1));
 
-    SocketInfo s(mock);
-    s.setSocket(fd);
-    s.newSSLCtx();
-    s.newSSLObj();
-
     EXPECT_THROW(s.handleRetry(-1), system_error); // NOLINT
     errno = 0;
 }
 
 TEST_F(SocketInfoTest, handleRetryNoTimeout) // NOLINT
 {
-    const int fd = 4;
     EXPECT_CALL((*mock), SSL_get_error(_, -1))
         .WillOnce(Return(SSL_ERROR_WANT_READ));
 
@@ -206,42 +179,33 @@ TEST_F(SocketInfoTest, handleRetryNoTimeout) // NOLINT
             IsNull()))
         .WillOnce(Return(1));
 
-    SocketInfo s(mock);
-    s.newSSLCtx();
-    s.newSSLObj();
-    s.setSocket(fd);
-
     EXPECT_EQ(SocketInfo::OP_STATUS::SUCCESS, s.handleRetry(-1, false));
 }
 
 TEST_F(SocketInfoTest, handleRetryRemoteDisconnect) // NOLINT
 {
     {
-        const int fd = 4;
         EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
             .WillOnce(Return(SSL_ERROR_ZERO_RETURN));
-
-        SocketInfo s(mock);
-        s.setSocket(fd);
-        s.newSSLCtx();
-        s.newSSLObj();
 
         EXPECT_EQ(SocketInfo::OP_STATUS::DISCONNECTED, s.handleRetry(-1));
     }
 
     {
-        const int fd = 4;
         EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
             .WillOnce(Return(SSL_ERROR_SYSCALL));
         errno = 0;
 
-        SocketInfo s(mock);
-        s.setSocket(fd);
-        s.newSSLCtx();
-        s.newSSLObj();
-
         EXPECT_EQ(SocketInfo::OP_STATUS::DISCONNECTED, s.handleRetry(-1));
     }
+}
+
+TEST_F(SocketInfoTest, handleRetryNoError) // NOLINT
+{
+    EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
+        .WillOnce(Return(SSL_ERROR_NONE));
+
+    EXPECT_THROW(s.handleRetry(0), logic_error);
 }
 
 TEST_F(SocketInfoTest, readDataExact) // NOLINT
@@ -252,10 +216,6 @@ TEST_F(SocketInfoTest, readDataExact) // NOLINT
                 memcpy(ptr, "abc", 4);
             })),
             Return(4)));
-
-    SocketInfo s(mock);
-    s.newSSLCtx();
-    s.newSSLObj();
 
     size_t dataSize = 4;
     char * buf = new char[dataSize];
@@ -276,10 +236,6 @@ TEST_F(SocketInfoTest, readDataShort) // NOLINT
             })),
             Return(6)));
 
-    SocketInfo s(mock);
-    s.newSSLCtx();
-    s.newSSLObj();
-
     size_t dataSize = 30;
     char * buf = new char[dataSize];
     auto rslt = s.readData(&buf[0], dataSize);
@@ -289,69 +245,68 @@ TEST_F(SocketInfoTest, readDataShort) // NOLINT
     delete[] buf;
 }
 
-TEST_F(SocketInfoTest, readDataFail) // NOLINT
+TEST_F(SocketInfoTest, readDataProtocolOnly) // NOLINT
 {
-    {
-        InSequence i;
+    EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 4))
+        .WillOnce(Return(0));
 
-        const int fd = 5;
-        EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 1))
-            .WillOnce(Return(-1));
+    EXPECT_CALL((*mock), SSL_get_error(NotNull(), 0))
+        .WillOnce(Return(SSL_ERROR_WANT_READ));
 
-        EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
-            .WillOnce(Return(SSL_ERROR_WANT_READ));
+    size_t dataSize = 4;
+    char * buf = new char[dataSize];
 
-        EXPECT_CALL(
-            (*mock),
-            select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)), NotNull())
-        ).WillOnce(Return(0));
+    auto rslt = s.readData(&buf[0], dataSize);
+    EXPECT_EQ(SocketInfo::OP_STATUS::SUCCESS, rslt);
+    EXPECT_EQ(0ul, dataSize);
+    delete[] buf;
+}
 
-        SocketInfo s(mock);
-        s.setSocket(fd);
-        s.newSSLCtx();
-        s.newSSLObj();
+TEST_F(SocketInfoTest, readDataTimeout) // NOLINT
+{
+    InSequence i;
 
-        size_t dataSize = 1;
-        char * buf = new char[dataSize];
-        auto rslt = s.readData(buf, dataSize);
-        EXPECT_EQ(SocketInfo::OP_STATUS::TIMEOUT, rslt);
-        delete[] buf;
-    }
+    EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 1))
+        .WillOnce(Return(-1));
 
-    {
-        InSequence i;
+    EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
+        .Times(2)
+        .WillRepeatedly(Return(SSL_ERROR_WANT_WRITE));
 
-        const int fd = 7;
-        EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 1))
-            .WillOnce(Return(-1));
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), Not(IsFdSet(fd)), IsFdSet(fd), Not(IsFdSet(fd)), NotNull())
+    ).WillOnce(Return(0));
 
-        EXPECT_CALL((*mock), SSL_get_error(NotNull(), _))
-            .WillOnce(Return(SSL_ERROR_ZERO_RETURN));
+    size_t dataSize = 1;
+    char * buf = new char[dataSize];
+    auto rslt = s.readData(buf, dataSize);
+    EXPECT_EQ(SocketInfo::OP_STATUS::TIMEOUT, rslt);
+    delete[] buf;
+}
 
-        EXPECT_CALL((*mock), select(_, _, _, _, _))
-            .Times(0);
+TEST_F(SocketInfoTest, readDataDisconnect)
+{
+    InSequence i;
 
-        SocketInfo s(mock);
-        s.setSocket(fd);
-        s.newSSLCtx();
-        s.newSSLObj();
+    EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 1))
+        .WillOnce(Return(-1));
 
-        size_t dataSize = 1;
-        char * buf = new char[dataSize];
-        auto rslt = s.readData(buf, dataSize);
-        EXPECT_EQ(SocketInfo::OP_STATUS::DISCONNECTED, rslt);
-        delete[] buf;
-    }
+    EXPECT_CALL((*mock), SSL_get_error(NotNull(), -1))
+        .Times(2)
+        .WillRepeatedly(Return(SSL_ERROR_ZERO_RETURN));
+
+    size_t dataSize = 1;
+    char * buf = new char[dataSize];
+    auto rslt = s.readData(buf, dataSize);
+    EXPECT_EQ(SocketInfo::OP_STATUS::DISCONNECTED, rslt);
+    delete[] buf;
 }
 
 TEST_F(SocketInfoTest, writeDataExact) // NOLINT
 {
     EXPECT_CALL((*mock), SSL_write(NotNull(), IsVoidEqStr("abc", 3), 4))
         .WillOnce(Return(4));
-
-    SocketInfo s(mock);
-    s.newSSLCtx();
-    s.newSSLObj();
 
     char buf[] = "abc";
     auto rslt = s.writeData(&buf[0], 4);
@@ -360,8 +315,6 @@ TEST_F(SocketInfoTest, writeDataExact) // NOLINT
 
 TEST_F(SocketInfoTest, writeDataShort) // NOLINT
 {
-    const int fd = 15;
-
     InSequence sequence;
     EXPECT_CALL((*mock), SSL_write(NotNull(), IsVoidEqStr("abcdefg", 7), 7))
         .WillOnce(Return(0));
@@ -377,11 +330,6 @@ TEST_F(SocketInfoTest, writeDataShort) // NOLINT
     EXPECT_CALL((*mock), SSL_write(NotNull(), IsVoidEqStr("abcdefg", 7), 7))
         .WillOnce(Return(7));
 
-    SocketInfo s(mock);
-    s.setSocket(fd);
-    s.newSSLCtx();
-    s.newSSLObj();
-
     char buf[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g' };
     auto rslt = s.writeData(&buf[0], 7);
     EXPECT_EQ(rslt, SocketInfo::OP_STATUS::SUCCESS);
@@ -396,10 +344,6 @@ TEST_F(SocketInfoTest, writeDataRemoteDisconnect) // NOLINT
     EXPECT_CALL((*mock), SSL_write(NotNull(), IsVoidEqStr("abcdefg", 7), 7))
         .WillOnce(Return(-1));
 
-    SocketInfo s(mock);
-    s.setSocket(4);
-    s.newSSLCtx();
-    s.newSSLObj();
     char buf[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g' };
     auto rslt = s.writeData(&buf[0], 7);
     EXPECT_EQ(rslt, SocketInfo::OP_STATUS::DISCONNECTED);

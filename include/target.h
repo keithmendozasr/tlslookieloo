@@ -19,6 +19,7 @@
 #include <string>
 #include <atomic>
 #include <fstream>
+#include <vector>
 
 #include "concretewrapper.h"
 #include "serverside.h"
@@ -106,15 +107,16 @@ private:
 
     std::ofstream msgFile;
 
-    /**
-     * Bridge message from client to server
-     */
-    bool passClientToServer(ClientSide &client, ServerSide &server);
+    enum MSGOWNER
+    {
+        CLIENT,
+        SERVER
+    };
 
     /**
-     * Bridge message from server to client
+     * Relay message between 2 sides
      */
-    bool passServerToClient(ClientSide &client, ServerSide &server);
+    bool messageRelay(SocketInfo &src, SocketInfo &dest, const Target::MSGOWNER owner);
 
     /**
      * Handle clientside connection and message processing
@@ -122,16 +124,10 @@ private:
      */
     void handleClient(ClientSide client);
 
-    FRIEND_TEST(TargetTest, passClientToServerGood);
-    FRIEND_TEST(TargetTest, passClientToServerNoData);
-    FRIEND_TEST(TargetTest, passClientToServerRemoteDisconnect);
-
     enum READREADYSTATE
     {
         CLIENT_READY,
         SERVER_READY,
-        TIMEOUT,
-        SIGNAL
     };
 
     /**
@@ -140,13 +136,7 @@ private:
      * \arg client ClientSide object
      * \arg server ServerSide object
      */
-    READREADYSTATE waitForReadable(ClientSide &client, ServerSide &server);
-
-    enum MSGOWNER
-    {
-        CLIENT,
-        SERVER
-    };
+    std::vector<READREADYSTATE> waitForReadable(ClientSide &client, ServerSide &server);
 
     /**
      * Log the data received with indicator of origin
@@ -168,6 +158,12 @@ private:
     FRIEND_TEST(TargetTest, storeMessageServer);
     FRIEND_TEST(TargetTest, storeMessageBinary);
     FRIEND_TEST(TargetTest, storeMessageNullPtr);
+
+    FRIEND_TEST(TargetTest, messageRelayGood);
+    FRIEND_TEST(TargetTest, messageRelayNoData);
+    FRIEND_TEST(TargetTest, messageRelayRemoteDisconnect);
+    FRIEND_TEST(TargetTest, messageRelayChunks);
+
 };
 
 } // namespace tlslookieloo

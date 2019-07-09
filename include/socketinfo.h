@@ -324,6 +324,7 @@ private:
     };
     std::shared_ptr<SSL> sslObj;
 
+    friend class SocketInfoTest;
     FRIEND_TEST(SocketInfoTest, handleRetryReady);
     FRIEND_TEST(SocketInfoTest, handleRetryTimeout);
     FRIEND_TEST(SocketInfoTest, handleRetrySetTimeout);
@@ -331,10 +332,12 @@ private:
     FRIEND_TEST(SocketInfoTest, handleRetryError);
     FRIEND_TEST(SocketInfoTest, handleRetryNoTimeout);
     FRIEND_TEST(SocketInfoTest, handleRetryRemoteDisconnect);
+    FRIEND_TEST(SocketInfoTest, handleRetryNoError);
 
     FRIEND_TEST(SocketInfoTest, readDataExact);
     FRIEND_TEST(SocketInfoTest, readDataShort);
     FRIEND_TEST(SocketInfoTest, readDataFail);
+    FRIEND_TEST(SocketInfoTest, readDataNoData);
 
     FRIEND_TEST(SocketInfoTest, writeDataExact);
     FRIEND_TEST(SocketInfoTest, writeDataShort);

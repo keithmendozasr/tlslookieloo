@@ -56,73 +56,16 @@ protected:
     {
         mock = make_shared<MockWrapper>();
         client = ClientSide(mock);
+        client.setSocket(4);
         client.newSSLCtx();
         client.newSSLObj();
 
         server = ServerSide(mock);
+        server.setSocket(5);
         server.newSSLCtx();
         server.newSSLObj();
     }
-
-    void TearDown() override
-    {
-        mock = nullptr;
-    };
 };
-
-TEST_F(TargetTest, passClientToServerGood) // NOLINT
-{
-    const char expectData[] = "abc";
-    EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 1024))
-        .WillOnce(DoAll(WithArg<1>(Invoke(
-            [expectData](void *ptr){
-                memcpy(ptr, expectData, 4);
-            })),
-            Return(4)));
-
-    EXPECT_CALL((*mock), SSL_write(NotNull(), IsVoidEqStr(expectData), 4))
-        .WillOnce(Return(4));
-
-    Target obj;
-    EXPECT_TRUE(obj.passClientToServer(client, server));
-}
-
-TEST_F(TargetTest, passClientToServerNoData) // NOLINT
-{
-    EXPECT_CALL((*mock), SSL_get_error(_, _))
-        .WillOnce(Return(SSL_ERROR_SYSCALL));
-    errno = 0;
-
-    EXPECT_CALL((*mock), SSL_read(_, _, _))
-        .WillOnce(Return(-1));
-
-    EXPECT_CALL((*mock), SSL_write(_, _, _))
-        .Times(0);
-
-    Target obj;
-    EXPECT_FALSE(obj.passClientToServer(client, server));
-}
-
-TEST_F(TargetTest, passClientToServerRemoteDisconnect) // NOLINT
-{
-    const char expectData[] = "abc";
-    EXPECT_CALL((*mock), SSL_read(_, _, _))
-        .WillRepeatedly(DoAll(WithArg<1>(Invoke(
-            [expectData](void *ptr){
-                memcpy(ptr, expectData, 4);
-            })),
-            Return(4)));
-
-    EXPECT_CALL((*mock), SSL_get_error(_, _))
-        .WillOnce(Return(SSL_ERROR_ZERO_RETURN));
-    errno = 0;
-
-    EXPECT_CALL((*mock), SSL_write(_, _, _))
-        .WillOnce(Return(-1));
-
-    Target obj;
-    EXPECT_FALSE(obj.passClientToServer(client, server));
-}
 
 TEST_F(TargetTest, waitForReadableTimeout) // NOLINT
 {
@@ -136,7 +79,7 @@ TEST_F(TargetTest, waitForReadableTimeout) // NOLINT
         .WillOnce(Return(0));
     
     Target t(mock);
-    EXPECT_EQ(Target::READREADYSTATE::TIMEOUT, t.waitForReadable(client, server));
+    EXPECT_EQ(0u, t.waitForReadable(client, server).size());
 }
 
 TEST_F(TargetTest, waitForReadableClient) // NOLINT
@@ -156,7 +99,9 @@ TEST_F(TargetTest, waitForReadableClient) // NOLINT
             Return(1)));
     
     Target t(mock);
-    EXPECT_EQ(Target::READREADYSTATE::CLIENT_READY, t.waitForReadable(client, server));
+    auto testVal = t.waitForReadable(client, server);
+    EXPECT_EQ(1u, testVal.size());
+    EXPECT_EQ(Target::READREADYSTATE::CLIENT_READY, testVal[0]);
 }
 
 TEST_F(TargetTest, waitForReadableServer) // NOLINT
@@ -176,7 +121,9 @@ TEST_F(TargetTest, waitForReadableServer) // NOLINT
             Return(1)));
     
     Target t(mock);
-    EXPECT_EQ(Target::READREADYSTATE::SERVER_READY, t.waitForReadable(client, server));
+    auto testVal = t.waitForReadable(client, server);
+    EXPECT_EQ(1u, testVal.size());
+    EXPECT_EQ(Target::READREADYSTATE::SERVER_READY, testVal[0]);
 }
 
 TEST_F(TargetTest, waitForReadableInterrupted) // NOLINT
@@ -193,8 +140,7 @@ TEST_F(TargetTest, waitForReadableInterrupted) // NOLINT
         errno = 0;
 
         Target t(mock);
-        EXPECT_EQ(Target::READREADYSTATE::SIGNAL,
-            t.waitForReadable(client, server));
+        EXPECT_EQ(0u, t.waitForReadable(client, server).size());
     }
 
     {
@@ -209,45 +155,24 @@ TEST_F(TargetTest, waitForReadableInterrupted) // NOLINT
         errno = EINTR;
 
         Target t(mock);
-        EXPECT_EQ(Target::READREADYSTATE::SIGNAL,
-            t.waitForReadable(client, server));
+        EXPECT_EQ(0u, t.waitForReadable(client, server).size());
     }
 }
 
 TEST_F(TargetTest, waitForReadableError) // NOLINT
 {
-    {
-        client.setSocket(4);
-        server.setSocket(5);
+    client.setSocket(4);
+    server.setSocket(5);
 
-        EXPECT_CALL(
-            (*mock),
-            select(6, IsFdSet(4, 5), Not(IsFdSet(4, 5)), Not(IsFdSet(4, 5)),
-                NotNull()))
-            .WillOnce(Return(-1));
-        errno = EBADF;
+    EXPECT_CALL(
+        (*mock),
+        select(6, IsFdSet(4, 5), Not(IsFdSet(4, 5)), Not(IsFdSet(4, 5)),
+            NotNull()))
+        .WillOnce(Return(-1));
+    errno = EBADF;
 
-        Target t(mock);
-        EXPECT_THROW(t.waitForReadable(client, server), system_error);
-    }
-
-    {
-        client.setSocket(4);
-        server.setSocket(5);
-
-        EXPECT_CALL(
-            (*mock),
-            select(6, IsFdSet(4, 5), Not(IsFdSet(4, 5)), Not(IsFdSet(4, 5)),
-                NotNull()))
-            .WillOnce(DoAll(WithArg<1>(Invoke(
-                [](fd_set *ptr){
-                    FD_ZERO(ptr);
-                })),
-                Return(1)));
-
-        Target t(mock);
-        EXPECT_THROW(t.waitForReadable(client, server), logic_error);
-    }
+    Target t(mock);
+    EXPECT_THROW(t.waitForReadable(client, server), system_error);
 }
 
 TEST_F(TargetTest, storeMessageClient)
@@ -300,6 +225,47 @@ TEST_F(TargetTest, storeMessageNullPtr)
     EXPECT_THROW(
         t.storeMessage(nullptr, 1, t.MSGOWNER::CLIENT),
         logic_error);
+}
+
+TEST_F(TargetTest, messageRelayGood) // NOLINT
+{
+    {
+        InSequence s;
+        const char expectData[] = "abc";
+        EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 1024))
+            .WillOnce(DoAll(WithArg<1>(Invoke(
+                [expectData](void *ptr){
+                    memcpy(ptr, expectData, sizeof(expectData));
+                })),
+                Return(sizeof(expectData))));
+
+        EXPECT_CALL((*mock), SSL_write(NotNull(), IsVoidEqStr(expectData), sizeof(expectData)))
+            .WillOnce(Return(sizeof(expectData)));
+    }
+
+    Target obj;
+    EXPECT_TRUE(obj.messageRelay(client, server, Target::MSGOWNER::CLIENT));
+}
+
+TEST_F(TargetTest, messageRelayRemoteDisconnect) // NOLINT
+{
+    const char expectData[] = "abc";
+    EXPECT_CALL((*mock), SSL_read(_, _, _))
+        .WillRepeatedly(DoAll(WithArg<1>(Invoke(
+            [expectData](void *ptr){
+                memcpy(ptr, expectData, 4);
+            })),
+            Return(4)));
+
+    EXPECT_CALL((*mock), SSL_get_error(_, _))
+        .WillOnce(Return(SSL_ERROR_ZERO_RETURN));
+    errno = 0;
+
+    EXPECT_CALL((*mock), SSL_write(_, _, _))
+        .WillOnce(Return(-1));
+
+    Target obj;
+    EXPECT_FALSE(obj.messageRelay(client, server, Target::MSGOWNER::CLIENT));
 }
 
 } //namespace tlslookieloo

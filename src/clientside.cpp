@@ -173,12 +173,21 @@ const bool ClientSide::sslHandshake()
         if(rslt == -1)
         {
             LOG4CPLUS_TRACE(logger, "SSL_accept reporting error"); // NOLINT
-            shouldRetry = handleRetry(rslt);
+            switch(handleRetry(rslt))
+            {
+            case SocketInfo::OP_STATUS::SUCCESS:
+                LOG4CPLUS_DEBUG(logger, "Retry SSL accept");
+                break;
+            default:
+                LOG4CPLUS_DEBUG(logger, "Not retrying SSL accept");
+                retVal = shouldRetry = false;
+                break;
+            }
         }
         else if(rslt == 0)
         {
-            const string msg = sslErrMsg("Remote closed SSL handshake. Cause: ");
-            LOG4CPLUS_WARN(logger, msg); // NOLINT
+            LOG4CPLUS_INFO(logger,
+                "Remote disconnected during SSL handshake"); // NOLINT
             retVal = shouldRetry = false;
         }
         else
