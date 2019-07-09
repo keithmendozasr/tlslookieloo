@@ -355,21 +355,36 @@ TEST_F(SocketInfoTest, writeDataExact) // NOLINT
 
     char buf[] = "abc";
     auto rslt = s.writeData(&buf[0], 4);
-    EXPECT_EQ(rslt, 4ul);
+    EXPECT_EQ(rslt, SocketInfo::OP_STATUS::SUCCESS);
 }
 
 TEST_F(SocketInfoTest, writeDataShort) // NOLINT
 {
+    const int fd = 15;
+
+    InSequence sequence;
     EXPECT_CALL((*mock), SSL_write(NotNull(), IsVoidEqStr("abcdefg", 7), 7))
-        .WillOnce(Return(2));
+        .WillOnce(Return(0));
+
+    EXPECT_CALL((*mock), SSL_get_error(NotNull(), 0))
+        .WillOnce(Return(SSL_ERROR_WANT_READ));
+
+    EXPECT_CALL(
+        (*mock),
+        select(Ge(fd), IsFdSet(fd), Not(IsFdSet(fd)), Not(IsFdSet(fd)), NotNull())
+    ).WillOnce(Return(1));
+
+    EXPECT_CALL((*mock), SSL_write(NotNull(), IsVoidEqStr("abcdefg", 7), 7))
+        .WillOnce(Return(7));
 
     SocketInfo s(mock);
+    s.setSocket(fd);
     s.newSSLCtx();
     s.newSSLObj();
 
     char buf[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g' };
     auto rslt = s.writeData(&buf[0], 7);
-    EXPECT_EQ(rslt, 2ul);
+    EXPECT_EQ(rslt, SocketInfo::OP_STATUS::SUCCESS);
 }
 
 TEST_F(SocketInfoTest, writeDataRemoteDisconnect) // NOLINT
@@ -387,7 +402,7 @@ TEST_F(SocketInfoTest, writeDataRemoteDisconnect) // NOLINT
     s.newSSLObj();
     char buf[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g' };
     auto rslt = s.writeData(&buf[0], 7);
-    EXPECT_EQ(rslt, 0ul);
+    EXPECT_EQ(rslt, SocketInfo::OP_STATUS::DISCONNECTED);
 }
 
 } //namespace tlslookieloo

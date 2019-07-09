@@ -152,9 +152,10 @@ public:
      *
      * \param msg Data to send
      * \param msgSize Size of msg
-     * \return Number of bytes sent
+     * \return State of sending operation
      */
-    const size_t writeData(const char *msg, const size_t &msgSize);
+    // TODO: Change "msg" param to weak_ptr
+    const OP_STATUS writeData(const char *msg, const size_t &msgSize);
 
 protected:
     /**

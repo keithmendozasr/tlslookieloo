@@ -373,31 +373,35 @@ const SocketInfo::OP_STATUS SocketInfo::readData(char *data, size_t &dataSize)
     return retVal;
 }
 
-const size_t SocketInfo::writeData(const char *msg, const size_t &msgSize)
+const SocketInfo::OP_STATUS SocketInfo::writeData(const char *msg, const size_t &msgSize)
 {
     ERR_clear_error();
 
-    bool shouldRetry = false;
+    bool shouldRetry = true;
     auto ptr = getSSLPtr();
-    size_t retVal = 0;
+    OP_STATUS retVal;
     do
     {
         auto rslt = wrapper->SSL_write(ptr, msg, msgSize);
         LOG4CPLUS_TRACE(logger, "SSL_write return: " << rslt); // NOLINT
         if(rslt <= 0)
         {
-            LOG4CPLUS_TRACE(logger, "SSL_write reporting error"); // NOLINT
-            // TODO: Refine
-            shouldRetry = handleRetry(rslt) == OP_STATUS::SUCCESS;
+            retVal = handleRetry(rslt);
+            if(retVal == OP_STATUS::SUCCESS)
+                LOG4CPLUS_DEBUG(logger, "Retry writing data");
+            else
+            {
+                LOG4CPLUS_DEBUG(logger, "Stop attempts to write data");
+                shouldRetry = false;
+            }
         }
         else
         {
             LOG4CPLUS_DEBUG(logger, to_string(msgSize) << // NOLINT
                 " sent over the wire");
             shouldRetry = false;
-            retVal = rslt;
+            retVal = OP_STATUS::SUCCESS;
         }
-
     } while(shouldRetry);
 
     return retVal;
