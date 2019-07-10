@@ -48,19 +48,17 @@ protected:
     ServerSide server;
 
     TargetTest() :
+        mock(make_shared<MockWrapper>()),
         client(mock),
         server(mock)
     {}
 
     void SetUp() override
     {
-        mock = make_shared<MockWrapper>();
-        client = ClientSide(mock);
         client.setSocket(4);
         client.newSSLCtx();
         client.newSSLObj();
 
-        server = ServerSide(mock);
         server.setSocket(5);
         server.newSSLCtx();
         server.newSSLObj();
@@ -241,6 +239,12 @@ TEST_F(TargetTest, messageRelayGood) // NOLINT
 
         EXPECT_CALL((*mock), SSL_write(NotNull(), IsVoidEqStr(expectData), sizeof(expectData)))
             .WillOnce(Return(sizeof(expectData)));
+
+        EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 1024))
+            .WillOnce(Return(0));
+
+        EXPECT_CALL((*mock), SSL_get_error(NotNull(), 0))
+            .WillOnce(Return(SSL_ERROR_WANT_READ));
     }
 
     Target obj;

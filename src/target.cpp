@@ -124,58 +124,63 @@ void Target::start()
 bool Target::messageRelay(SocketInfo &src, SocketInfo &dest, const MSGOWNER owner)
 {
     bool retVal = true;
+    size_t amtRead;
     size_t bufSize = 1024;
     unique_ptr<char[]> buf(new char[bufSize]);
     bool keepReading = true;
-    switch(src.readData(buf.get(), bufSize))
+    while(keepReading)
     {
-    case SocketInfo::OP_STATUS::SUCCESS:
-        if(bufSize > 0)
+        amtRead = 1024;
+        switch(src.readData(buf.get(), amtRead))
         {
-            LOG4CPLUS_TRACE(logger, "Data from src: " << // NOLINT
-                string(buf.get(), bufSize));
-            storeMessage(buf.get(), bufSize, owner);
-            LOG4CPLUS_DEBUG(logger, "Send data to dest");
-
-            switch(dest.writeData(buf.get(), bufSize))
+        case SocketInfo::OP_STATUS::SUCCESS:
+            if(amtRead > 0)
             {
-            case SocketInfo::OP_STATUS::SUCCESS:
-                LOG4CPLUS_DEBUG(logger, "Data sent to destination");
-                break;
-            case SocketInfo::OP_STATUS::TIMEOUT:
-                LOG4CPLUS_INFO(logger,
-                    "Timed-out attempting to send to destination");
-                retVal = keepReading = false;
-                break;
-            case SocketInfo::OP_STATUS::DISCONNECTED:
-                LOG4CPLUS_INFO(logger,
-                    "Destination disconnected while data being sent");
-                retVal = keepReading = false;
-                break;
-            default:
-                throw logic_error("Unexpected OP_STATUS while sending data to destination");
+                LOG4CPLUS_TRACE(logger, "Data from src: " << // NOLINT
+                    string(buf.get(), amtRead));
+                storeMessage(buf.get(), amtRead, owner);
+                LOG4CPLUS_DEBUG(logger, "Send data to dest");
+
+                switch(dest.writeData(buf.get(), amtRead))
+                {
+                case SocketInfo::OP_STATUS::SUCCESS:
+                    LOG4CPLUS_DEBUG(logger, "Data sent to destination");
+                    break;
+                case SocketInfo::OP_STATUS::TIMEOUT:
+                    LOG4CPLUS_INFO(logger,
+                        "Timed-out attempting to send to destination");
+                    retVal = keepReading = false;
+                    break;
+                case SocketInfo::OP_STATUS::DISCONNECTED:
+                    LOG4CPLUS_INFO(logger,
+                        "Destination disconnected while data being sent");
+                    retVal = keepReading = false;
+                    break;
+                default:
+                    throw logic_error("Unexpected OP_STATUS while sending data to destination");
+                }
             }
-        }
-        else
-        {
-            // NOLINTNEXTLINE
-            LOG4CPLUS_INFO(logger, "No more data to relay");
-            keepReading = false;
-        }
-        break;
-    case SocketInfo::OP_STATUS::TIMEOUT:
-        LOG4CPLUS_INFO(logger,
-            "Timed-out attempting to receive data from source");
-        retVal = keepReading = false;
-        break;
-    case SocketInfo::OP_STATUS::DISCONNECTED:
-        LOG4CPLUS_INFO(logger,
-            "Source disconnected while getting data");
-        retVal = keepReading = false;
-        break;
-    default:
-        throw logic_error("Unexpected OP_STATUS while reading data from source");
-    }
+            else
+            {
+                // NOLINTNEXTLINE
+                LOG4CPLUS_INFO(logger, "No more data to relay");
+                keepReading = false;
+            }
+            break;
+        case SocketInfo::OP_STATUS::TIMEOUT:
+            LOG4CPLUS_INFO(logger,
+                "Timed-out attempting to receive data from source");
+            retVal = keepReading = false;
+            break;
+        case SocketInfo::OP_STATUS::DISCONNECTED:
+            LOG4CPLUS_INFO(logger,
+                "Source disconnected while getting data");
+            retVal = keepReading = false;
+            break;
+        default:
+            throw logic_error("Unexpected OP_STATUS while reading data from source");
+        } // select(src.readData())
+    } // while(keepReading)
 
     LOG4CPLUS_DEBUG(logger, "Done sending message between source and destination");
     return retVal;
