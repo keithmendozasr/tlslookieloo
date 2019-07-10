@@ -343,6 +343,8 @@ private:
     FRIEND_TEST(SocketInfoTest, writeDataShort);
     FRIEND_TEST(SocketInfoTest, writeDataRemoteDisconnect);
 
+    friend class ClientSideTest;
+
     friend class TargetTest;
     FRIEND_TEST(TargetTest, passClientToServerGood);
     FRIEND_TEST(TargetTest, passClientToServerNoData);

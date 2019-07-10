@@ -36,29 +36,34 @@ public:
      */
     ClientSide(std::shared_ptr<Wrapper> wrapper =
         std::make_shared<ConcreteWrapper>()) :
-        SocketInfo(wrapper)
+        SocketInfo(wrapper),
+        wrapper(wrapper)
     {}
 
     /**
      * Copy constructor
      */
     ClientSide(const ClientSide &rhs) :
-        SocketInfo(rhs)
+        SocketInfo(rhs),
+        wrapper(rhs.wrapper)
     {}
 
     ClientSide(ClientSide &&rhs) :
-        SocketInfo(rhs)
+        SocketInfo(rhs),
+        wrapper(rhs.wrapper)
     {}
 
     ClientSide &operator =(ClientSide const &rhs)
     {
+        wrapper = rhs.wrapper;
         SocketInfo::operator =(rhs);
         return *this;
     }
 
     ClientSide &operator =(ClientSide &&rhs)
     {
-        SocketInfo::operator =(rhs);
+        wrapper = rhs.wrapper;
+        SocketInfo::operator =(std::move(rhs));
         return *this;
     }
 
@@ -98,6 +103,7 @@ public:
 
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("ClientSide");
+    std::shared_ptr<Wrapper> wrapper;
 
     /**
      * Create the SSL context for this instance
@@ -118,6 +124,9 @@ private:
      * \throws system_error if an error occurred during the select() operation
      */
     void waitSocketReadable();
+
+    FRIEND_TEST(ClientSideTest, waitSocketReadableGood);
+    FRIEND_TEST(ClientSideTest, waitSocketReadableError);
 };
 
 } //namespace tlslookieloo

@@ -206,7 +206,7 @@ void ClientSide::waitSocketReadable()
     FD_ZERO(&readFd);
     FD_SET(getSocket(), &readFd);
 
-    if(select(getSocket() + 1, &readFd, nullptr, nullptr, nullptr) > 0)
+    if(wrapper->select(getSocket() + 1, &readFd, nullptr, nullptr, nullptr) > 0)
     {
         if(!FD_ISSET(getSocket(), &readFd))
             throw logic_error("Socket FD not set after select returned ready");
