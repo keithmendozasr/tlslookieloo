@@ -36,33 +36,28 @@ public:
      */
     ClientSide(std::shared_ptr<Wrapper> wrapper =
         std::make_shared<ConcreteWrapper>()) :
-        SocketInfo(wrapper),
-        wrapper(wrapper)
+        SocketInfo(wrapper)
     {}
 
     /**
      * Copy constructor
      */
     ClientSide(const ClientSide &rhs) :
-        SocketInfo(rhs),
-        wrapper(rhs.wrapper)
+        SocketInfo(rhs)
     {}
 
     ClientSide(ClientSide &&rhs) :
-        SocketInfo(rhs),
-        wrapper(rhs.wrapper)
+        SocketInfo(rhs)
     {}
 
     ClientSide &operator =(ClientSide const &rhs)
     {
-        wrapper = rhs.wrapper;
         SocketInfo::operator =(rhs);
         return *this;
     }
 
     ClientSide &operator =(ClientSide &&rhs)
     {
-        wrapper = rhs.wrapper;
         SocketInfo::operator =(std::move(rhs));
         return *this;
     }
@@ -103,7 +98,6 @@ public:
 
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("ClientSide");
-    std::shared_ptr<Wrapper> wrapper;
 
     /**
      * Create the SSL context for this instance

@@ -18,11 +18,13 @@
 
 #include <string>
 
-#include <log4cplus/logger.h>
+#include "log4cplus/logger.h"
+#include "gtest/gtest_prod.h"
 
 #include "socketinfo.h"
 #include "wrapper.h"
 #include "concretewrapper.h"
+
 
 namespace tlslookieloo
 {
@@ -112,6 +114,10 @@ private:
      * \return true if socket is writable. False if it times out
      */
     const bool socketReady();
+
+    FRIEND_TEST(ServerSideTest, socketReadyGood);
+    FRIEND_TEST(ServerSideTest, socketReadyBadFd);
+    FRIEND_TEST(ServerSideTest, socketReadyTimeout);
 };
 
 } //namespace tlslookieloo

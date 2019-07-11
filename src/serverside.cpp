@@ -279,7 +279,7 @@ const bool ServerSide::socketReady()
     waitTime.tv_sec = getTimeout();
     waitTime.tv_usec = 0;
 
-    auto rslt = select(getSocket() + 1, nullptr, &writeFd, nullptr, &waitTime);
+    auto rslt = wrapper->select(getSocket() + 1, nullptr, &writeFd, nullptr, &waitTime);
     if(rslt > 0)
     {
         if(!FD_ISSET(getSocket(), &writeFd))

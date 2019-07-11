@@ -263,11 +263,6 @@ protected:
      */
     void saveSocketIP(const struct sockaddr_storage *addrInfo);
 
-    std::shared_ptr<Wrapper> getWrapper()
-    {
-        return wrapper;
-    }
-
     /**
      * Handle SSL conditions that requires a retry
      *
@@ -278,9 +273,9 @@ protected:
      */
     const OP_STATUS handleRetry(const int &rslt, const bool withTimeout = true);
 
+    std::shared_ptr<Wrapper> wrapper;
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("SocketInfo");
-    std::shared_ptr<Wrapper> wrapper;
 
     std::optional<std::string> socketIP;
 
@@ -344,6 +339,7 @@ private:
     FRIEND_TEST(SocketInfoTest, writeDataRemoteDisconnect);
 
     friend class ClientSideTest;
+    friend class ServerSideTest;
 
     friend class TargetTest;
     FRIEND_TEST(TargetTest, passClientToServerGood);
