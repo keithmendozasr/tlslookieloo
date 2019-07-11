@@ -9,7 +9,7 @@ tlslookieloo is a utility to help troubleshoot network-related issues between a 
 # Dependencies
 These are all minimum version
 
-* C++ 14 compatible compiler
+* C++ 17 compatible compiler
 * cmake 3.7.2
 * OpenSSL 1.1.0j
 * yaml-cpp 0.6
