@@ -11,7 +11,7 @@ These are all minimum version
 
 * C++ 17 compatible compiler
 * cmake 3.7.2
-* OpenSSL 1.1.0j
+* OpenSSL 1.1.1
 * yaml-cpp 0.6
 
 # Submodules

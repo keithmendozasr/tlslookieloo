@@ -42,7 +42,7 @@ ExternalProject_Add(log4cplus
     BUILD_IN_SOURCE 1
 )
 
-find_package(OpenSSL 1.1.0 REQUIRED)
+find_package(OpenSSL 1.1.1 REQUIRED)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
