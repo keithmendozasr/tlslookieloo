@@ -30,78 +30,48 @@ using namespace log4cplus;
 namespace tlslookieloo
 {
 
-Target::Target(
-    const string &tgtName, const string &serverHost,
-    const unsigned int serverPort, const unsigned int clientPort,
-    const string &clientCert, const string &clientKey, const string &msgFileName) :
-    tgtName(tgtName),
-    serverHost(serverHost),
-    clientCert(clientCert),
-    clientKey(clientKey),
-    msgFileName(msgFileName),
-    serverPort(serverPort),
-    clientPort(clientPort),
+Target::Target(const TargetItem &tgtItem) :
+    tgtItem(tgtItem),
     wrapper(make_shared<ConcreteWrapper>())
 {}
 
 Target::Target(const Target &rhs) :
-    tgtName(rhs.tgtName),
-    serverHost(rhs.serverHost),
-    clientCert(rhs.clientCert),
-    clientKey(rhs.clientKey),
-    msgFileName(rhs.msgFileName),
-    serverPort(rhs.serverPort),
-    clientPort(rhs.clientPort),
-    wrapper(rhs.wrapper)
+    tgtItem(rhs.tgtItem),
+    wrapper(rhs.wrapper),
+    timeout(rhs.timeout)
 {}
 
 Target & Target::operator = (const Target &rhs)
 {
-    tgtName = rhs.tgtName;
-    serverHost = rhs.serverHost;
-    clientCert = rhs.clientCert;
-    clientKey = rhs.clientKey;
-    msgFileName = rhs.msgFileName;
-    serverPort = rhs.serverPort;
-    clientPort = rhs.clientPort;
+    tgtItem = rhs.tgtItem;
     wrapper = rhs.wrapper;
 
     return *this;
 }
 
 Target::Target(Target && rhs) :
-    tgtName(std::move(rhs.tgtName)),
-    serverHost(std::move(rhs.serverHost)),
-    clientCert(std::move(rhs.clientCert)),
-    clientKey(std::move(rhs.clientKey)),
-    msgFileName(std::move(rhs.msgFileName)),
-    serverPort(std::move(rhs.serverPort)),
-    clientPort(std::move(rhs.clientPort)),
-    wrapper(std::move(rhs.wrapper))
+    tgtItem(std::move(rhs.tgtItem)),
+    wrapper(std::move(rhs.wrapper)),
+    recordFileStream(std::move(rhs.recordFileStream))
 {}
 
 Target & Target::operator = (Target && rhs)
 {
-    tgtName = std::move(rhs.tgtName);
-    serverHost = std::move(rhs.serverHost);
-    clientCert = std::move(rhs.clientCert);
-    clientKey = std::move(rhs.clientKey);
-    msgFileName = std::move(rhs.msgFileName);
-    serverPort = std::move(rhs.serverPort);
-    clientPort = std::move(rhs.clientPort);
+    tgtItem = std::move(rhs.tgtItem);
     wrapper = std::move(rhs.wrapper);
+    recordFileStream = std::move(rhs.recordFileStream);
 
     return *this;
 }
 
 void Target::start()
 {
-    NDCContextCreator ndc(tgtName);
+    NDCContextCreator ndc(tgtItem.name);
 
     ClientSide clientListener(wrapper);
-    clientListener.startListener(clientPort, 2);
+    clientListener.startListener(tgtItem.clientPort, 2);
     // NOLINTNEXTLINE
-    LOG4CPLUS_INFO(logger, "Listening on " << clientPort);
+    LOG4CPLUS_INFO(logger, "Listening on " << tgtItem.clientPort);
 
     while(keepRunning)
     {
@@ -118,7 +88,7 @@ void Target::start()
         handleClient(acceptRslt.value());
     }
 
-    LOG4CPLUS_INFO(logger, "Target " << tgtName << " stopping");
+    LOG4CPLUS_INFO(logger, "Target " << tgtItem.name << " stopping");
 }
 
 bool Target::messageRelay(SocketInfo &src, SocketInfo &dest, const MSGOWNER owner)
@@ -191,7 +161,7 @@ void Target::handleClient(ClientSide client)
     LOG4CPLUS_INFO(logger, "Start monitoring");
     client.setTimeout(timeout);
 
-    if(!client.startSSL(clientCert, clientKey))
+    if(!client.startSSL(tgtItem.clientCert, tgtItem.clientKey))
     {
         LOG4CPLUS_INFO(logger, "SSL handshake failed");
         return;
@@ -201,24 +171,24 @@ void Target::handleClient(ClientSide client)
 
     ServerSide server;
     server.setTimeout(timeout);
-    if(!server.connect(serverPort, serverHost))
+    if(!server.connect(tgtItem.serverPort, tgtItem.serverHost))
     {
         LOG4CPLUS_INFO(logger, "Failed to connect to server " <<
-            serverHost << ":" << serverPort);
+            tgtItem.serverHost << ":" << tgtItem.serverPort);
         return;
     }
     else
         LOG4CPLUS_DEBUG(logger, "Connected to server-side");
 
-    msgFile.open(msgFileName);
-    if(!msgFile.is_open())
+    recordFileStream.open(tgtItem.recordFile);
+    if(!recordFileStream.is_open())
     {
         auto err = errno;
         throw std::system_error(err, std::generic_category(),
-            "Failed to open " + msgFileName);
+            "Failed to open " + tgtItem.recordFile);
     }
     else
-        LOG4CPLUS_DEBUG(logger, msgFileName << " open");
+        LOG4CPLUS_DEBUG(logger, tgtItem.recordFile << " open");
 
     bool keepHandling = true;
     try
@@ -275,7 +245,7 @@ void Target::handleClient(ClientSide client)
             << e.what());
     }
 
-    msgFile.close();
+    recordFileStream.close();
     LOG4CPLUS_INFO(logger, "Exiting");
 }
 
@@ -370,7 +340,7 @@ void Target::storeMessage(const char * data, const size_t &len,
     cleandata << "\n===END===\n";
 
     LOG4CPLUS_TRACE(logger, "Value of cleandata: " << cleandata.str());
-    wrapper->ostream_write(msgFile, cleandata.str().c_str(),
+    wrapper->ostream_write(recordFileStream, cleandata.str().c_str(),
         cleandata.str().size());
 }
 

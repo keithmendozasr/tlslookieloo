@@ -21,14 +21,15 @@
 #include <fstream>
 #include <vector>
 
-#include "concretewrapper.h"
-#include "serverside.h"
-#include "clientside.h"
-
 #include "log4cplus/logger.h"
 #include "log4cplus/loggingmacros.h"
 
 #include "gtest/gtest_prod.h"
+
+#include "concretewrapper.h"
+#include "serverside.h"
+#include "clientside.h"
+#include "targetitem.h"
 
 namespace tlslookieloo
 {
@@ -49,17 +50,9 @@ public:
     /**
      * Constructor that takes the target information.
      *
-     * \arg tgtName Target name to use in logs
-     * \arg serverHost Hostname of server-side
-     * \arg serverPort Port server-side is listening on
-     * \arg clientPort Port to listen for client-side
-     * \arg clientCert SSL public key for client-side listener
-     * \arg clientKey Private key for client-side listener
+     * \arg targetInfo TargetInfo for this instance
      */
-    Target(const std::string &tgtName, const std::string &serverHost,
-        const unsigned int serverPort, const unsigned int clientPort,
-        const std::string &clientCert, const std::string &clientKey,
-        const std::string &msgFileName);
+    Target(const TargetItem &);
 
     /**
      * Copy constructor
@@ -91,21 +84,17 @@ public:
      */
     void stop()
     {
-        LOG4CPLUS_INFO(logger, "Stopping " << tgtName << " target handling");
+        LOG4CPLUS_INFO(logger, "Stopping " << tgtItem.name << " target handling");
         keepRunning = false;
     }
 
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("Target");
-    std::string tgtName, serverHost, clientCert, clientKey, msgFileName;
-    unsigned int serverPort = 0;
-    unsigned int clientPort = 0;
+    TargetItem tgtItem;
     std::shared_ptr<Wrapper> wrapper;
     int timeout = 5;
-
     std::atomic_bool keepRunning = true;
-
-    std::ofstream msgFile;
+    std::ofstream recordFileStream;
 
     enum MSGOWNER
     {

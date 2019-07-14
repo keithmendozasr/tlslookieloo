@@ -74,13 +74,17 @@ const vector<TargetItem> parseTargetsFile(const string &file)
         if(!item["clientkey"])
             throw YAML::Exception(item.Mark(), "clientkey field missing");
 
+        if(!item["recordfile"])
+            throw YAML::Exception(item.Mark(), "recordfile field missing");
+
         retVal.push_back({
             item["name"].as<string>(),
             item["serverhost"].as<string>(),
-            item["serverport"].as<int>(),
-            item["clientport"].as<int>(),
+            item["serverport"].as<unsigned int>(),
+            item["clientport"].as<unsigned int>(),
             item["clientcert"].as<string>(),
-            item["clientkey"].as<string>()
+            item["clientkey"].as<string>(),
+            item["recordfile"].as<string>()
         });
     }
 

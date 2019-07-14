@@ -39,22 +39,24 @@ TEST(parseTargetsFile, goodFile) // NOLINT
 
     {
         auto item = retVal[0];
-        EXPECT_EQ(get<0>(item), "App1");
-        EXPECT_EQ(get<1>(item), "server");
-        EXPECT_EQ(get<2>(item), 8908u);
-        EXPECT_EQ(get<3>(item), 9988u);
-        EXPECT_EQ(get<4>(item), "test_certs/cert.pem");
-        EXPECT_EQ(get<5>(item), "test_certs/key.pem");
+        EXPECT_EQ(item.name, "App1");
+        EXPECT_EQ(item.serverHost, "server");
+        EXPECT_EQ(item.serverPort, 8908u);
+        EXPECT_EQ(item.clientPort, 9988u);
+        EXPECT_EQ(item.clientCert, "test_certs/cert.pem");
+        EXPECT_EQ(item.clientKey, "test_certs/key.pem");
+        EXPECT_EQ(item.recordFile, "app1.msgs");
     }
 
     {
         auto item = retVal[1];
-        EXPECT_EQ(get<0>(item), "App2");
-        EXPECT_EQ(get<1>(item), "servertwo");
-        EXPECT_EQ(get<2>(item), 9087u);
-        EXPECT_EQ(get<3>(item), 8899u);
-        EXPECT_EQ(get<4>(item), "test_certs/certapp2.pem");
-        EXPECT_EQ(get<5>(item), "test_certs/keyapp2.pem");
+        EXPECT_EQ(item.name, "App2");
+        EXPECT_EQ(item.serverHost, "servertwo");
+        EXPECT_EQ(item.serverPort, 9087u);
+        EXPECT_EQ(item.clientPort, 8899u);
+        EXPECT_EQ(item.clientCert, "test_certs/certapp2.pem");
+        EXPECT_EQ(item.clientKey, "test_certs/keyapp2.pem");
+        EXPECT_EQ(item.recordFile, "app2.msgs");
     }
 }
 
@@ -152,6 +154,23 @@ TEST(parseTargetsFile, missingserverhost) // NOLINT
     catch(YAML::Exception &e)
     {
         ASSERT_THAT(e.what(), MatchesRegex(".*serverhost field missing$"));
+    }
+    catch(...)
+    {
+        FAIL() << "Incorrect exception";
+    }
+}
+
+TEST(parseTargetsFile, missingrecordfile) // NOLINT
+{
+    try
+    {
+        parseTargetsFile(tgtFilesPath + "/missingrecordfile.yaml");
+        FAIL() << "Exception not thrown";
+    }
+    catch(YAML::Exception &e)
+    {
+        ASSERT_THAT(e.what(), MatchesRegex(".*recordfile field missing$"));
     }
     catch(...)
     {

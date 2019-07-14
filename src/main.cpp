@@ -131,17 +131,12 @@ static void start(const string &targets)
         for(auto item : parseTargetsFile(targets))
         {
             // NOLINTNEXTLINE
-            string name, serverHost, clientCert, clientKey;
-            unsigned int serverPort, clientPort;
-            tie(name, serverHost, serverPort, clientPort, clientCert, clientKey) =
-                item;
-            LOG4CPLUS_INFO(logger, "Starting " << name << " bridge");
+            LOG4CPLUS_INFO(logger, "Starting " << item.name << " bridge");
             targetThreads.emplace_back();
             auto &t = targetThreads.back();
 
             // TODO: Fix message file name
-            t.target = Target(name, serverHost, serverPort, clientPort, clientCert,
-                clientKey, name + ".msgs");
+            t.target = Target(item);
             t.runner = std::thread([](Target &tgt)
                 {
                     tgt.start();
@@ -155,6 +150,8 @@ static void start(const string &targets)
         LOG4CPLUS_ERROR(logger, "Failed to parse targets file, cause: " <<
             e.what() << ". Exiting");
     }
+
+    // TODO: Handle system_error that std::thread() may throw
 }
 
 int main(int argc, char *argv[])

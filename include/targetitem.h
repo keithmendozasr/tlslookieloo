@@ -17,19 +17,19 @@
 #pragma once
 
 #include <string>
-#include <vector>
-#include <tuple>
-
-#include "targetitem.h"
 
 namespace tlslookieloo
 {
 
-/**
- * Parse the targets file
- * \arg file Targets file path
- * \exception YAML::Exception
- */
-const std::vector<TargetItem> parseTargetsFile(const std::string &file);
+typedef struct _TargetItem
+{
+    std::string name;         // name
+    std::string serverHost;   // server-side host
+    unsigned int serverPort;  // server-side port
+    unsigned int clientPort;  // client-side listen port
+    std::string clientCert;   // client-side server cert
+    std::string clientKey;    // client-side server key
+    std::string recordFile;   // Filename to save recorded messages
+} TargetItem;
 
-} //namespace tlslookieloo
+} //namespace

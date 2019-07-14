@@ -4,3 +4,4 @@
   serverport: 8908
   clientport: 9988
   clientcert: "test_certs/cert.pem"
+  recordfile: "app1.msgs"
