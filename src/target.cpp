@@ -18,6 +18,8 @@
 #include <vector>
 #include <cstring>
 #include <iomanip>
+#include <ctime>
+#include <mutex>
 
 #include "log4cplus/loggingmacros.h"
 #include "log4cplus/ndc.h"
@@ -133,7 +135,7 @@ bool Target::messageRelay(SocketInfo &src, SocketInfo &dest, const MSGOWNER owne
             else
             {
                 // NOLINTNEXTLINE
-                LOG4CPLUS_INFO(logger, "No more data to relay");
+                LOG4CPLUS_DEBUG(logger, "No more data to relay");
                 keepReading = false;
             }
             break;
@@ -315,7 +317,20 @@ void Target::storeMessage(const char * data, const size_t &len,
     if(data == nullptr)
         throw logic_error("data is nullptr");
 
-    ostringstream cleandata("===BEGIN ", ios_base::ate);
+    struct std::tm tmObj;
+    time_t cTime;
+    {
+        lock_guard<mutex> lk(tmGuard);
+        cTime = time(nullptr);
+        memcpy(&tmObj, gmtime(&cTime), sizeof(struct tm));
+    }
+
+    // YYYY-mm-dd 00:00:00
+    const size_t tmBufSize = 20;
+    char tmBuf[tmBufSize];
+    strftime(&tmBuf[0], tmBufSize, "%F %T", &tmObj);
+    ostringstream cleandata("===", ios_base::ate);
+    cleandata << tmBuf << " BEGIN ";
     switch(owner)
     {
     case MSGOWNER::CLIENT:
@@ -331,11 +346,12 @@ void Target::storeMessage(const char * data, const size_t &len,
 
     for(size_t i=0; i<len; i++)
     {
-        if(isprint(static_cast<unsigned char>(data[i])))
-            cleandata << data[i];
+        auto c = static_cast<unsigned char>(data[i]);
+        if(isprint(c) || isspace(c))
+            cleandata << c;
         else
             cleandata << "<" << std::setw(2) << std::setfill('0') << std::hex
-                << static_cast<unsigned int>(data[i]) << ">";
+                << static_cast<unsigned int>(c) << ">";
     }
     cleandata << "\n===END===\n";
 

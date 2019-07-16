@@ -20,6 +20,7 @@
 #include <atomic>
 #include <fstream>
 #include <vector>
+#include <mutex>
 
 #include "log4cplus/logger.h"
 #include "log4cplus/loggingmacros.h"
@@ -95,6 +96,7 @@ private:
     int timeout = 5;
     std::atomic_bool keepRunning = true;
     std::ofstream recordFileStream;
+    std::mutex tmGuard;
 
     enum MSGOWNER
     {
