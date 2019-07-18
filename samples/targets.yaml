@@ -1,8 +1,7 @@
--
-  name: "App1"
-  client: 9988
-  server: 192.168.56.6:443
--
-  name: "App2"
-  client: 9980
-  server: 192.168.56.6:2020
+- name: "App1"
+  clientport: 9988
+  clientcert: app1.crt
+  clientkey: app1.key
+  serverhost: www.example.com
+  serverport: 443
+  recordfile: app1.msgs
