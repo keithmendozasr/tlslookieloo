@@ -84,6 +84,42 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
     return 0;
 }
 
+bool waitSocketReadable(const int sockFd)
+{
+    auto logger = Logger::getRoot();
+    bool retVal = false;
+
+    fd_set readFd;
+    FD_ZERO(&readFd);
+    FD_SET(sockFd, &readFd); // NOLINT
+
+    auto maxSocket = sockFd + 1;
+
+    LOG4CPLUS_TRACE(logger, "Wait for one side to be ready"); // NOLINT
+    auto rslt = select(maxSocket+1, &readFd, nullptr, nullptr, nullptr);
+    LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt); // NOLINT
+    if(rslt <= 0)
+    {
+        auto err = errno;
+        LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
+            << strerror(err));
+        if(err != 0 && err != EINTR)
+        {
+            throw system_error(err, std::generic_category(),
+                "Error waiting for socket to be ready for reading.");
+        }
+        else
+            LOG4CPLUS_DEBUG(logger, "Caught signal"); // NOLINT
+    }
+    else if(FD_ISSET(sockFd, &readFd)) // NOLINT
+    {
+        LOG4CPLUS_DEBUG(logger, "Client ready for reading"); // NOLINT
+        retVal = true;
+    }
+
+    return retVal;
+}
+
 int main(int argc, char *argv[])
 {
     Initializer initializer;
@@ -129,19 +165,27 @@ int main(int argc, char *argv[])
 
         LOG4CPLUS_INFO(logger, "Send data to server"); // NOLINT
         const char msg[] = "GET / HTTP/1.1\r\nHost: www.example.com\r\n\r\n";
-        s.writeData(&msg[0], sizeof(msg));
-
-        size_t msgSize = 1024;
-        unique_ptr<char[]> buf(new char[msgSize]);
-        auto readLen = s.readData(buf.get(), msgSize);
-        while(readLen == SocketInfo::OP_STATUS::SUCCESS)
+        if(s.writeData(&msg[0], sizeof(msg)) == SocketInfo::OP_STATUS::SUCCESS)
         {
-            // NOLINTNEXTLINE
-            LOG4CPLUS_INFO(logger, "Data read: " << string(buf.get(), msgSize));
-            readLen = s.readData(buf.get(), msgSize);
-        }
+            SocketInfo::OP_STATUS readLen;
+            do
+            {
+                size_t msgSize = 1024;
+                unique_ptr<char[]> buf(new char[msgSize]);
+                if(waitSocketReadable(s.getSocket()))
+                {
+                    readLen = s.readData(buf.get(), msgSize);
+                    if(readLen == SocketInfo::OP_STATUS::SUCCESS)
+                        LOG4CPLUS_INFO(logger, "Data read: " << string(buf.get(), msgSize) << "Length: " << msgSize);
+                }
+                else // Break on signal
+                    break;
+            }while(readLen == SocketInfo::OP_STATUS::SUCCESS);
 
-        LOG4CPLUS_INFO(logger, "No more data"); // NOLINT
+            LOG4CPLUS_INFO(logger, "No more data"); // NOLINT
+        }
+        else
+            LOG4CPLUS_ERROR(logger, "Failed to send data to server");
     }
     else
     {

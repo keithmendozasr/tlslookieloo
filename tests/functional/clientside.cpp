@@ -17,6 +17,8 @@
 #include <unistd.h>
 #include <signal.h>
 #include <argp.h>
+#include <cstring>
+#include <cerrno>
 
 #include <log4cplus/initializer.h>
 #include <log4cplus/logger.h>
@@ -84,6 +86,42 @@ void sigHandler(int sig)
 	Logger logger = Logger::getRoot();
 	LOG4CPLUS_INFO(logger, "Stopping program"); // NOLINT
 	keepRunning = false;
+}
+
+bool waitSocketReadable(const int sockFd)
+{
+    auto logger = Logger::getRoot();
+    bool retVal = false;
+
+    fd_set readFd;
+    FD_ZERO(&readFd);
+    FD_SET(sockFd, &readFd); // NOLINT
+
+    auto maxSocket = sockFd + 1;
+
+    LOG4CPLUS_TRACE(logger, "Wait for one side to be ready"); // NOLINT
+    auto rslt = select(maxSocket+1, &readFd, nullptr, nullptr, nullptr);
+    LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt); // NOLINT
+    if(rslt <= 0)
+    {
+        auto err = errno;
+        LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
+            << strerror(err));
+        if(err != 0 && err != EINTR)
+        {
+            throw system_error(err, std::generic_category(),
+                "Error waiting for socket to be ready for reading.");
+        }
+        else
+            LOG4CPLUS_DEBUG(logger, "Caught signal"); // NOLINT
+    }
+    else if(FD_ISSET(sockFd, &readFd)) // NOLINT
+    {
+        LOG4CPLUS_DEBUG(logger, "Client ready for reading"); // NOLINT
+        retVal = true;
+    }
+
+    return retVal;
 }
 
 int main(int argc, char *argv[])
@@ -159,20 +197,25 @@ int main(int argc, char *argv[])
 
             while(1)
             {
-                size_t bufSize = 1024;
-                unique_ptr<char[]> buf(new char[bufSize]);
-                auto readLen = client.readData(&buf[0], bufSize);
-                if(readLen == SocketInfo::OP_STATUS::SUCCESS)
+                if(waitSocketReadable(client.getSocket()))
                 {
-                    if(bufSize > 0)
+                    size_t bufSize = 1024;
+                    unique_ptr<char[]> buf(new char[bufSize]);
+                    auto readLen = client.readData(&buf[0], bufSize);
+                    if(readLen == SocketInfo::OP_STATUS::SUCCESS)
                     {
-                        LOG4CPLUS_INFO(logger, "Data from server: " << // NOLINT
-                            string(buf.get(), bufSize));
-                        client.writeData("Bye", 4);
+                        if(bufSize > 0)
+                        {
+                            LOG4CPLUS_INFO(logger, "Data from server: " << // NOLINT
+                                string(buf.get(), bufSize));
+                            client.writeData("Bye", 4);
+                        }
+                        else
+                            // NOLINTNEXTLINE
+                            LOG4CPLUS_INFO(logger, "No data received from remote end");
                     }
                     else
-                        // NOLINTNEXTLINE
-                        LOG4CPLUS_INFO(logger, "No data received from remote end");
+                        break;
                 }
                 else
                     break;
