@@ -48,6 +48,7 @@ public:
      * Constructor
      */
     SocketInfo(std::shared_ptr<Wrapper> wrapper);
+
     /**
      * Copy constructor
      */
@@ -186,13 +187,7 @@ protected:
      */
     inline void setSocket(const int &fd)
     {
-        if(!sockfd)
-        {
-            LOG4CPLUS_TRACE(logger, "Allocating sockfd"); // NOLINT
-            sockfd = std::shared_ptr<int>(new int, SockfdDeleter());
-        }
-
-        *sockfd = fd;
+        sockfd = std::shared_ptr<int>(new int(fd), SockfdDeleter());
     }
 
     /**
@@ -305,7 +300,7 @@ private:
 
     unsigned int timeout = 5;
 
-    std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)> sslCtx;
+    std::shared_ptr<SSL_CTX> sslCtx;
 
     struct SSLDeleter {
         void operator()(SSL * ptr)

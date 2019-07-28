@@ -108,7 +108,7 @@ optional<ClientSide> ClientSide::acceptClient()
     else
         LOG4CPLUS_TRACE(logger, "New FD non-blocking set"); // NOLINT
 
-    ClientSide c(wrapper);
+    ClientSide c(*this);
     c.setSocket(fd);
     // NOLINTNEXTLINE
     c.saveSocketIP(reinterpret_cast<struct sockaddr_storage *>(&addr));

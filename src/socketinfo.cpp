@@ -32,8 +32,7 @@ namespace tlslookieloo
 {
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 SocketInfo::SocketInfo(shared_ptr<Wrapper> wrapper) :
-    wrapper(wrapper),
-    sslCtx(nullptr, &SSL_CTX_free)
+    wrapper(wrapper)
 {}
 
 SocketInfo::SocketInfo(const SocketInfo &rhs) :
@@ -43,7 +42,7 @@ SocketInfo::SocketInfo(const SocketInfo &rhs) :
     sockAddr(rhs.sockAddr),
     nextServ(rhs.nextServ),
     timeout(rhs.timeout),
-    sslCtx(nullptr, &SSL_CTX_free),
+    sslCtx(rhs.sslCtx),
     sslObj(rhs.sslObj)
 {
     wrapper = rhs.wrapper;
@@ -57,7 +56,7 @@ SocketInfo::SocketInfo(SocketInfo &&rhs) :
     sockAddr(std::move(rhs.sockAddr)),
     nextServ(std::move(rhs.nextServ)),
     timeout(std::move(rhs.timeout)),
-    sslCtx(nullptr, &SSL_CTX_free),
+    sslCtx(std::move(rhs.sslCtx)),
     sslObj(std::move(rhs.sslObj))
 {}
 
@@ -71,6 +70,7 @@ SocketInfo &SocketInfo::operator =(const SocketInfo &rhs)
     nextServ = rhs.nextServ;
     timeout = rhs.timeout;
     sslObj = rhs.sslObj;
+    sslCtx = rhs.sslCtx;
     
     return *this;
 }
@@ -85,6 +85,7 @@ SocketInfo &SocketInfo::operator =(SocketInfo &&rhs)
     nextServ = std::move(rhs.nextServ);
     timeout = std::move(rhs.timeout);
     sslObj = std::move(rhs.sslObj);
+    sslCtx = std::move(rhs.sslCtx);
 
     return *this;
 }
@@ -420,7 +421,7 @@ void SocketInfo::newSSLCtx()
 {
     // Allow old SSL protocol; because we don't control what protocol the
     //  system under test supports
-    sslCtx = unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>(
+    sslCtx = shared_ptr<SSL_CTX>(
         SSL_CTX_new(TLS_method()), &SSL_CTX_free);
     if(!sslCtx)
     {

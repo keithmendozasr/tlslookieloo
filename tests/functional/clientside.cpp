@@ -176,6 +176,8 @@ int main(int argc, char *argv[])
     {
         ClientSide c;
         c.startListener(stoi(argState.args[0]), 2);
+        c.initializeSSLContext(argState.args[1], argState.args[2]);
+
         // NOLINTNEXTLINE
         LOG4CPLUS_INFO(logger, "Listening on " << argState.args[0]);
 
@@ -193,35 +195,38 @@ int main(int argc, char *argv[])
             // NOLINTNEXTLINE
             LOG4CPLUS_INFO(logger, "Got client " << client.getSocketIP() << " with FD: "
                 << client.getSocket());
-            client.startSSL(argState.args[1], argState.args[2]);
-
-            while(1)
+            if(client.sslHandshake())
             {
-                if(waitSocketReadable(client.getSocket()))
+                while(1)
                 {
-                    size_t bufSize = 1024;
-                    unique_ptr<char[]> buf(new char[bufSize]);
-                    auto readLen = client.readData(&buf[0], bufSize);
-                    if(readLen == SocketInfo::OP_STATUS::SUCCESS)
+                    if(waitSocketReadable(client.getSocket()))
                     {
-                        if(bufSize > 0)
+                        size_t bufSize = 1024;
+                        unique_ptr<char[]> buf(new char[bufSize]);
+                        auto readLen = client.readData(&buf[0], bufSize);
+                        if(readLen == SocketInfo::OP_STATUS::SUCCESS)
                         {
-                            LOG4CPLUS_INFO(logger, "Data from server: " << // NOLINT
-                                string(buf.get(), bufSize));
-                            client.writeData("Bye", 4);
+                            if(bufSize > 0)
+                            {
+                                LOG4CPLUS_INFO(logger, "Data from server: " << // NOLINT
+                                    string(buf.get(), bufSize));
+                                client.writeData("Bye", 4);
+                            }
+                            else
+                                // NOLINTNEXTLINE
+                                LOG4CPLUS_INFO(logger, "No data received from remote end");
                         }
                         else
-                            // NOLINTNEXTLINE
-                            LOG4CPLUS_INFO(logger, "No data received from remote end");
+                            break;
                     }
                     else
                         break;
                 }
-                else
-                    break;
-            }
 
-            LOG4CPLUS_INFO(logger, "Client went away"); // NOLINT
+                LOG4CPLUS_INFO(logger, "Client went away"); // NOLINT
+            }
+            else
+                LOG4CPLUS_ERROR(logger, "SSL handshake failed");
         }
     }
     catch(const system_error &e)

@@ -90,28 +90,15 @@ public:
      * \arg privKeyFile Path to the separate private key file if not
      *  in certFile
      */
-    const bool startSSL(const std::string &certFile, const std::string &privKeyFile)
-    {
-        initializeSSLContext(certFile, privKeyFile);
-        return sslHandshake();
-    }
-
-private:
-    log4cplus::Logger logger = log4cplus::Logger::getInstance("ClientSide");
-
-    /**
-     * Create the SSL context for this instance
-     *
-     * \arg certFile Path to the certificate file
-     * \arg privKeyFile Path to the separate private key file if not
-     *  in certFile
-     */
     void initializeSSLContext(const std::string &certFile, const std::string &privKeyFile);
 
     /**
      * Go through the SSL handshake
      */
     const bool sslHandshake();
+
+private:
+    log4cplus::Logger logger = log4cplus::Logger::getInstance("ClientSide");
 
     /**
      * Wait for socket to be readable

@@ -72,6 +72,8 @@ void Target::start()
 
     ClientSide clientListener(wrapper);
     clientListener.startListener(tgtItem.clientPort, 2);
+    clientListener.initializeSSLContext(tgtItem.clientCert, tgtItem.clientKey);
+
     // NOLINTNEXTLINE
     LOG4CPLUS_INFO(logger, "Listening on " << tgtItem.clientPort);
 
@@ -163,7 +165,7 @@ void Target::handleClient(ClientSide client)
     LOG4CPLUS_INFO(logger, "Start monitoring");
     client.setTimeout(timeout);
 
-    if(!client.startSSL(tgtItem.clientCert, tgtItem.clientKey))
+    if(!client.sslHandshake())
     {
         LOG4CPLUS_INFO(logger, "SSL handshake failed");
         return;
