@@ -195,4 +195,58 @@ TEST(parseTargetsFile, nonsequence) // NOLINT
     }
 }
 
+TEST(parseTargetsFile, noclientauth)
+{
+    EXPECT_NO_THROW({
+        auto retVal = parseTargetsFile(tgtFilesPath + "/good_targets.yaml");
+        auto item = retVal[0];
+        EXPECT_FALSE(item.clientAuthCert);
+        EXPECT_FALSE(item.clientAuthKey);
+    });
+}
+
+TEST(parseTargetsFile, goodclientauth)
+{
+    EXPECT_NO_THROW({
+        auto retVal = parseTargetsFile(tgtFilesPath + "/clientauth.yaml");
+        auto item = retVal[0];
+        EXPECT_EQ(item.clientAuthCert.value(), "testclientauth.pem");
+        EXPECT_EQ(item.clientAuthKey.value(), "testclientauthkey.pem");
+    });
+}
+
+TEST(parseTargetsFile, missingclientauthcert) // NOLINT
+{
+    try
+    {
+        parseTargetsFile(tgtFilesPath + "/clientauth_nocert.yaml");
+        FAIL() << "Exception not thrown";
+    }
+    catch(YAML::Exception &e)
+    {
+        ASSERT_THAT(e.what(), MatchesRegex(".*clientauthcert field missing$"));
+    }
+    catch(...)
+    {
+        FAIL() << "Incorrect exception";
+    }
+}
+
+TEST(parseTargetsFile, missingclientauthkey) // NOLINT
+{
+    try
+    {
+        parseTargetsFile(tgtFilesPath + "/clientauth_nokey.yaml");
+        FAIL() << "Exception not thrown";
+    }
+    catch(YAML::Exception &e)
+    {
+        ASSERT_THAT(e.what(), MatchesRegex(".*clientauthkey field missing$"));
+    }
+    catch(...)
+    {
+        FAIL() << "Incorrect exception";
+    }
+}
+
 } //namespace tlslookieloo

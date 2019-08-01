@@ -43,21 +43,25 @@ public:
      * Copy constructor
      */
     ClientSide(const ClientSide &rhs) :
-        SocketInfo(rhs)
+        SocketInfo(rhs),
+        refClientPubKey(rhs.refClientPubKey)
     {}
 
     ClientSide(ClientSide &&rhs) :
-        SocketInfo(rhs)
+        SocketInfo(std::move(rhs)),
+        refClientPubKey(std::move(rhs.refClientPubKey))
     {}
 
     ClientSide &operator =(ClientSide const &rhs)
     {
+        refClientPubKey = rhs.refClientPubKey;
         SocketInfo::operator =(rhs);
         return *this;
     }
 
     ClientSide &operator =(ClientSide &&rhs)
     {
+        refClientPubKey = std::move(rhs.refClientPubKey);
         SocketInfo::operator =(std::move(rhs));
         return *this;
     }
@@ -97,8 +101,22 @@ public:
      */
     const bool sslHandshake();
 
+    /**
+     * Load the public key to expect from the client
+     *
+     * If the received client cert doesn't match the reference public key
+     * certificate the handshake should be considered failed.
+     *
+     * \param certFile Reference client certificate file
+     * \param caFile Client CA file
+     */
+    void loadRefClientCertPubkey(const std::string &certFile,
+        const std::string &caFile);
+
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("ClientSide");
+    std::shared_ptr<EVP_PKEY> refClientPubKey;
+    static int exDataIndex;
 
     /**
      * Wait for socket to be readable
@@ -106,8 +124,33 @@ private:
      */
     void waitSocketReadable();
 
+    typedef std::unique_ptr<X509, decltype(&X509_free)> X509Mem;
+
+    /**
+     * Read a certificate file
+     *
+     * \param fileName File name of certificate file
+     * \return unique_ptr<X509> of the read certificate
+     */
+    X509Mem loadCertFile(const std::string &fileName);
+
+    /**
+     * Client certificate verify callback. If an expected client certificate is
+     * set, verify that the peer certificate sent by the remote client contains
+     * the expected public key. This largely ignores the certificate
+     * verification results.
+     *
+     * \return 1 if the remote client sent the expected peer public key; or for
+     * other certificates in the chain. Returns 0 otherwise.
+     */
+    static int verifyCB(int preverifyOk, X509_STORE_CTX *x509Ctx);
+
     FRIEND_TEST(ClientSideTest, waitSocketReadableGood);
     FRIEND_TEST(ClientSideTest, waitSocketReadableError);
+    FRIEND_TEST(ClientSideTest, loadCertFileGood);
+    FRIEND_TEST(ClientSideTest, loadCertFileOpenFailed);
+    FRIEND_TEST(ClientSideTest, loadCertFileWrongFormat);
+    FRIEND_TEST(ClientSideTest, loadRefClientCertPubkey);
 };
 
 } //namespace tlslookieloo

@@ -43,7 +43,7 @@ using namespace log4cplus;
 struct ArgState // NOLINT
 {
     optional<string> logconfig;
-    char *args[2];
+    vector<string> args;
     Logger logger;
 };
 
@@ -62,12 +62,12 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
         argState->logconfig = arg;
         break;
     case ARGP_KEY_ARG:
-        if(state->arg_num >= 2)
+        if(state->arg_num >= 4)
             // Too many
             argp_usage(state);
         
         // Save the argument
-        argState->args[state->arg_num] = arg; // NOLINT
+        argState->args.push_back(string(arg)); // NOLINT
         break;
     case ARGP_KEY_END:
         if(state->arg_num < 2)
@@ -76,7 +76,6 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
 
         // Got enough arguments
         break;
-            
     default:
         return ARGP_ERR_UNKNOWN;
     }
@@ -134,7 +133,7 @@ int main(int argc, char *argv[])
         { "logconfig",  'l', "logcfgfile",  0, "Logging configuration file" },
         { 0 } 
     };
-    const string argsDoc = "port host";
+    const string argsDoc = "port host [clientCert clientKey]";
     const string progDoc = "Test ServerSide class";
     struct argp argp = {
         &options[0],
@@ -156,8 +155,31 @@ int main(int argc, char *argv[])
         PropertyConfigurator::doConfigure(argState.logconfig.value());
     }
 
+    ServerSide::ClientCertInfo clientCert;
+    switch(argState.args.size())
+    {
+    case 3:
+        LOG4CPLUS_INFO(logger, "Set client certificate");
+        clientCert = make_tuple(argState.args[2], argState.args[2]);
+        break;
+    case 4:
+        LOG4CPLUS_INFO(logger, "Set client certificate");
+        clientCert = make_tuple(argState.args[2], argState.args[3]);
+        break;
+    default:
+        break;
+    }
+    if(clientCert)
+    {
+        auto data = clientCert.value();
+        LOG4CPLUS_TRACE(logger, "Public key file: " << get<0>(data));
+        LOG4CPLUS_TRACE(logger, "Private key file: " << get<1>(data));
+    }
+    else
+        LOG4CPLUS_TRACE(logger, "Client-side cert not set");
+
     ServerSide s;
-    if(s.connect(stoi(argState.args[0]), argState.args[1]))
+    if(s.connect(stoi(argState.args[0]), argState.args[1], clientCert))
     {
         // NOLINTNEXTLINE
         LOG4CPLUS_INFO(logger, "Connected to " << argState.args[1] << ":" <<

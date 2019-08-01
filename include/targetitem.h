@@ -17,6 +17,7 @@
 #pragma once
 
 #include <string>
+#include <optional>
 
 namespace tlslookieloo
 {
@@ -30,6 +31,9 @@ typedef struct _TargetItem
     std::string clientCert;   // client-side server cert
     std::string clientKey;    // client-side server key
     std::string recordFile;   // Filename to save recorded messages
+
+    std::optional<std::string> clientAuthCert;
+    std::optional<std::string> clientAuthKey;
 } TargetItem;
 
 } //namespace

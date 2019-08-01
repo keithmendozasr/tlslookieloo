@@ -77,6 +77,18 @@ const vector<TargetItem> parseTargetsFile(const string &file)
         if(!item["recordfile"])
             throw YAML::Exception(item.Mark(), "recordfile field missing");
 
+        optional<string> clientAuthCert, clientAuthKey;
+
+        if(item["clientauthcert"] && item["clientauthkey"])
+        {
+            clientAuthCert = item["clientauthcert"].as<string>();
+            clientAuthKey = item["clientauthkey"].as<string>();
+        }
+        else if(item["clientauthcert"] && !item["clientauthkey"])
+            throw YAML::Exception(item.Mark(), "clientauthkey field missing");
+        else if(!item["clientauthcert"] && item["clientauthkey"])
+            throw YAML::Exception(item.Mark(), "clientauthcert field missing");
+
         retVal.push_back({
             item["name"].as<string>(),
             item["serverhost"].as<string>(),
@@ -84,7 +96,9 @@ const vector<TargetItem> parseTargetsFile(const string &file)
             item["clientport"].as<unsigned int>(),
             item["clientcert"].as<string>(),
             item["clientkey"].as<string>(),
-            item["recordfile"].as<string>()
+            item["recordfile"].as<string>(),
+            clientAuthCert,
+            clientAuthKey
         });
     }
 

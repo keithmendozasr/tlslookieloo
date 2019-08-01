@@ -38,8 +38,10 @@ using namespace log4cplus;
 struct ArgState // NOLINT
 {
     optional<string> logconfig;
-    char *args[3];
+    char *args[4];
     Logger logger;
+    bool withClientCert = false;
+    unsigned int expectArgs = 1;
 };
 
 /**
@@ -56,8 +58,12 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
     case 'l':
         argState->logconfig = arg;
         break;
+    case 'c':
+        argState->withClientCert = true;
+        argState->expectArgs = 3;
+        break;
     case ARGP_KEY_ARG:
-        if(state->arg_num >= 3)
+        if(state->arg_num > argState->expectArgs)
             // Too many
             argp_usage(state);
         
@@ -65,13 +71,12 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
         argState->args[state->arg_num] = arg; // NOLINT
         break;
     case ARGP_KEY_END:
-        if(state->arg_num < 3)
+        if(state->arg_num < argState->expectArgs)
             // Not enough arguments
             argp_usage(state);
 
         // Got enough arguments
         break;
-            
     default:
         return ARGP_ERR_UNKNOWN;
     }
@@ -152,9 +157,10 @@ int main(int argc, char *argv[])
 
     struct argp_option options[] = {
         { "logconfig",  'l', "logcfgfile",  0, "Logging configuration file" },
+        { "withclientcert", 'c', nullptr, 0, "Expect client certificate" },
         { 0 } 
     };
-    const string argsDoc = "port cert key";
+    const string argsDoc = "port cert key CA";
     const string progDoc = "Test ClientSide class";
     struct argp argp = { &options[0], parseArgs, argsDoc.c_str(), progDoc.c_str() };
 
@@ -175,8 +181,14 @@ int main(int argc, char *argv[])
     try
     {
         ClientSide c;
-        c.startListener(stoi(argState.args[0]), 2);
         c.initializeSSLContext(argState.args[1], argState.args[2]);
+        if(argState.withClientCert)
+        {
+            LOG4CPLUS_INFO(logger, "Enable expecting client cert");
+            c.loadRefClientCertPubkey(argState.args[1], argState.args[3]);
+        }
+
+        c.startListener(stoi(argState.args[0]), 2);
 
         // NOLINTNEXTLINE
         LOG4CPLUS_INFO(logger, "Listening on " << argState.args[0]);

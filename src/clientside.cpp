@@ -19,6 +19,7 @@
 #include <string>
 #include <cerrno>
 #include <utility>
+#include <cstdio>
 
 #include <sys/socket.h>
 #include <unistd.h>
@@ -61,8 +62,6 @@ void ClientSide::startListener(const unsigned int &port,
 
             if(listen(sockFd, backlog) == -1)
                 throwSystemError(errno, "Failed to listen");
-
-
         }
         else
         {
@@ -118,10 +117,14 @@ optional<ClientSide> ClientSide::acceptClient()
 
 void ClientSide::initializeSSLContext(const string &certFile, const string &privKeyFile)
 {
+    ERR_clear_error();
+
     newSSLCtx();
     auto ptr = getSSLCtxPtr();
-    LOG4CPLUS_TRACE(logger, "Loading separate certificate chain"); // NOLINT
-    if(SSL_CTX_use_certificate_chain_file(ptr, certFile.c_str()) == 0)
+
+    LOG4CPLUS_TRACE(logger, "Loading listener certificate file"); // NOLINT
+    if(SSL_CTX_use_certificate_file(ptr, certFile.c_str(),
+        SSL_FILETYPE_PEM) == 0)
     {
         const string msg = sslErrMsg(
             string("Failed to load certificate file ") + certFile +
@@ -155,6 +158,7 @@ const bool ClientSide::sslHandshake()
 
     newSSLObj();
     auto ptr = getSSLPtr();
+
     if(SSL_set_fd(ptr, getSocket()) == 0)
     {
         const string msg = sslErrMsg("Failed to set FD to SSL. Cause: ");
@@ -164,7 +168,7 @@ const bool ClientSide::sslHandshake()
     else
         LOG4CPLUS_TRACE(logger, "FD set to SSL instance: " << getSocket()); // NOLINT
 
-    bool shouldRetry = false;
+    bool shouldRetry = true;
     do
     {
         LOG4CPLUS_DEBUG(logger, "Start SSL accept"); // NOLINT
@@ -197,7 +201,76 @@ const bool ClientSide::sslHandshake()
         }
     } while(shouldRetry);
 
+    if(retVal && refClientPubKey)
+    {
+        LOG4CPLUS_DEBUG(logger, "Check for client cert");
+        unique_ptr<X509, decltype(&X509_free)> clientCert(
+            SSL_get_peer_certificate(ptr), &X509_free);
+        if(!clientCert)
+        {
+            LOG4CPLUS_WARN(logger, "Client didn't send a certificate");
+            retVal = false;
+        }
+        else
+        {
+            LOG4CPLUS_TRACE(logger, "Received client certificate");
+            unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> pubKey(
+                X509_get_pubkey(clientCert.get()), &EVP_PKEY_free);
+            retVal = EVP_PKEY_cmp(pubKey.get(), refClientPubKey.get()) == 1;
+            if(retVal)
+                LOG4CPLUS_DEBUG(logger, "Client certificate match");
+            else
+                LOG4CPLUS_DEBUG(logger, "Client certificate didn't match");
+        }
+    }
+    else
+        LOG4CPLUS_DEBUG(logger, "Not checking for client cert");
+
     return retVal;
+}
+
+void ClientSide::loadRefClientCertPubkey(const string &certFile,
+    const string &caFile)
+{
+    LOG4CPLUS_DEBUG(logger, "Load expected public key");
+
+    // No point setting this if context is not initialized
+    auto ptr = getSSLCtxPtr();
+    ERR_clear_error();
+
+    LOG4CPLUS_TRACE(logger, "Extract expected public key");
+    auto pubCert = loadCertFile(certFile);
+    refClientPubKey = shared_ptr<EVP_PKEY>(
+        X509_get_pubkey(pubCert.get()), &EVP_PKEY_free);
+    if(!refClientPubKey)
+    {
+        throw runtime_error(
+            sslErrMsg("Failed to extract expected client public key"));
+    }
+
+    LOG4CPLUS_TRACE(logger, "Set client cert verification callback");
+    SSL_CTX_set_verify(ptr, SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE,
+        &verifyCB);
+
+    exDataIndex = SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
+    if(exDataIndex == -1)
+    {
+        logSSLErrorStack();
+        throw runtime_error("Failed to get verify callback data index");
+    }
+        
+    LOG4CPLUS_TRACE(logger, "Value of exDataIndex: " << exDataIndex);
+    SSL_CTX_set_ex_data(ptr, exDataIndex, this);
+
+    LOG4CPLUS_TRACE(logger, "Load client CA");
+    auto caCert = loadCertFile(caFile);
+    if(!SSL_CTX_add_client_CA(ptr, caCert.get()))
+    {
+        logSSLErrorStack();
+        throw runtime_error("Failed to add client CA");
+    }
+
+    LOG4CPLUS_DEBUG(logger, "Expected client certificate loaded");
 }
 
 void ClientSide::waitSocketReadable()
@@ -219,5 +292,64 @@ void ClientSide::waitSocketReadable()
         throwSystemError(err, "Error encountered waiting for a client to connect");
     }
 }
+
+ClientSide::X509Mem ClientSide::loadCertFile(const string &fileName)
+{
+    LOG4CPLUS_TRACE(logger, "Open " << fileName);
+    unique_ptr<FILE, decltype(&fclose)> f(
+        fopen(fileName.c_str(), "rb"), &fclose);
+    if(!f)
+    {
+        auto msg = string("Failed to open cert file ") + fileName;
+        throwSystemError(errno, msg);
+    }
+
+    LOG4CPLUS_TRACE(logger, "Read " << fileName);
+    unique_ptr<X509, decltype(&X509_free)> pubCert(
+        PEM_read_X509(f.get(), nullptr, nullptr, nullptr), &X509_free);
+    if(!pubCert)
+    {
+        throw runtime_error(
+            sslErrMsg("Error encountered reading pubkey. Cause: "));
+    }
+
+    LOG4CPLUS_DEBUG(logger, "Certificate in " << fileName << " loaded");
+    return std::move(pubCert);
+}
+
+int ClientSide::verifyCB(int preverifyOk, X509_STORE_CTX *x509Ctx)
+{
+    auto logger = log4cplus::Logger::getInstance("ClientSide");
+    auto depth = X509_STORE_CTX_get_error_depth(x509Ctx);
+    LOG4CPLUS_TRACE(logger, "Value of depth: " << depth);
+    if(depth != 0)
+    {
+        LOG4CPLUS_DEBUG(logger, "Bypassing client cert verification");
+        return 1;
+    }
+
+    auto cert = X509_STORE_CTX_get_current_cert(x509Ctx);
+    if(cert == nullptr)
+    {
+        LOG4CPLUS_DEBUG(logger, "Error not caused by a certificate");
+        return preverifyOk;
+    }
+
+    LOG4CPLUS_DEBUG(logger, "Verify peer certificate's public key");
+    auto ssl = static_cast<SSL *>(X509_STORE_CTX_get_ex_data(x509Ctx,
+        SSL_get_ex_data_X509_STORE_CTX_idx()));
+    auto sslCtx = SSL_get_SSL_CTX(ssl);
+
+    auto obj = static_cast<ClientSide *>(SSL_CTX_get_ex_data(sslCtx,
+        exDataIndex));
+    if(obj == nullptr)
+        throw logic_error("ClientSide object not available in SSL CTX ex data");
+
+    auto rslt = EVP_PKEY_cmp(obj->refClientPubKey.get(), X509_get0_pubkey(cert));
+    LOG4CPLUS_TRACE(logger, "Compare result: " << rslt);
+    return (rslt == 1 ? 1 : 0);
+}
+
+int ClientSide::exDataIndex;
 
 } // namespace tlslookieloo

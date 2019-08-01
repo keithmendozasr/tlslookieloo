@@ -17,6 +17,8 @@
 #include <cstring>
 #include <stdexcept>
 #include <string>
+#include <optional>
+#include <tuple>
 
 #include <sys/socket.h>
 
@@ -30,7 +32,8 @@ using namespace std;
 namespace tlslookieloo
 {
 
-const bool ServerSide::connect(const unsigned int &port, const string &host)
+const bool ServerSide::connect(const unsigned int &port, const string &host,
+        ClientCertInfo clientCert)
 {
     bool retVal = true;
 
@@ -48,7 +51,7 @@ const bool ServerSide::connect(const unsigned int &port, const string &host)
         try
         {
             initializeSSLContext();
-            if(!sslHandshake(host))
+            if(!sslHandshake(host, clientCert))
             {
                 // NOLINTNEXTLINE
                 LOG4CPLUS_ERROR(logger, "SSL handshake with " << host << " failed");
@@ -192,7 +195,8 @@ void ServerSide::initializeSSLContext()
         LOG4CPLUS_TRACE(logger, "CA verify paths set"); // NOLINT
 }
 
-const bool ServerSide::sslHandshake(const std::string &host)
+const bool ServerSide::sslHandshake(const std::string &host,
+    ClientCertInfo clientCert)
 {
     bool retVal = true;
     newSSLObj();
@@ -215,6 +219,17 @@ const bool ServerSide::sslHandshake(const std::string &host)
     }
     else
         LOG4CPLUS_TRACE(logger, "Expected host set"); // NOLINT
+
+    if(clientCert)
+    {
+        LOG4CPLUS_DEBUG(logger, "Client cert files provided");
+        string clientPubKeyPath, clientPrivKeyPath;
+        tie(clientPubKeyPath, clientPrivKeyPath) = clientCert.value();
+        loadClientCertificate(clientPubKeyPath, clientPrivKeyPath);
+    }
+    else
+        LOG4CPLUS_TRACE(logger, "No client cert files provided");
+
 
     bool shouldRetry = false;
     do
@@ -243,11 +258,12 @@ const bool ServerSide::sslHandshake(const std::string &host)
     if(retVal)
     {
         LOG4CPLUS_TRACE(logger, "Process peer validation"); // NOLINT
-        auto certPtr = SSL_get_peer_certificate(ptr);
-        LOG4CPLUS_TRACE(logger, "Value of certPtr: " << certPtr); // NOLINT
-        if(certPtr != nullptr)
+        unique_ptr<X509, decltype(&X509_free)>certPtr(
+            SSL_get_peer_certificate(ptr),
+            &X509_free
+        );
+        if(certPtr)
         {
-            X509_free(certPtr);
             auto peerVal = SSL_get_verify_result(ptr);
             LOG4CPLUS_TRACE(logger, "Value of peerVal: " << peerVal); // NOLINT
             if(peerVal != X509_V_OK)
@@ -299,6 +315,39 @@ const bool ServerSide::socketReady()
     }
 
     return retVal;
+}
+
+void ServerSide::loadClientCertificate(const string &clientCertFile,
+    const string &clientPrivKeyFile)
+{
+    auto ptr = getSSLPtr();
+    LOG4CPLUS_TRACE(logger, "Public key file: " << clientCertFile);
+    if(SSL_use_certificate_file(ptr, clientCertFile.c_str(),
+        SSL_FILETYPE_PEM) == 0)
+    {
+        const string msg = sslErrMsg(
+            string("Failed to load certificate file ") + clientCertFile +
+            ". Cause: "
+        );
+        LOG4CPLUS_ERROR(logger, msg); // NOLINT
+        throw runtime_error(msg);
+    }
+    else
+        LOG4CPLUS_TRACE(logger, "Certificate file loaded"); // NOLINT
+
+    LOG4CPLUS_TRACE(logger, "Private key file: " << clientPrivKeyFile);
+    if(SSL_use_PrivateKey_file(ptr, clientPrivKeyFile.c_str(),
+        SSL_FILETYPE_PEM) == 0)
+    {
+        const string msg = sslErrMsg(
+            string("Failed to load private key ") + clientPrivKeyFile +
+            ". Cause: "
+        );
+        LOG4CPLUS_ERROR(logger, msg); // NOLINT
+        throw runtime_error(msg);
+    }
+    else
+        LOG4CPLUS_TRACE(logger, "Private key file loaded"); // NOLINT
 }
 
 } // namespace tlslookieloo

@@ -68,6 +68,8 @@ public:
      */
     virtual ~ServerSide() {}
 
+    typedef std::optional<std::tuple<std::string, std::string>> ClientCertInfo;
+
     /**
      * \brief TLS connection to server side
      *
@@ -79,41 +81,52 @@ public:
      * \arg host Server host to connect to
      * \return true if the tls connection was successful. False otherwise
      **/
-    const bool connect(const unsigned int &port, const std::string &host);
+    const bool connect(const unsigned int &port, const std::string &host,
+        ClientCertInfo clientCert);
 
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("ServerSide");
 
     /**
      * Wait for connect() call to complete
-     */
+     **/
     bool waitForConnect();
 
     /**
      * Do TCP socket connection to remote end
      *
      * \seee ServerSide::connect() for parameter and return info
-     */
+     **/
     const bool sockConnect(const unsigned int &port, const std::string &host);
 
     /**
      * Create the socket context for this instance
-     */
+     **/
     void initializeSSLContext();
 
     /**
      * Go through the SSL handshake
      *
      * \param host Expected hostname to connect to
-     */
-    const bool sslHandshake(const std::string &host);
+     * \param clientCert tuple of client key files, if server expects client certs
+     **/
+    const bool sslHandshake(const std::string &host, ClientCertInfo clientCert);
 
     /**
      * Wait for socket to be writable
      * \throws system_error if an error occurred during the select() operation
      * \return true if socket is writable. False if it times out
-     */
+     **/
     const bool socketReady();
+
+    /**
+     * Load client-side certificate.
+     *
+     * \param clientCertFile Path to the client certificate public key file
+     * \param clientPrivateKeyFile Path to the client private key file
+     **/
+    void loadClientCertificate(const std::string &clientCertFile,
+        const std::string &clientPrivateKeyFile);
 
     FRIEND_TEST(ServerSideTest, socketReadyGood);
     FRIEND_TEST(ServerSideTest, socketReadyBadFd);

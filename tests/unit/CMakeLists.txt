@@ -34,7 +34,7 @@ target_link_libraries(unittests gtest gmock pthread
 
 add_test(parseTargetsFile unittests -t${CMAKE_SOURCE_DIR}/tests/unit/targets_files --gtest_filter=parseTargetsFile.*)
 add_test(SocketInfoTest unittests --gtest_filter=SocketInfoTest.*)
-add_test(ClientSideTest unittests --gtest_filter=ClientSideTest.*)
+add_test(ClientSideTest unittests --gtest_filter=ClientSideTest.* -c${CMAKE_SOURCE_DIR}/tests/unit/test_cert)
 add_test(ServerSideTest unittests --gtest_filter=ServerSideTest.*)
 
 #TODO: Fix with issue #2
