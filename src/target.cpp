@@ -73,6 +73,14 @@ void Target::start()
     ClientSide clientListener(wrapper);
     clientListener.startListener(tgtItem.clientPort, 2);
     clientListener.initializeSSLContext(tgtItem.clientCert, tgtItem.clientKey);
+    if(tgtItem.clientAuthCert)
+    {
+        LOG4CPLUS_DEBUG(logger, "Expecting SSL client authentication");
+        clientListener.loadRefClientCertPubkey(tgtItem.clientAuthCert.value(),
+            tgtItem.clientAuthCA.value());
+    }
+    else
+        LOG4CPLUS_TRACE(logger, "SSL client authentication not expected");
 
     // NOLINTNEXTLINE
     LOG4CPLUS_INFO(logger, "Listening on " << tgtItem.clientPort);
@@ -173,9 +181,19 @@ void Target::handleClient(ClientSide client)
     else
         LOG4CPLUS_DEBUG(logger, "Client-side handshake complete");
 
+    ServerSide::ClientCertInfo clientCertInfo = nullopt;
+    if(tgtItem.clientAuthCert && tgtItem.clientAuthKey)
+    {   
+        LOG4CPLUS_TRACE(logger, "Set client auth cert data");
+        clientCertInfo = make_tuple(tgtItem.clientAuthCert.value(),
+            tgtItem.clientAuthKey.value());
+    }
+    else
+        LOG4CPLUS_TRACE(logger, "Not setting client auth cert data");
+
     ServerSide server;
     server.setTimeout(timeout);
-    if(!server.connect(tgtItem.serverPort, tgtItem.serverHost))
+    if(!server.connect(tgtItem.serverPort, tgtItem.serverHost, clientCertInfo))
     {
         LOG4CPLUS_INFO(logger, "Failed to connect to server " <<
             tgtItem.serverHost << ":" << tgtItem.serverPort);

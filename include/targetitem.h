@@ -24,16 +24,22 @@ namespace tlslookieloo
 
 typedef struct _TargetItem
 {
-    std::string name;         // name
-    std::string serverHost;   // server-side host
-    unsigned int serverPort;  // server-side port
-    unsigned int clientPort;  // client-side listen port
-    std::string clientCert;   // client-side server cert
-    std::string clientKey;    // client-side server key
-    std::string recordFile;   // Filename to save recorded messages
+    std::string name;           ///< name
+    std::string serverHost;     ///< server-side host
+    unsigned int serverPort;    ///< server-side port
+    unsigned int clientPort;    ///< client-side listen port
+    std::string clientCert;     ///< client-side server cert
+    std::string clientKey;      ///< client-side server key
+    std::string recordFile;     ///< Filename to save recorded messages
 
+    //! Optional, path to client certificate
     std::optional<std::string> clientAuthCert;
+
+    //! Optional, path to client private certificate
     std::optional<std::string> clientAuthKey;
+
+    //! Optional, client CA file
+    std::optional<std::string> clientAuthCA;
 } TargetItem;
 
 } //namespace

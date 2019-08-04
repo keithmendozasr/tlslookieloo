@@ -205,17 +205,35 @@ TEST(parseTargetsFile, noclientauth)
     });
 }
 
-TEST(parseTargetsFile, goodclientauth)
+TEST(parseTargetsFile, clientauth_full)
 {
     EXPECT_NO_THROW({
         auto retVal = parseTargetsFile(tgtFilesPath + "/clientauth.yaml");
         auto item = retVal[0];
         EXPECT_EQ(item.clientAuthCert.value(), "testclientauth.pem");
         EXPECT_EQ(item.clientAuthKey.value(), "testclientauthkey.pem");
+        EXPECT_EQ(item.clientAuthCA.value(), "devca.pem");
     });
 }
 
-TEST(parseTargetsFile, missingclientauthcert) // NOLINT
+TEST(parseTargetsFile, clientauthnopriv) // NOLINT
+{
+    try
+    {
+        parseTargetsFile(tgtFilesPath + "/clientauth_nopriv.yaml");
+        FAIL() << "Exception not thrown";
+    }
+    catch(YAML::Exception &e)
+    {
+        ASSERT_THAT(e.what(), MatchesRegex(".*clientauthkey field missing$"));
+    }
+    catch(...)
+    {
+        FAIL() << "Incorrect exception";
+    }
+}
+
+TEST(parseTargetsFile, clientauthnocert) // NOLINT
 {
     try
     {
@@ -232,16 +250,16 @@ TEST(parseTargetsFile, missingclientauthcert) // NOLINT
     }
 }
 
-TEST(parseTargetsFile, missingclientauthkey) // NOLINT
+TEST(parseTargetsFile, clientauthnoca) // NOLINT
 {
     try
     {
-        parseTargetsFile(tgtFilesPath + "/clientauth_nokey.yaml");
+        parseTargetsFile(tgtFilesPath + "/clientauth_noca.yaml");
         FAIL() << "Exception not thrown";
     }
     catch(YAML::Exception &e)
     {
-        ASSERT_THAT(e.what(), MatchesRegex(".*clientauthkey field missing$"));
+        ASSERT_THAT(e.what(), MatchesRegex(".*clientauthca field missing$"));
     }
     catch(...)
     {

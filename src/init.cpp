@@ -50,10 +50,12 @@ const vector<TargetItem> parseTargetsFile(const string &file)
             LOG4CPLUS_DEBUG(logger, "target node"); // NOLINT
             LOG4CPLUS_DEBUG(logger, "name: " << // NOLINT
                 (item["name"] ? item["name"].as<string>() : "Not set"));
-            LOG4CPLUS_DEBUG(logger, "client: " << // NOLINT
-                (item["client"] ? item["client"].as<string>() : "Not set"));
+            LOG4CPLUS_DEBUG(logger, "client port: " << // NOLINT
+                (item["clientport"] ? item["clientport"].as<string>() : "Not set"));
             LOG4CPLUS_DEBUG(logger, "server: " << // NOLINT
-                (item["server"] ? item["server"].as<string>() : "Not set"));
+                (item["serverhost"] ? item["serverhost"].as<string>() : "") << ":" <<
+                (item["serverport"] ? item["serverport"].as<string>() : "")
+            );
         }
 
         if(!item["name"])
@@ -77,17 +79,34 @@ const vector<TargetItem> parseTargetsFile(const string &file)
         if(!item["recordfile"])
             throw YAML::Exception(item.Mark(), "recordfile field missing");
 
-        optional<string> clientAuthCert, clientAuthKey;
+        optional<string> clientAuthCert, clientAuthKey, clientAuthCA;
 
-        if(item["clientauthcert"] && item["clientauthkey"])
+        if(item["clientauthcert"] || item["clientauthkey"] || item["clientauthca"])
         {
-            clientAuthCert = item["clientauthcert"].as<string>();
-            clientAuthKey = item["clientauthkey"].as<string>();
+            if(!item["clientauthcert"])
+                throw YAML::Exception(item.Mark(), "clientauthcert field missing");
+            else
+            {
+                LOG4CPLUS_DEBUG(logger, "clientauthcert field provided");
+                clientAuthCert = item["clientauthcert"].as<string>();
+            }
+
+            if(!item["clientauthkey"])
+                throw YAML::Exception(item.Mark(), "clientauthkey field missing");
+            else
+            {
+                LOG4CPLUS_DEBUG(logger, "clientauthkey field provided");
+                clientAuthKey = item["clientauthkey"].as<string>();
+            }
+
+            if(!item["clientauthca"])
+                throw YAML::Exception(item.Mark(), "clientauthca field missing");
+            else
+            {
+                LOG4CPLUS_DEBUG(logger, "clientauthca field provided");
+                clientAuthCA = item["clientauthca"].as<string>();
+            }
         }
-        else if(item["clientauthcert"] && !item["clientauthkey"])
-            throw YAML::Exception(item.Mark(), "clientauthkey field missing");
-        else if(!item["clientauthcert"] && item["clientauthkey"])
-            throw YAML::Exception(item.Mark(), "clientauthcert field missing");
 
         retVal.push_back({
             item["name"].as<string>(),
@@ -98,7 +117,8 @@ const vector<TargetItem> parseTargetsFile(const string &file)
             item["clientkey"].as<string>(),
             item["recordfile"].as<string>(),
             clientAuthCert,
-            clientAuthKey
+            clientAuthKey,
+            clientAuthCA
         });
     }
 

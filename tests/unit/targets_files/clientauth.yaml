@@ -7,3 +7,4 @@
   recordfile: "app1.msgs"
   clientauthcert: "testclientauth.pem"
   clientauthkey: "testclientauthkey.pem"
+  clientauthca: "devca.pem"
