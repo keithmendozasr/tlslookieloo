@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     };
 
     struct argp argp = {
-        reinterpret_cast<struct argp_option *>(&options[0]), // NOLINT
+        reinterpret_cast<struct argp_option *>(&options[0]),
         parseArgs,
         "",
         "tlslookieloo unit tests" 

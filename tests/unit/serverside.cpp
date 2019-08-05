@@ -55,7 +55,7 @@ protected:
     }
 };
 
-TEST_F(ServerSideTest, socketReadyGood) // NOLINT
+TEST_F(ServerSideTest, socketReadyGood)
 {
     EXPECT_CALL(
         (*mock),
@@ -65,7 +65,7 @@ TEST_F(ServerSideTest, socketReadyGood) // NOLINT
     EXPECT_NO_THROW(EXPECT_TRUE(client.socketReady()));
 }
 
-TEST_F(ServerSideTest, socketReadyBadFd) // NOLINT
+TEST_F(ServerSideTest, socketReadyBadFd)
 {
     EXPECT_CALL(
         (*mock),
@@ -80,7 +80,7 @@ TEST_F(ServerSideTest, socketReadyBadFd) // NOLINT
     EXPECT_THROW(client.socketReady(), system_error);
 }
 
-TEST_F(ServerSideTest, socketReadyTimeout) // NOLINT
+TEST_F(ServerSideTest, socketReadyTimeout)
 {
     EXPECT_CALL(
         (*mock),

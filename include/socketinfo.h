@@ -280,14 +280,13 @@ private:
     {
         void operator()(int *ptr)
         {
-            // NOLINTNEXTLINE
             if(ptr != nullptr)
             {
                 log4cplus::Logger logger = log4cplus::Logger::getInstance("SocketInfo");
-                LOG4CPLUS_DEBUG(logger, "Closing FD " << *ptr); // NOLINTEXTLINE
+                LOG4CPLUS_DEBUG(logger, "Closing FD " << *ptr);
                 shutdown(*ptr, SHUT_RDWR);
                 close(*ptr);
-                delete ptr; // NOLINT(cppcoreguidelines-owning-memory)
+                delete ptr;
             }
         }
     };

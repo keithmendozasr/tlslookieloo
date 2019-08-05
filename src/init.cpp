@@ -33,11 +33,10 @@ const vector<TargetItem> parseTargetsFile(const string &file)
     vector<TargetItem> retVal;
 
     auto logger = Logger::getRoot();
-    LOG4CPLUS_INFO(logger, "Parsing targets file"); // NOLINT
+    LOG4CPLUS_INFO(logger, "Parsing targets file");
     auto node = LoadFile(file);
     if(!node.IsSequence())
     {
-        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "targets file " << file <<
             " did not contain a sequence of target definitions");
         throw YAML::Exception(node.Mark(), "File doesn't contain a sequence");
@@ -47,12 +46,12 @@ const vector<TargetItem> parseTargetsFile(const string &file)
     {
         if(logger.isEnabledFor(log4cplus::TRACE_LOG_LEVEL))
         {
-            LOG4CPLUS_DEBUG(logger, "target node"); // NOLINT
-            LOG4CPLUS_DEBUG(logger, "name: " << // NOLINT
+            LOG4CPLUS_DEBUG(logger, "target node");
+            LOG4CPLUS_DEBUG(logger, "name: " <<
                 (item["name"] ? item["name"].as<string>() : "Not set"));
-            LOG4CPLUS_DEBUG(logger, "client port: " << // NOLINT
+            LOG4CPLUS_DEBUG(logger, "client port: " <<
                 (item["clientport"] ? item["clientport"].as<string>() : "Not set"));
-            LOG4CPLUS_DEBUG(logger, "server: " << // NOLINT
+            LOG4CPLUS_DEBUG(logger, "server: " <<
                 (item["serverhost"] ? item["serverhost"].as<string>() : "") << ":" <<
                 (item["serverport"] ? item["serverport"].as<string>() : "")
             );

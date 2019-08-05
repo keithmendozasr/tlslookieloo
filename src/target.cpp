@@ -83,16 +83,14 @@ void Target::start()
     else
         LOG4CPLUS_TRACE(logger, "SSL client authentication not expected");
 
-    // NOLINTNEXTLINE
     LOG4CPLUS_INFO(logger, "Listening on " << tgtItem.clientPort);
-
     while(keepRunning)
     {
         LOG4CPLUS_DEBUG(logger, "Wait for clientside connection");
         auto acceptRslt = clientListener.acceptClient();
         if(!acceptRslt)
         {
-            LOG4CPLUS_INFO(logger, "Client accepting issue"); // NOLINT
+            LOG4CPLUS_INFO(logger, "Client accepting issue");
             break;
         }
         else
@@ -119,7 +117,7 @@ bool Target::messageRelay(SocketInfo &src, SocketInfo &dest, const MSGOWNER owne
         case SocketInfo::OP_STATUS::SUCCESS:
             if(amtRead > 0)
             {
-                LOG4CPLUS_TRACE(logger, "Data from src: " << // NOLINT
+                LOG4CPLUS_TRACE(logger, "Data from src: " <<
                     string(buf.get(), amtRead));
                 storeMessage(buf.get(), amtRead, owner);
                 LOG4CPLUS_DEBUG(logger, "Send data to dest");
@@ -145,7 +143,6 @@ bool Target::messageRelay(SocketInfo &src, SocketInfo &dest, const MSGOWNER owne
             }
             else
             {
-                // NOLINTNEXTLINE
                 LOG4CPLUS_DEBUG(logger, "No more data to relay");
                 keepReading = false;
             }
@@ -286,27 +283,27 @@ vector<Target::READREADYSTATE> Target::waitForReadable(ClientSide &client, Serve
 
     fd_set readFd;
     FD_ZERO(&readFd);
-    FD_SET(clientFd, &readFd); // NOLINT
-    FD_SET(serverFd, &readFd); // NOLINT
+    FD_SET(clientFd, &readFd);
+    FD_SET(serverFd, &readFd);
 
     auto maxSocket = max({ clientFd, serverFd });
     LOG4CPLUS_TRACE(logger, "Value of maxSocket: " << maxSocket);
 
-    timeval waitTime; // NOLINT
+    timeval waitTime;
     LOG4CPLUS_TRACE(logger, "Setting timeout to " << timeout << " seconds");
     waitTime.tv_sec=timeout;
     waitTime.tv_usec=0;
 
-    LOG4CPLUS_TRACE(logger, "Wait for one side to be ready"); // NOLINT
+    LOG4CPLUS_TRACE(logger, "Wait for one side to be ready");
     auto rslt = wrapper->select(maxSocket+1, &readFd, nullptr, nullptr,
         &waitTime);
-    LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt); // NOLINT
+    LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt);
     if(rslt == 0)
-        LOG4CPLUS_DEBUG(logger, "Read wait time expired"); // NOLINT
+        LOG4CPLUS_DEBUG(logger, "Read wait time expired");
     else if(rslt == -1)
     {
         auto err = errno;
-        LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
+        LOG4CPLUS_TRACE(logger, "Error code: " << err << ": "
             << strerror(err));
         if(err != 0 && err != EINTR)
         {
@@ -314,19 +311,19 @@ vector<Target::READREADYSTATE> Target::waitForReadable(ClientSide &client, Serve
                 "Error waiting for socket to be ready for reading.");
         }
         else
-            LOG4CPLUS_DEBUG(logger, "Caught signal"); // NOLINT
+            LOG4CPLUS_DEBUG(logger, "Caught signal");
     }
     else
     {
-        if(FD_ISSET(client.getSocket(), &readFd)) // NOLINT
+        if(FD_ISSET(client.getSocket(), &readFd))
         {
-            LOG4CPLUS_DEBUG(logger, "Client ready for reading"); // NOLINT
+            LOG4CPLUS_DEBUG(logger, "Client ready for reading");
             retVal.push_back(CLIENT_READY);
         }
 
-        if(FD_ISSET(server.getSocket(), &readFd)) // NOLINT
+        if(FD_ISSET(server.getSocket(), &readFd))
         {
-            LOG4CPLUS_DEBUG(logger, "Server ready for reading"); // NOLINT
+            LOG4CPLUS_DEBUG(logger, "Server ready for reading");
             retVal.push_back(SERVER_READY);
         }
     }

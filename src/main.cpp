@@ -59,7 +59,7 @@ vector<TargetRunner> targetThreads;
 void sigHandler(int sig)
 {
 	Logger logger = Logger::getRoot();
-	LOG4CPLUS_INFO(logger, "Stopping program"); // NOLINT
+	LOG4CPLUS_INFO(logger, "Stopping program");
 
     auto myTid = this_thread::get_id();
     for(auto &t : targetThreads)
@@ -91,8 +91,8 @@ struct ArgState
  */
 static error_t parseArgs(int key, char *arg, struct argp_state *state)
 {
-    struct ArgState *argState = reinterpret_cast<ArgState *>(state->input); // NOLINT
-    LOG4CPLUS_DEBUG(argState->logger, "Value of key: " << hex << key); // NOLINT
+    struct ArgState *argState = reinterpret_cast<ArgState *>(state->input);
+    LOG4CPLUS_DEBUG(argState->logger, "Value of key: " << hex << key);
     switch(key)
     {
     case 't':
@@ -103,11 +103,10 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
         break;
     case ARGP_KEY_END:
         if(argState->targets)
-            LOG4CPLUS_DEBUG(argState->logger, "Required options set"); // NOLINT
+            LOG4CPLUS_DEBUG(argState->logger, "Required options set");
         else
         {
-            // NOLINTNEXTLINE
-            LOG4CPLUS_ERROR(argState->logger,
+                   LOG4CPLUS_ERROR(argState->logger,
                 "targets command-line option required");
             argp_usage(state);
         }
@@ -127,11 +126,10 @@ static void start(const string &targets)
     auto logger = Logger::getRoot();
     try
     {
-        LOG4CPLUS_DEBUG(logger, "Process targets files"); // NOLINT
+        LOG4CPLUS_DEBUG(logger, "Process targets files");
         for(auto item : parseTargetsFile(targets))
         {
-            // NOLINTNEXTLINE
-            LOG4CPLUS_INFO(logger, "Starting " << item.name << " bridge");
+                   LOG4CPLUS_INFO(logger, "Starting " << item.name << " bridge");
             targetThreads.emplace_back();
             auto &t = targetThreads.back();
 
@@ -146,7 +144,6 @@ static void start(const string &targets)
     }
     catch(const YAML::Exception &e)
     {
-        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "Failed to parse targets file, cause: " <<
             e.what() << ". Exiting");
     }
@@ -160,8 +157,8 @@ int main(int argc, char *argv[])
     BasicConfigurator::doConfigure();
 
     struct sigaction sa;
-    sa.sa_handler = sigHandler; // NOLINT
-    sa.sa_flags = 0; // NOLINT
+    sa.sa_handler = sigHandler;
+    sa.sa_flags = 0;
     sigemptyset(&sa.sa_mask);
     if(sigaction(SIGINT, &sa, nullptr) == -1)
     {
@@ -191,13 +188,13 @@ int main(int argc, char *argv[])
 
     if(argp_parse(&argp, argc, argv, 0, nullptr, &argState))
     {
-        LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters"); // NOLINT
+        LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters");
         return -1;
     }
 
     if(argState.logconfig)
     {
-        LOG4CPLUS_DEBUG(logger, "Loading logconfig file"); // NOLINT
+        LOG4CPLUS_DEBUG(logger, "Loading logconfig file");
         logger.getHierarchy().resetConfiguration();
         PropertyConfigurator::doConfigure(argState.logconfig.value());
     }
@@ -206,7 +203,7 @@ int main(int argc, char *argv[])
         start(argState.targets.value());
     else
     {
-        LOG4CPLUS_ERROR(logger, "Targets file to use not provided"); // NOLINT
+        LOG4CPLUS_ERROR(logger, "Targets file to use not provided");
         return -1;
     }
 

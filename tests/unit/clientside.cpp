@@ -85,7 +85,7 @@ pyrpYfQs5MLgJWPTh84f4P/bwaU70ABd/pXVsUlqWYI7FgzyJRuRXwoksOWVOFmY
     }
 };
 
-TEST_F(ClientSideTest, waitSocketReadableGood) // NOLINT
+TEST_F(ClientSideTest, waitSocketReadableGood)
 {
     EXPECT_CALL(
         (*mock),
@@ -95,7 +95,7 @@ TEST_F(ClientSideTest, waitSocketReadableGood) // NOLINT
     EXPECT_NO_THROW(client.waitSocketReadable());
 }
 
-TEST_F(ClientSideTest, waitSocketReadableError) // NOLINT
+TEST_F(ClientSideTest, waitSocketReadableError)
 {
     EXPECT_CALL(
         (*mock),
@@ -105,7 +105,7 @@ TEST_F(ClientSideTest, waitSocketReadableError) // NOLINT
     EXPECT_THROW(client.waitSocketReadable(), system_error);
 }
 
-TEST_F(ClientSideTest, loadCertFileGood) // NOLINT
+TEST_F(ClientSideTest, loadCertFileGood)
 {
     const char expectPubKey[] = R"foo(-----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAwDoRldXkyzxmDYgi307p
@@ -144,7 +144,7 @@ pyrpYfQs5MLgJWPTh84f4P/bwaU70ABd/pXVsUlqWYI7FgzyJRuRXwoksOWVOFmY
     });
 }
 
-TEST_F(ClientSideTest, loadCertFileOpenFailed) // NOLINT
+TEST_F(ClientSideTest, loadCertFileOpenFailed)
 {
     const string fileName = certFilesPath + "/nonexistentfile.pem";
     try
@@ -163,7 +163,7 @@ TEST_F(ClientSideTest, loadCertFileOpenFailed) // NOLINT
     }
 }
 
-TEST_F(ClientSideTest, loadCertFileWrongFormat) // NOLINT
+TEST_F(ClientSideTest, loadCertFileWrongFormat)
 {
     try
     {
@@ -181,7 +181,7 @@ TEST_F(ClientSideTest, loadCertFileWrongFormat) // NOLINT
     }
 }
 
-TEST_F(ClientSideTest, loadRefClientCertPubkey) // NOLINT
+TEST_F(ClientSideTest, loadRefClientCertPubkey)
 {
     EXPECT_NO_THROW(
         client.loadRefClientCertPubkey(

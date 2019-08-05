@@ -35,7 +35,7 @@ using namespace log4cplus;
 /**
  * Used in argp_parser to hold arg state
  */
-struct ArgState // NOLINT
+struct ArgState
 {
     optional<string> logconfig;
     char *args[4];
@@ -50,8 +50,7 @@ struct ArgState // NOLINT
  */
 static error_t parseArgs(int key, char *arg, struct argp_state *state)
 {
-    struct ArgState *argState = reinterpret_cast<ArgState *>(state->input); // NOLINT
-    // NOLINTNEXTLINE
+    struct ArgState *argState = reinterpret_cast<ArgState *>(state->input);
     LOG4CPLUS_DEBUG(argState->logger, "Value of key: " << hex << key);
     switch(key)
     {
@@ -68,7 +67,7 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
             argp_usage(state);
         
         // Save the argument
-        argState->args[state->arg_num] = arg; // NOLINT
+        argState->args[state->arg_num] = arg;
         break;
     case ARGP_KEY_END:
         if(state->arg_num < argState->expectArgs)
@@ -89,7 +88,7 @@ bool keepRunning = true;
 void sigHandler(int sig)
 {
 	Logger logger = Logger::getRoot();
-	LOG4CPLUS_INFO(logger, "Stopping program"); // NOLINT
+	LOG4CPLUS_INFO(logger, "Stopping program");
 	keepRunning = false;
 }
 
@@ -100,17 +99,17 @@ bool waitSocketReadable(const int sockFd)
 
     fd_set readFd;
     FD_ZERO(&readFd);
-    FD_SET(sockFd, &readFd); // NOLINT
+    FD_SET(sockFd, &readFd);
 
     auto maxSocket = sockFd + 1;
 
-    LOG4CPLUS_TRACE(logger, "Wait for one side to be ready"); // NOLINT
+    LOG4CPLUS_TRACE(logger, "Wait for one side to be ready");
     auto rslt = select(maxSocket+1, &readFd, nullptr, nullptr, nullptr);
-    LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt); // NOLINT
+    LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt);
     if(rslt <= 0)
     {
         auto err = errno;
-        LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
+        LOG4CPLUS_TRACE(logger, "Error code: " << err << ": "
             << strerror(err));
         if(err != 0 && err != EINTR)
         {
@@ -118,11 +117,11 @@ bool waitSocketReadable(const int sockFd)
                 "Error waiting for socket to be ready for reading.");
         }
         else
-            LOG4CPLUS_DEBUG(logger, "Caught signal"); // NOLINT
+            LOG4CPLUS_DEBUG(logger, "Caught signal");
     }
-    else if(FD_ISSET(sockFd, &readFd)) // NOLINT
+    else if(FD_ISSET(sockFd, &readFd))
     {
-        LOG4CPLUS_DEBUG(logger, "Client ready for reading"); // NOLINT
+        LOG4CPLUS_DEBUG(logger, "Client ready for reading");
         retVal = true;
     }
 
@@ -132,8 +131,8 @@ bool waitSocketReadable(const int sockFd)
 int main(int argc, char *argv[])
 {
     struct sigaction sa;
-    sa.sa_handler = sigHandler; // NOLINT
-    sa.sa_flags = 0; // NOLINT
+    sa.sa_handler = sigHandler;
+    sa.sa_flags = 0;
     sigemptyset(&sa.sa_mask);
     if(sigaction(SIGINT, &sa, nullptr) == -1)
     {
@@ -166,14 +165,13 @@ int main(int argc, char *argv[])
 
     if(argp_parse(&argp, argc, argv, 0, nullptr, &argState))
     {
-        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters");
         return -1;
     }
 
     if(argState.logconfig)
     {
-        LOG4CPLUS_DEBUG(logger, "Loading logconfig file"); // NOLINT
+        LOG4CPLUS_DEBUG(logger, "Loading logconfig file");
         logger.getHierarchy().resetConfiguration();
         PropertyConfigurator::doConfigure(argState.logconfig.value());
     }
@@ -190,21 +188,17 @@ int main(int argc, char *argv[])
 
         c.startListener(stoi(argState.args[0]), 2);
 
-        // NOLINTNEXTLINE
         LOG4CPLUS_INFO(logger, "Listening on " << argState.args[0]);
-
         while(keepRunning)
         {
             auto acceptVal = c.acceptClient();
             if(!acceptVal)
             {
-                LOG4CPLUS_INFO(logger, "Client accepting issue"); // NOLINT
+                LOG4CPLUS_INFO(logger, "Client accepting issue");
                 break;
             }
 
             auto client = acceptVal.value();
-
-            // NOLINTNEXTLINE
             LOG4CPLUS_INFO(logger, "Got client " << client.getSocketIP() << " with FD: "
                 << client.getSocket());
             if(client.sslHandshake())
@@ -220,12 +214,11 @@ int main(int argc, char *argv[])
                         {
                             if(bufSize > 0)
                             {
-                                LOG4CPLUS_INFO(logger, "Data from server: " << // NOLINT
+                                LOG4CPLUS_INFO(logger, "Data from server: " <<
                                     string(buf.get(), bufSize));
                                 client.writeData("Bye", 4);
                             }
                             else
-                                // NOLINTNEXTLINE
                                 LOG4CPLUS_INFO(logger, "No data received from remote end");
                         }
                         else
@@ -235,7 +228,7 @@ int main(int argc, char *argv[])
                         break;
                 }
 
-                LOG4CPLUS_INFO(logger, "Client went away"); // NOLINT
+                LOG4CPLUS_INFO(logger, "Client went away");
             }
             else
                 LOG4CPLUS_ERROR(logger, "SSL handshake failed");
@@ -243,7 +236,6 @@ int main(int argc, char *argv[])
     }
     catch(const system_error &e)
     {
-        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "Error encountered testing ClientSide. Cause: " <<
             e.what());
         return 1;

@@ -65,7 +65,7 @@ protected:
     }
 };
 
-TEST_F(TargetTest, waitForReadableTimeout) // NOLINT
+TEST_F(TargetTest, waitForReadableTimeout)
 {
     client.setSocket(4);
     server.setSocket(5);
@@ -80,7 +80,7 @@ TEST_F(TargetTest, waitForReadableTimeout) // NOLINT
     EXPECT_EQ(0u, t.waitForReadable(client, server).size());
 }
 
-TEST_F(TargetTest, waitForReadableClient) // NOLINT
+TEST_F(TargetTest, waitForReadableClient)
 {
     client.setSocket(4);
     server.setSocket(5);
@@ -102,7 +102,7 @@ TEST_F(TargetTest, waitForReadableClient) // NOLINT
     EXPECT_EQ(Target::READREADYSTATE::CLIENT_READY, testVal[0]);
 }
 
-TEST_F(TargetTest, waitForReadableServer) // NOLINT
+TEST_F(TargetTest, waitForReadableServer)
 {
     client.setSocket(4);
     server.setSocket(5);
@@ -124,7 +124,7 @@ TEST_F(TargetTest, waitForReadableServer) // NOLINT
     EXPECT_EQ(Target::READREADYSTATE::SERVER_READY, testVal[0]);
 }
 
-TEST_F(TargetTest, waitForReadableInterrupted) // NOLINT
+TEST_F(TargetTest, waitForReadableInterrupted)
 {
     {
         client.setSocket(4);
@@ -157,7 +157,7 @@ TEST_F(TargetTest, waitForReadableInterrupted) // NOLINT
     }
 }
 
-TEST_F(TargetTest, waitForReadableError) // NOLINT
+TEST_F(TargetTest, waitForReadableError)
 {
     client.setSocket(4);
     server.setSocket(5);
@@ -225,7 +225,7 @@ TEST_F(TargetTest, storeMessageNullPtr)
         logic_error);
 }
 
-TEST_F(TargetTest, messageRelayGood) // NOLINT
+TEST_F(TargetTest, messageRelayGood)
 {
     {
         InSequence s;
@@ -251,7 +251,7 @@ TEST_F(TargetTest, messageRelayGood) // NOLINT
     EXPECT_TRUE(obj.messageRelay(client, server, Target::MSGOWNER::CLIENT));
 }
 
-TEST_F(TargetTest, messageRelayRemoteDisconnect) // NOLINT
+TEST_F(TargetTest, messageRelayRemoteDisconnect)
 {
     const char expectData[] = "abc";
     EXPECT_CALL((*mock), SSL_read(_, _, _))

@@ -32,7 +32,7 @@ using ::testing::MatchesRegex;
 namespace tlslookieloo
 {
 
-TEST(parseTargetsFile, goodFile) // NOLINT
+TEST(parseTargetsFile, goodFile)
 {
     auto retVal = parseTargetsFile(tgtFilesPath + "/good_targets.yaml");
     EXPECT_EQ(retVal.size(), 2u);
@@ -60,7 +60,7 @@ TEST(parseTargetsFile, goodFile) // NOLINT
     }
 }
 
-TEST(parseTargetsFile, missingname) // NOLINT
+TEST(parseTargetsFile, missingname)
 {
     try
     {
@@ -76,7 +76,7 @@ TEST(parseTargetsFile, missingname) // NOLINT
     }
 }
 
-TEST(parseTargetsFile, missingclientport) // NOLINT
+TEST(parseTargetsFile, missingclientport)
 {
     try
     {
@@ -93,7 +93,7 @@ TEST(parseTargetsFile, missingclientport) // NOLINT
     }
 }
 
-TEST(parseTargetsFile, missingclientcert) // NOLINT
+TEST(parseTargetsFile, missingclientcert)
 {
     try
     {
@@ -110,7 +110,7 @@ TEST(parseTargetsFile, missingclientcert) // NOLINT
     }
 }
 
-TEST(parseTargetsFile, missingclientkey) // NOLINT
+TEST(parseTargetsFile, missingclientkey)
 {
     try
     {
@@ -127,7 +127,7 @@ TEST(parseTargetsFile, missingclientkey) // NOLINT
     }
 }
 
-TEST(parseTargetsFile, missingserverport) // NOLINT
+TEST(parseTargetsFile, missingserverport)
 {
     try
     {
@@ -144,7 +144,7 @@ TEST(parseTargetsFile, missingserverport) // NOLINT
     }
 }
 
-TEST(parseTargetsFile, missingserverhost) // NOLINT
+TEST(parseTargetsFile, missingserverhost)
 {
     try
     {
@@ -161,7 +161,7 @@ TEST(parseTargetsFile, missingserverhost) // NOLINT
     }
 }
 
-TEST(parseTargetsFile, missingrecordfile) // NOLINT
+TEST(parseTargetsFile, missingrecordfile)
 {
     try
     {
@@ -178,7 +178,7 @@ TEST(parseTargetsFile, missingrecordfile) // NOLINT
     }
 }
 
-TEST(parseTargetsFile, nonsequence) // NOLINT
+TEST(parseTargetsFile, nonsequence)
 {
     try
     {
@@ -226,7 +226,7 @@ TEST(parseTargetsFile, clientauthminimal)
     });
 }
 
-TEST(parseTargetsFile, clientauthnocert) // NOLINT
+TEST(parseTargetsFile, clientauthnocert)
 {
     try
     {
@@ -257,7 +257,7 @@ TEST(parseTargetsFile, clientauthnocert) // NOLINT
     }
 }
 
-TEST(parseTargetsFile, clientauthnoca) // NOLINT
+TEST(parseTargetsFile, clientauthnoca)
 {
     try
     {

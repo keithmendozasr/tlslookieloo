@@ -40,7 +40,7 @@ using namespace log4cplus;
 /**
  * Used in argp_parser to hold arg state
  */
-struct ArgState // NOLINT
+struct ArgState
 {
     optional<string> logconfig;
     vector<string> args;
@@ -53,9 +53,8 @@ struct ArgState // NOLINT
  */
 static error_t parseArgs(int key, char *arg, struct argp_state *state)
 {
-    // NOLINTNEXTLINE
     struct ArgState *argState = reinterpret_cast<ArgState *>(state->input);
-    LOG4CPLUS_DEBUG(argState->logger, "Value of key: " << hex << key); // NOLINT
+    LOG4CPLUS_DEBUG(argState->logger, "Value of key: " << hex << key);
     switch(key)
     {
     case 'l':
@@ -67,7 +66,7 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
             argp_usage(state);
         
         // Save the argument
-        argState->args.push_back(string(arg)); // NOLINT
+        argState->args.push_back(string(arg));
         break;
     case ARGP_KEY_END:
         if(state->arg_num < 2)
@@ -90,17 +89,17 @@ bool waitSocketReadable(const int sockFd)
 
     fd_set readFd;
     FD_ZERO(&readFd);
-    FD_SET(sockFd, &readFd); // NOLINT
+    FD_SET(sockFd, &readFd);
 
     auto maxSocket = sockFd + 1;
 
-    LOG4CPLUS_TRACE(logger, "Wait for one side to be ready"); // NOLINT
+    LOG4CPLUS_TRACE(logger, "Wait for one side to be ready");
     auto rslt = select(maxSocket+1, &readFd, nullptr, nullptr, nullptr);
-    LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt); // NOLINT
+    LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt);
     if(rslt <= 0)
     {
         auto err = errno;
-        LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
+        LOG4CPLUS_TRACE(logger, "Error code: " << err << ": "
             << strerror(err));
         if(err != 0 && err != EINTR)
         {
@@ -108,11 +107,11 @@ bool waitSocketReadable(const int sockFd)
                 "Error waiting for socket to be ready for reading.");
         }
         else
-            LOG4CPLUS_DEBUG(logger, "Caught signal"); // NOLINT
+            LOG4CPLUS_DEBUG(logger, "Caught signal");
     }
-    else if(FD_ISSET(sockFd, &readFd)) // NOLINT
+    else if(FD_ISSET(sockFd, &readFd))
     {
-        LOG4CPLUS_DEBUG(logger, "Client ready for reading"); // NOLINT
+        LOG4CPLUS_DEBUG(logger, "Client ready for reading");
         retVal = true;
     }
 
@@ -144,13 +143,13 @@ int main(int argc, char *argv[])
 
     if(argp_parse(&argp, argc, argv, 0, nullptr, &argState))
     {
-        LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters"); // NOLINT
+        LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters");
         return -1;
     }
 
     if(argState.logconfig)
     {
-        LOG4CPLUS_DEBUG(logger, "Loading logconfig file"); // NOLINT
+        LOG4CPLUS_DEBUG(logger, "Loading logconfig file");
         logger.getHierarchy().resetConfiguration();
         PropertyConfigurator::doConfigure(argState.logconfig.value());
     }
@@ -181,11 +180,10 @@ int main(int argc, char *argv[])
     ServerSide s;
     if(s.connect(stoi(argState.args[0]), argState.args[1], clientCert))
     {
-        // NOLINTNEXTLINE
         LOG4CPLUS_INFO(logger, "Connected to " << argState.args[1] << ":" <<
             argState.args[0]);
 
-        LOG4CPLUS_INFO(logger, "Send data to server"); // NOLINT
+        LOG4CPLUS_INFO(logger, "Send data to server");
         const char msg[] = "GET / HTTP/1.1\r\nHost: www.example.com\r\n\r\n";
         if(s.writeData(&msg[0], sizeof(msg)) == SocketInfo::OP_STATUS::SUCCESS)
         {
@@ -204,14 +202,14 @@ int main(int argc, char *argv[])
                     break;
             }while(readLen == SocketInfo::OP_STATUS::SUCCESS);
 
-            LOG4CPLUS_INFO(logger, "No more data"); // NOLINT
+            LOG4CPLUS_INFO(logger, "No more data");
         }
         else
             LOG4CPLUS_ERROR(logger, "Failed to send data to server");
     }
     else
     {
-        LOG4CPLUS_ERROR(logger, "Failed to connect to " << // NOLINT
+        LOG4CPLUS_ERROR(logger, "Failed to connect to " <<
             argState.args[1] << ":" << argState.args[0]);
     }
 
