@@ -20,6 +20,7 @@
 #include <iomanip>
 #include <ctime>
 #include <mutex>
+#include <optional>
 
 #include "log4cplus/loggingmacros.h"
 #include "log4cplus/ndc.h"
@@ -182,11 +183,13 @@ void Target::handleClient(ClientSide client)
         LOG4CPLUS_DEBUG(logger, "Client-side handshake complete");
 
     ServerSide::ClientCertInfo clientCertInfo = nullopt;
-    if(tgtItem.clientAuthCert && tgtItem.clientAuthKey)
+    if(tgtItem.clientAuthCert)
     {   
         LOG4CPLUS_TRACE(logger, "Set client auth cert data");
         clientCertInfo = make_tuple(tgtItem.clientAuthCert.value(),
-            tgtItem.clientAuthKey.value());
+            (tgtItem.clientAuthKey ? tgtItem.clientAuthKey.value() :
+                tgtItem.clientAuthCert.value())
+        );
     }
     else
         LOG4CPLUS_TRACE(logger, "Not setting client auth cert data");

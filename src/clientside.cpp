@@ -347,6 +347,16 @@ int ClientSide::verifyCB(int preverifyOk, X509_STORE_CTX *x509Ctx)
 
     auto rslt = EVP_PKEY_cmp(obj->refClientPubKey.get(), X509_get0_pubkey(cert));
     LOG4CPLUS_TRACE(logger, "Compare result: " << rslt);
+    if(rslt != 1)
+    {
+        LOG4CPLUS_INFO(logger,
+            "Client-provided certificate public key doesn't match expected public key");
+    }
+    else
+    {
+        LOG4CPLUS_INFO(logger, "Received expected client public key");
+    }
+
     return (rslt == 1 ? 1 : 0);
 }
 

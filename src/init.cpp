@@ -91,14 +91,6 @@ const vector<TargetItem> parseTargetsFile(const string &file)
                 clientAuthCert = item["clientauthcert"].as<string>();
             }
 
-            if(!item["clientauthkey"])
-                throw YAML::Exception(item.Mark(), "clientauthkey field missing");
-            else
-            {
-                LOG4CPLUS_DEBUG(logger, "clientauthkey field provided");
-                clientAuthKey = item["clientauthkey"].as<string>();
-            }
-
             if(!item["clientauthca"])
                 throw YAML::Exception(item.Mark(), "clientauthca field missing");
             else
@@ -106,6 +98,14 @@ const vector<TargetItem> parseTargetsFile(const string &file)
                 LOG4CPLUS_DEBUG(logger, "clientauthca field provided");
                 clientAuthCA = item["clientauthca"].as<string>();
             }
+
+            if(item["clientauthkey"])
+            {
+                LOG4CPLUS_DEBUG(logger, "clientauthkey field provided");
+                clientAuthKey = item["clientauthkey"].as<string>();
+            }
+            else
+                LOG4CPLUS_TRACE(logger, "clientauthkey not provided");
         }
 
         retVal.push_back({
