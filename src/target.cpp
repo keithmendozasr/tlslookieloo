@@ -33,19 +33,26 @@ using namespace log4cplus;
 namespace tlslookieloo
 {
 
+atomic_bool Target::keepRunning = true;
+
 Target::Target(const TargetItem &tgtItem) :
     tgtItem(tgtItem),
     wrapper(make_shared<ConcreteWrapper>())
-{}
+{
+    LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__ << " called");
+}
 
 Target::Target(const Target &rhs) :
     tgtItem(rhs.tgtItem),
     wrapper(rhs.wrapper),
     timeout(rhs.timeout)
-{}
+{
+    LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__ << " called");
+}
 
 Target & Target::operator = (const Target &rhs)
 {
+    LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__ << " called");
     tgtItem = rhs.tgtItem;
     wrapper = rhs.wrapper;
 
@@ -56,10 +63,13 @@ Target::Target(Target && rhs) :
     tgtItem(std::move(rhs.tgtItem)),
     wrapper(std::move(rhs.wrapper)),
     recordFileStream(std::move(rhs.recordFileStream))
-{}
+{
+    LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__ << " called");
+}
 
 Target & Target::operator = (Target && rhs)
 {
+    LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__ << " called");
     tgtItem = std::move(rhs.tgtItem);
     wrapper = std::move(rhs.wrapper);
     recordFileStream = std::move(rhs.recordFileStream);
@@ -70,6 +80,7 @@ Target & Target::operator = (Target && rhs)
 void Target::start()
 {
     NDCContextCreator ndc(tgtItem.name);
+    LOG4CPLUS_DEBUG(logger, "Start target handler");
 
     try
     {

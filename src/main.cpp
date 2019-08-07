@@ -49,7 +49,7 @@ struct TargetRunner
     std::thread runner;
 };
 
-vector<TargetRunner> targetThreads;
+vector<std::thread> targetThreads;
 
 /**
  * Signal handler
@@ -62,14 +62,14 @@ void sigHandler(int sig)
 	LOG4CPLUS_INFO(logger, "Stopping program");
 
     auto myTid = this_thread::get_id();
+    Target::stop();
     for(auto &t : targetThreads)
     {
-        auto tid = t.runner.get_id();
-        t.target.stop();
+        auto tid = t.get_id();
         if(tid != myTid)
         {
             LOG4CPLUS_TRACE(logger, "Signaling thread " << tid);
-            pthread_kill(t.runner.native_handle(), sig);
+            pthread_kill(t.native_handle(), sig);
         }
         else
             LOG4CPLUS_TRACE(logger, "Not signaling ourself");
@@ -130,14 +130,12 @@ static void start(const string &targets)
         for(auto item : parseTargetsFile(targets))
         {
             LOG4CPLUS_INFO(logger, "Starting " << item.name << " bridge");
-            targetThreads.emplace_back();
-            auto &t = targetThreads.back();
-
-            t.target = Target(item);
-            t.runner = std::thread([](Target &tgt)
+            targetThreads.push_back(
+                std::thread([](TargetItem tgtItem)
                 {
+                    Target tgt(tgtItem);
                     tgt.start();
-                }, std::ref(t.target)
+                }, item)
             );
         }
     }
@@ -208,7 +206,7 @@ int main(int argc, char *argv[])
 
     LOG4CPLUS_TRACE(logger, "Waiting for target threads to exit");
     for(auto &t : targetThreads)
-        t.runner.join();
+        t.join();
     // So the SocketInfo logging doesn't trigger log4cplus to complain
     targetThreads.clear();
     LOG4CPLUS_INFO(logger, "tlslookieloo exiting");

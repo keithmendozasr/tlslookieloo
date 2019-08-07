@@ -83,9 +83,10 @@ public:
     /**
      * Stop processing client request
      */
-    void stop()
+    static void stop()
     {
-        LOG4CPLUS_INFO(logger, "Stopping " << tgtItem.name << " target handling");
+        auto logger = log4cplus::Logger::getInstance("Target");
+        LOG4CPLUS_INFO(logger, "Stopping target handling");
         keepRunning = false;
     }
 
@@ -94,7 +95,7 @@ private:
     TargetItem tgtItem;
     std::shared_ptr<Wrapper> wrapper;
     int timeout = 5;
-    std::atomic_bool keepRunning = true;
+    static std::atomic_bool keepRunning;
     std::ofstream recordFileStream;
     std::mutex tmGuard;
 
