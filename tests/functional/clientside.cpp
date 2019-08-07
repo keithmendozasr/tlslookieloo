@@ -191,16 +191,17 @@ int main(int argc, char *argv[])
         LOG4CPLUS_INFO(logger, "Listening on " << argState.args[0]);
         while(keepRunning)
         {
-            auto acceptVal = c.acceptClient();
-            if(!acceptVal)
+            auto client = c.acceptClient();
+            try
             {
-                LOG4CPLUS_INFO(logger, "Client accepting issue");
-                break;
+                LOG4CPLUS_INFO(logger, "Got client " << client.getSocketIP() << " with FD: "
+                    << client.getSocket());
+            }
+            catch(const bad_optional_access &e)
+            {
+                LOG4CPLUS_WARN(logger, "Unable to get IP or socket data of connecting client");
             }
 
-            auto client = acceptVal.value();
-            LOG4CPLUS_INFO(logger, "Got client " << client.getSocketIP() << " with FD: "
-                << client.getSocket());
             if(client.sslHandshake())
             {
                 while(1)
@@ -234,11 +235,16 @@ int main(int argc, char *argv[])
                 LOG4CPLUS_ERROR(logger, "SSL handshake failed");
         }
     }
-    catch(const system_error &e)
+    catch(const runtime_error &e)
     {
         LOG4CPLUS_ERROR(logger, "Error encountered testing ClientSide. Cause: " <<
             e.what());
         return 1;
+    }
+    catch(const logic_error &e)
+    {
+        LOG4CPLUS_ERROR(logger, "Logic error encountere testing ClientSide. Cause: " <<
+            e.what());
     }
 
     return 0;

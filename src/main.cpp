@@ -129,11 +129,10 @@ static void start(const string &targets)
         LOG4CPLUS_DEBUG(logger, "Process targets files");
         for(auto item : parseTargetsFile(targets))
         {
-                   LOG4CPLUS_INFO(logger, "Starting " << item.name << " bridge");
+            LOG4CPLUS_INFO(logger, "Starting " << item.name << " bridge");
             targetThreads.emplace_back();
             auto &t = targetThreads.back();
 
-            // TODO: Fix message file name
             t.target = Target(item);
             t.runner = std::thread([](Target &tgt)
                 {

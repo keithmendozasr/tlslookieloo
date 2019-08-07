@@ -85,7 +85,7 @@ public:
     /**
      * Accept connection
      */
-    std::optional<ClientSide> acceptClient();
+    ClientSide acceptClient();
     
     /**
      * Create the SSL context for this instance

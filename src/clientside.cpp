@@ -81,7 +81,7 @@ void ClientSide::startListener(const unsigned int &port,
     LOG4CPLUS_DEBUG(logger, "Listening on port " << port);
 }
 
-optional<ClientSide> ClientSide::acceptClient()
+ClientSide ClientSide::acceptClient()
 {
     struct sockaddr_storage addr;
     socklen_t addrLen = sizeof(addr);
@@ -110,7 +110,7 @@ optional<ClientSide> ClientSide::acceptClient()
     c.setSocket(fd);
     c.saveSocketIP(reinterpret_cast<struct sockaddr_storage *>(&addr));
 
-    return make_optional(c);
+    return c;
 }
 
 void ClientSide::initializeSSLContext(const string &certFile, const string &privKeyFile)

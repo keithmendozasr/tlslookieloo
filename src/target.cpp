@@ -71,32 +71,38 @@ void Target::start()
 {
     NDCContextCreator ndc(tgtItem.name);
 
-    ClientSide clientListener(wrapper);
-    clientListener.startListener(tgtItem.clientPort, 2);
-    clientListener.initializeSSLContext(tgtItem.clientCert, tgtItem.clientKey);
-    if(tgtItem.clientAuthCert)
+    try
     {
-        LOG4CPLUS_DEBUG(logger, "Expecting SSL client authentication");
-        clientListener.loadRefClientCertPubkey(tgtItem.clientAuthCert.value(),
-            tgtItem.clientAuthCA.value());
-    }
-    else
-        LOG4CPLUS_TRACE(logger, "SSL client authentication not expected");
-
-    LOG4CPLUS_INFO(logger, "Listening on " << tgtItem.clientPort);
-    while(keepRunning)
-    {
-        LOG4CPLUS_DEBUG(logger, "Wait for clientside connection");
-        auto acceptRslt = clientListener.acceptClient();
-        if(!acceptRslt)
+        ClientSide clientListener(wrapper);
+        clientListener.startListener(tgtItem.clientPort, 2);
+        clientListener.initializeSSLContext(tgtItem.clientCert, tgtItem.clientKey);
+        if(tgtItem.clientAuthCert)
         {
-            LOG4CPLUS_INFO(logger, "Client accepting issue");
-            break;
+            LOG4CPLUS_DEBUG(logger, "Expecting SSL client authentication");
+            clientListener.loadRefClientCertPubkey(tgtItem.clientAuthCert.value(),
+                tgtItem.clientAuthCA.value());
         }
         else
-            LOG4CPLUS_INFO(logger, "Clientside connected");
+            LOG4CPLUS_TRACE(logger, "SSL client authentication not expected");
 
-        handleClient(acceptRslt.value());
+        LOG4CPLUS_INFO(logger, "Listening on " << tgtItem.clientPort);
+        while(keepRunning)
+        {
+            LOG4CPLUS_DEBUG(logger, "Wait for clientside connection");
+            auto acceptRslt = clientListener.acceptClient();
+            LOG4CPLUS_INFO(logger, "Clientside connected");
+            handleClient(acceptRslt);
+        }
+    }
+    catch(const runtime_error &e)
+    {
+        LOG4CPLUS_ERROR(logger, "Error encountered handling target. Cause: " <<
+            e.what());
+    }
+    catch(const logic_error &e)
+    {
+        LOG4CPLUS_ERROR(logger, "Logic error encountered handling target. Cause: " <<
+            e.what());
     }
 
     LOG4CPLUS_INFO(logger, "Target " << tgtItem.name << " stopping");
