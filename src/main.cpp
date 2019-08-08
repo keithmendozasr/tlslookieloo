@@ -45,11 +45,11 @@ const char *argp_program_bug_address = "keith@homepluspower.info";
  */
 struct TargetRunner
 {
-    Target target;
+    std::thread::native_handle_type handle;
     std::thread runner;
 };
 
-vector<std::thread> targetThreads;
+vector<TargetRunner> targetThreads;
 
 /**
  * Signal handler
@@ -65,11 +65,11 @@ void sigHandler(int sig)
     Target::stop();
     for(auto &t : targetThreads)
     {
-        auto tid = t.get_id();
+        auto tid = t.runner.get_id();
         if(tid != myTid)
         {
             LOG4CPLUS_TRACE(logger, "Signaling thread " << tid);
-            pthread_kill(t.native_handle(), sig);
+            pthread_kill(t.handle, sig);
         }
         else
             LOG4CPLUS_TRACE(logger, "Not signaling ourself");
@@ -130,13 +130,14 @@ static void start(const string &targets)
         for(auto item : parseTargetsFile(targets))
         {
             LOG4CPLUS_INFO(logger, "Starting " << item.name << " bridge");
-            targetThreads.push_back(
-                std::thread([](TargetItem tgtItem)
+            TargetRunner obj;
+            obj.runner =std::thread([](TargetItem tgtItem)
                 {
                     Target tgt(tgtItem);
                     tgt.start();
-                }, item)
-            );
+                }, item);
+            obj.handle = obj.runner.native_handle();
+            targetThreads.push_back(std::move(obj));
         }
     }
     catch(const YAML::Exception &e)
@@ -144,8 +145,11 @@ static void start(const string &targets)
         LOG4CPLUS_ERROR(logger, "Failed to parse targets file, cause: " <<
             e.what() << ". Exiting");
     }
-
-    // TODO: Handle system_error that std::thread() may throw
+    catch(const system_error &e)
+    {
+        LOG4CPLUS_ERROR(logger, "Error encountered starting bridges");
+        Target::stop();
+    }
 }
 
 int main(int argc, char *argv[])
@@ -206,7 +210,7 @@ int main(int argc, char *argv[])
 
     LOG4CPLUS_TRACE(logger, "Waiting for target threads to exit");
     for(auto &t : targetThreads)
-        t.join();
+        t.runner.join();
     // So the SocketInfo logging doesn't trigger log4cplus to complain
     targetThreads.clear();
     LOG4CPLUS_INFO(logger, "tlslookieloo exiting");
