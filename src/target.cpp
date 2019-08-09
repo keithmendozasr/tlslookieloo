@@ -219,7 +219,7 @@ void Target::handleClient(ClientSide client)
     else
         LOG4CPLUS_DEBUG(logger, "Connected to server-side");
 
-    recordFileStream.open(tgtItem.recordFile);
+    recordFileStream.open(tgtItem.recordFile, ios_base::out | ios_base::app);
     if(!recordFileStream.is_open())
     {
         auto err = errno;
