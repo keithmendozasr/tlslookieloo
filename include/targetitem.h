@@ -29,8 +29,10 @@ typedef struct _TargetItem
     unsigned int serverPort;    ///< server-side port
     unsigned int clientPort;    ///< client-side listen port
     std::string clientCert;     ///< client-side server cert
-    std::string clientKey;      ///< client-side server key
     std::string recordFile;     ///< Filename to save recorded messages
+
+    //! Optional, path to client key
+    std::optional<std::string> clientKey;
 
     //! Optional, path to client certificate
     std::optional<std::string> clientAuthCert;

@@ -86,7 +86,9 @@ void Target::start()
     {
         ClientSide clientListener(wrapper);
         clientListener.startListener(tgtItem.clientPort, 2);
-        clientListener.initializeSSLContext(tgtItem.clientCert, tgtItem.clientKey);
+        clientListener.initializeSSLContext(tgtItem.clientCert,
+            (tgtItem.clientKey ? tgtItem.clientKey.value() : tgtItem.clientCert)
+        );
         if(tgtItem.clientAuthCert)
         {
             LOG4CPLUS_DEBUG(logger, "Expecting SSL client authentication");

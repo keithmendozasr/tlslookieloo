@@ -34,30 +34,30 @@ namespace tlslookieloo
 
 TEST(parseTargetsFile, goodFile)
 {
-    auto retVal = parseTargetsFile(tgtFilesPath + "/good_targets.yaml");
-    EXPECT_EQ(retVal.size(), 2u);
+    EXPECT_NO_THROW({
+        auto retVal = parseTargetsFile(tgtFilesPath + "/good_targets.yaml");
+        EXPECT_EQ(retVal.size(), 2u);
 
-    {
-        auto item = retVal[0];
-        EXPECT_EQ(item.name, "App1");
-        EXPECT_EQ(item.serverHost, "server");
-        EXPECT_EQ(item.serverPort, 8908u);
-        EXPECT_EQ(item.clientPort, 9988u);
-        EXPECT_EQ(item.clientCert, "test_certs/cert.pem");
-        EXPECT_EQ(item.clientKey, "test_certs/key.pem");
-        EXPECT_EQ(item.recordFile, "app1.msgs");
-    }
+        {
+            auto item = retVal[0];
+            EXPECT_EQ(item.name, "App1");
+            EXPECT_EQ(item.serverHost, "server");
+            EXPECT_EQ(item.serverPort, 8908u);
+            EXPECT_EQ(item.clientPort, 9988u);
+            EXPECT_EQ(item.clientCert, "test_certs/cert.pem");
+            EXPECT_EQ(item.recordFile, "app1.msgs");
+        }
 
-    {
-        auto item = retVal[1];
-        EXPECT_EQ(item.name, "App2");
-        EXPECT_EQ(item.serverHost, "servertwo");
-        EXPECT_EQ(item.serverPort, 9087u);
-        EXPECT_EQ(item.clientPort, 8899u);
-        EXPECT_EQ(item.clientCert, "test_certs/certapp2.pem");
-        EXPECT_EQ(item.clientKey, "test_certs/keyapp2.pem");
-        EXPECT_EQ(item.recordFile, "app2.msgs");
-    }
+        {
+            auto item = retVal[1];
+            EXPECT_EQ(item.name, "App2");
+            EXPECT_EQ(item.serverHost, "servertwo");
+            EXPECT_EQ(item.serverPort, 9087u);
+            EXPECT_EQ(item.clientPort, 8899u);
+            EXPECT_EQ(item.clientCert, "test_certs/certapp2.pem");
+            EXPECT_EQ(item.recordFile, "app2.msgs");
+        }
+    });
 }
 
 TEST(parseTargetsFile, missingname)
@@ -103,23 +103,6 @@ TEST(parseTargetsFile, missingclientcert)
     catch(YAML::Exception &e)
     {
         ASSERT_THAT(e.what(), MatchesRegex(".*clientcert field missing$"));
-    }
-    catch(...)
-    {
-        FAIL() << "Incorrect exception";
-    }
-}
-
-TEST(parseTargetsFile, missingclientkey)
-{
-    try
-    {
-        parseTargetsFile(tgtFilesPath + "/missingclientkey.yaml");
-        FAIL() << "Exception not thrown";
-    }
-    catch(YAML::Exception &e)
-    {
-        ASSERT_THAT(e.what(), MatchesRegex(".*clientkey field missing$"));
     }
     catch(...)
     {
@@ -176,6 +159,15 @@ TEST(parseTargetsFile, missingrecordfile)
     {
         FAIL() << "Incorrect exception";
     }
+}
+
+TEST(parseTargetsFile, withclientkey)
+{
+    EXPECT_NO_THROW({
+        auto retVal = parseTargetsFile(tgtFilesPath + "/withclientkey.yaml");
+        auto item = retVal[0];
+        EXPECT_EQ(string("test_certs/key.pem"), item.clientKey.value());
+    });
 }
 
 TEST(parseTargetsFile, nonsequence)

@@ -3,5 +3,4 @@
   serverhost: "server"
   serverport: 8908
   clientport: 9988
-  clientkey: "test_certs/key.pem"
   recordfile: "app1.msgs"

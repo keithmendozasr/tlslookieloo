@@ -3,7 +3,6 @@
   serverport: 8908
   clientport: 9988
   clientcert: "test_certs/cert.pem"
-  clientkey: "test_certs/key.pem"
   recordfile: "app1.msgs"
 
 - name: "App2"
@@ -11,5 +10,4 @@
   serverport: 9087
   clientport: 8899
   clientcert: "test_certs/certapp2.pem"
-  clientkey: "test_certs/keyapp2.pem"
   recordfile: "app2.msgs"
