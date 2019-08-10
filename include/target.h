@@ -94,7 +94,7 @@ private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("Target");
     TargetItem tgtItem;
     std::shared_ptr<Wrapper> wrapper;
-    int timeout = 5;
+    unsigned int timeout = 5;
     static std::atomic_bool keepRunning;
     std::ofstream recordFileStream;
     std::mutex tmGuard;

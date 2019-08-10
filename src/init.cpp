@@ -75,11 +75,11 @@ const vector<TargetItem> parseTargetsFile(const string &file)
         if(!item["recordfile"])
             throw YAML::Exception(item.Mark(), "recordfile field missing");
 
-        optional<string> clientKey, clientAuthCert, clientAuthKey, clientAuthCA;
-
+        optional<string> clientKey;
         if(item["clientkey"])
             clientKey = item["clientkey"].as<string>();
 
+        optional<string> clientAuthCert, clientAuthKey, clientAuthCA;
         if(item["clientauthcert"] || item["clientauthkey"] || item["clientauthca"])
         {
             if(!item["clientauthcert"])
@@ -107,6 +107,10 @@ const vector<TargetItem> parseTargetsFile(const string &file)
                 LOG4CPLUS_TRACE(logger, "clientauthkey not provided");
         }
 
+        optional<unsigned int> timeout;
+        if(item["timeout"])
+            timeout = item["timeout"].as<unsigned int>();
+
         retVal.push_back({
             item["name"].as<string>(),
             item["serverhost"].as<string>(),
@@ -117,7 +121,8 @@ const vector<TargetItem> parseTargetsFile(const string &file)
             clientKey,
             clientAuthCert,
             clientAuthKey,
-            clientAuthCA
+            clientAuthCA,
+            timeout
         });
     }
 

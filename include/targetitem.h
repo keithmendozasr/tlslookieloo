@@ -42,6 +42,9 @@ typedef struct _TargetItem
 
     //! Optional, client CA file
     std::optional<std::string> clientAuthCA;
+
+    //! Optional, message timeout
+    std::optional<unsigned int> timeout;
 } TargetItem;
 
 } //namespace

@@ -84,6 +84,13 @@ void Target::start()
 
     try
     {
+        if(tgtItem.timeout)
+        {
+            auto val = tgtItem.timeout.value();
+            LOG4CPLUS_DEBUG(logger, "Setting timeout to " << val);
+            timeout = val;
+        }
+
         ClientSide clientListener(wrapper);
         clientListener.startListener(tgtItem.clientPort, 2);
         clientListener.initializeSSLContext(tgtItem.clientCert,

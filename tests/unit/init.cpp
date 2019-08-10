@@ -280,4 +280,13 @@ TEST(parseTargetsFile, clientauthnoca)
     }
 }
 
+TEST(parseTargetsFile, withtimeout)
+{
+    //EXPECT_NO_THROW({
+        auto retVal = parseTargetsFile(tgtFilesPath + "/withtimeout.yaml");
+        auto item = retVal[0];
+        EXPECT_EQ(100u, item.timeout.value());
+    //});
+}
+
 } //namespace tlslookieloo
