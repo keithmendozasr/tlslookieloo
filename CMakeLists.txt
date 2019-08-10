@@ -43,6 +43,7 @@ ExternalProject_Add(log4cplus
 )
 
 find_package(OpenSSL 1.1.1 REQUIRED)
+find_package(yaml-cpp 0.6 REQUIRED)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
