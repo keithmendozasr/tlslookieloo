@@ -32,9 +32,9 @@ using namespace std;
 namespace tlslookieloo
 {
 
-MATCHER_P(IsFdSet, fd, "fd is set")
+MATCHER_P(IsFdSet, fd, "fd is set") // NOLINT
 {
-    return arg != nullptr && FD_ISSET(fd, arg);
+    return arg != nullptr && FD_ISSET(fd, arg); // NOLINT
 }
 
 class ClientSideTest : public ::testing::Test
@@ -75,37 +75,38 @@ pyrpYfQs5MLgJWPTh84f4P/bwaU70ABd/pXVsUlqWYI7FgzyJRuRXwoksOWVOFmY
 )foo";
 
         unique_ptr<BIO, decltype(&BIO_free)> b(
-            BIO_new_mem_buf(&expectPubKey[0], strlen(expectPubKey)), &BIO_free);
+            BIO_new_mem_buf(&expectPubKey[0], strlen(&expectPubKey[0])),
+            &BIO_free);
         EXPECT_TRUE(b);
 
         unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> evpKey(
             PEM_read_bio_PUBKEY(b.get(), nullptr, 0, nullptr), &EVP_PKEY_free);
 
-        return std::move(evpKey);
+        return evpKey;
     }
 };
 
-TEST_F(ClientSideTest, waitSocketReadableGood)
+TEST_F(ClientSideTest, waitSocketReadableGood) // NOLINT
 {
     EXPECT_CALL(
         (*mock),
         select(5, IsFdSet(fd), IsNull(), IsNull(), IsNull())
     ).WillOnce(Return(1));
     
-    EXPECT_NO_THROW(client.waitSocketReadable());
+    EXPECT_NO_THROW(client.waitSocketReadable()); // NOLINT
 }
 
-TEST_F(ClientSideTest, waitSocketReadableError)
+TEST_F(ClientSideTest, waitSocketReadableError) // NOLINT
 {
     EXPECT_CALL(
         (*mock),
         select(5, IsFdSet(fd), IsNull(), IsNull(), IsNull())
     ).WillOnce(Return(-1));
     
-    EXPECT_THROW(client.waitSocketReadable(), system_error);
+    EXPECT_THROW(client.waitSocketReadable(), system_error); // NOLINT
 }
 
-TEST_F(ClientSideTest, loadCertFileGood)
+TEST_F(ClientSideTest, loadCertFileGood) // NOLINT
 {
     const char expectPubKey[] = R"foo(-----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAwDoRldXkyzxmDYgi307p
@@ -124,7 +125,7 @@ pyrpYfQs5MLgJWPTh84f4P/bwaU70ABd/pXVsUlqWYI7FgzyJRuRXwoksOWVOFmY
 )foo";
 
 	unique_ptr<BIO, decltype(&BIO_free)> b(
-        BIO_new_mem_buf(&expectPubKey[0], strlen(expectPubKey)), &BIO_free);
+        BIO_new_mem_buf(&expectPubKey[0], strlen(&expectPubKey[0])), &BIO_free);
     ASSERT_TRUE(b) << "Failed to create BIO for expected public key";
 
     unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> evpKey(
@@ -134,7 +135,7 @@ pyrpYfQs5MLgJWPTh84f4P/bwaU70ABd/pXVsUlqWYI7FgzyJRuRXwoksOWVOFmY
         << expectPubKey << "\"";
 
     typedef unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> EVP_PKEY_MEM;
-    EXPECT_NO_THROW({
+    EXPECT_NO_THROW({ // NOLINT
         auto testCert = client.loadCertFile(certFilesPath + "/tlslookieloo_unittest.pem");
         EVP_PKEY_MEM testKey(
             X509_get_pubkey(testCert.get()),
@@ -144,7 +145,7 @@ pyrpYfQs5MLgJWPTh84f4P/bwaU70ABd/pXVsUlqWYI7FgzyJRuRXwoksOWVOFmY
     });
 }
 
-TEST_F(ClientSideTest, loadCertFileOpenFailed)
+TEST_F(ClientSideTest, loadCertFileOpenFailed) // NOLINT
 {
     const string fileName = certFilesPath + "/nonexistentfile.pem";
     try
@@ -163,7 +164,7 @@ TEST_F(ClientSideTest, loadCertFileOpenFailed)
     }
 }
 
-TEST_F(ClientSideTest, loadCertFileWrongFormat)
+TEST_F(ClientSideTest, loadCertFileWrongFormat) // NOLINT
 {
     try
     {
@@ -181,9 +182,9 @@ TEST_F(ClientSideTest, loadCertFileWrongFormat)
     }
 }
 
-TEST_F(ClientSideTest, loadRefClientCertPubkey)
+TEST_F(ClientSideTest, loadRefClientCertPubkey) // NOLINT
 {
-    EXPECT_NO_THROW(
+    EXPECT_NO_THROW( // NOLINT
         client.loadRefClientCertPubkey(
             certFilesPath + "/tlslookieloo_unittest.pem",
             certFilesPath + "/devca.pem"
@@ -197,7 +198,7 @@ TEST_F(ClientSideTest, loadRefClientCertPubkey)
     EXPECT_EQ(1, sk_X509_NAME_num(clientCAList));
     unique_ptr<char[]> testName(X509_NAME_oneline(
         sk_X509_NAME_value(
-            const_cast<const STACK_OF(X509_NAME) *>(clientCAList),
+            const_cast<const STACK_OF(X509_NAME) *>(clientCAList), // NOLINT
             0
         ), nullptr, 0)
     );

@@ -28,6 +28,13 @@ namespace tlslookieloo
 class ConcreteWrapper : public Wrapper
 {
 public:
+    ConcreteWrapper() = default;
+    ConcreteWrapper(const ConcreteWrapper &) = default;
+    ConcreteWrapper(ConcreteWrapper &&) = default;
+    ConcreteWrapper &operator= (const ConcreteWrapper &) = default;
+    ConcreteWrapper &operator= (ConcreteWrapper &&) = default;
+    virtual ~ConcreteWrapper(){} ;
+
     virtual int select(int, fd_set *, fd_set *, fd_set *, struct timeval *) override;
     
     virtual int SSL_get_error(const SSL *, int) override;

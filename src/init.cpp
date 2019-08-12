@@ -33,10 +33,11 @@ const vector<TargetItem> parseTargetsFile(const string &file)
     vector<TargetItem> retVal;
 
     auto logger = Logger::getRoot();
-    LOG4CPLUS_INFO(logger, "Parsing targets file");
+    LOG4CPLUS_INFO(logger, "Parsing targets file"); // NOLINT
     auto node = LoadFile(file);
     if(!node.IsSequence())
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "targets file " << file <<
             " did not contain a sequence of target definitions");
         throw YAML::Exception(node.Mark(), "File doesn't contain a sequence");
@@ -46,12 +47,12 @@ const vector<TargetItem> parseTargetsFile(const string &file)
     {
         if(logger.isEnabledFor(log4cplus::TRACE_LOG_LEVEL))
         {
-            LOG4CPLUS_DEBUG(logger, "target node");
-            LOG4CPLUS_DEBUG(logger, "name: " <<
+            LOG4CPLUS_DEBUG(logger, "target node"); // NOLINT
+            LOG4CPLUS_DEBUG(logger, "name: " << // NOLINT
                 (item["name"] ? item["name"].as<string>() : "Not set"));
-            LOG4CPLUS_DEBUG(logger, "client port: " <<
+            LOG4CPLUS_DEBUG(logger, "client port: " << // NOLINT
                 (item["clientport"] ? item["clientport"].as<string>() : "Not set"));
-            LOG4CPLUS_DEBUG(logger, "server: " <<
+            LOG4CPLUS_DEBUG(logger, "server: " << // NOLINT
                 (item["serverhost"] ? item["serverhost"].as<string>() : "") << ":" <<
                 (item["serverport"] ? item["serverport"].as<string>() : "")
             );
@@ -86,7 +87,7 @@ const vector<TargetItem> parseTargetsFile(const string &file)
                 throw YAML::Exception(item.Mark(), "clientauthcert field missing");
             else
             {
-                LOG4CPLUS_DEBUG(logger, "clientauthcert field provided");
+                LOG4CPLUS_DEBUG(logger, "clientauthcert field provided"); // NOLINT
                 clientAuthCert = item["clientauthcert"].as<string>();
             }
 
@@ -94,17 +95,17 @@ const vector<TargetItem> parseTargetsFile(const string &file)
                 throw YAML::Exception(item.Mark(), "clientauthca field missing");
             else
             {
-                LOG4CPLUS_DEBUG(logger, "clientauthca field provided");
+                LOG4CPLUS_DEBUG(logger, "clientauthca field provided"); // NOLINT
                 clientAuthCA = item["clientauthca"].as<string>();
             }
 
             if(item["clientauthkey"])
             {
-                LOG4CPLUS_DEBUG(logger, "clientauthkey field provided");
+                LOG4CPLUS_DEBUG(logger, "clientauthkey field provided"); // NOLINT
                 clientAuthKey = item["clientauthkey"].as<string>();
             }
             else
-                LOG4CPLUS_TRACE(logger, "clientauthkey not provided");
+                LOG4CPLUS_TRACE(logger, "clientauthkey not provided"); // NOLINT
         }
 
         optional<unsigned int> timeout;

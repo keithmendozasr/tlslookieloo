@@ -40,7 +40,7 @@ using namespace log4cplus;
 /**
  * Used in argp_parser to hold arg state
  */
-struct ArgState
+struct ArgState // NOLINT
 {
     optional<string> logconfig;
     vector<string> args;
@@ -53,8 +53,9 @@ struct ArgState
  */
 static error_t parseArgs(int key, char *arg, struct argp_state *state)
 {
+    // NOLINTNEXTLINE
     struct ArgState *argState = reinterpret_cast<ArgState *>(state->input);
-    LOG4CPLUS_DEBUG(argState->logger, "Value of key: " << hex << key);
+    LOG4CPLUS_DEBUG(argState->logger, "Value of key: " << hex << key); // NOLINT
     switch(key)
     {
     case 'l':
@@ -66,7 +67,7 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
             argp_usage(state);
         
         // Save the argument
-        argState->args.push_back(string(arg));
+        argState->args.push_back(string(arg)); // NOLINT
         break;
     case ARGP_KEY_END:
         if(state->arg_num < 2)
@@ -89,17 +90,17 @@ bool waitSocketReadable(const int sockFd)
 
     fd_set readFd;
     FD_ZERO(&readFd);
-    FD_SET(sockFd, &readFd);
+    FD_SET(sockFd, &readFd); // NOLINT
 
     auto maxSocket = sockFd + 1;
 
-    LOG4CPLUS_TRACE(logger, "Wait for one side to be ready");
+    LOG4CPLUS_TRACE(logger, "Wait for one side to be ready"); // NOLINT
     auto rslt = select(maxSocket+1, &readFd, nullptr, nullptr, nullptr);
-    LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt);
+    LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt); // NOLINT
     if(rslt <= 0)
     {
         auto err = errno;
-        LOG4CPLUS_TRACE(logger, "Error code: " << err << ": "
+        LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
             << strerror(err));
         if(err != 0 && err != EINTR)
         {
@@ -107,11 +108,11 @@ bool waitSocketReadable(const int sockFd)
                 "Error waiting for socket to be ready for reading.");
         }
         else
-            LOG4CPLUS_DEBUG(logger, "Caught signal");
+            LOG4CPLUS_DEBUG(logger, "Caught signal"); // NOLINT
     }
-    else if(FD_ISSET(sockFd, &readFd))
+    else if(FD_ISSET(sockFd, &readFd)) // NOLINT
     {
-        LOG4CPLUS_DEBUG(logger, "Client ready for reading");
+        LOG4CPLUS_DEBUG(logger, "Client ready for reading"); // NOLINT
         retVal = true;
     }
 
@@ -143,13 +144,13 @@ int main(int argc, char *argv[])
 
     if(argp_parse(&argp, argc, argv, 0, nullptr, &argState))
     {
-        LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters");
+        LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters"); // NOLINT
         return -1;
     }
 
     if(argState.logconfig)
     {
-        LOG4CPLUS_DEBUG(logger, "Loading logconfig file");
+        LOG4CPLUS_DEBUG(logger, "Loading logconfig file"); // NOLINT
         logger.getHierarchy().resetConfiguration();
         PropertyConfigurator::doConfigure(argState.logconfig.value());
     }
@@ -158,11 +159,11 @@ int main(int argc, char *argv[])
     switch(argState.args.size())
     {
     case 3:
-        LOG4CPLUS_INFO(logger, "Set client certificate");
+        LOG4CPLUS_INFO(logger, "Set client certificate"); // NOLINT
         clientCert = make_tuple(argState.args[2], argState.args[2]);
         break;
     case 4:
-        LOG4CPLUS_INFO(logger, "Set client certificate");
+        LOG4CPLUS_INFO(logger, "Set client certificate"); // NOLINT
         clientCert = make_tuple(argState.args[2], argState.args[3]);
         break;
     default:
@@ -171,19 +172,20 @@ int main(int argc, char *argv[])
     if(clientCert)
     {
         auto data = clientCert.value();
-        LOG4CPLUS_TRACE(logger, "Public key file: " << get<0>(data));
-        LOG4CPLUS_TRACE(logger, "Private key file: " << get<1>(data));
+        LOG4CPLUS_TRACE(logger, "Public key file: " << get<0>(data)); // NOLINT
+        LOG4CPLUS_TRACE(logger, "Private key file: " << get<1>(data)); // NOLINT
     }
     else
-        LOG4CPLUS_TRACE(logger, "Client-side cert not set");
+        LOG4CPLUS_TRACE(logger, "Client-side cert not set"); // NOLINT
 
     ServerSide s;
     if(s.connect(stoi(argState.args[0]), argState.args[1], clientCert))
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_INFO(logger, "Connected to " << argState.args[1] << ":" <<
             argState.args[0]);
 
-        LOG4CPLUS_INFO(logger, "Send data to server");
+        LOG4CPLUS_INFO(logger, "Send data to server"); // NOLINT
         const char msg[] = "GET / HTTP/1.1\r\nHost: www.example.com\r\n\r\n";
         if(s.writeData(&msg[0], sizeof(msg)) == SocketInfo::OP_STATUS::SUCCESS)
         {
@@ -196,20 +198,22 @@ int main(int argc, char *argv[])
                 {
                     readLen = s.readData(buf.get(), msgSize);
                     if(readLen == SocketInfo::OP_STATUS::SUCCESS)
-                        LOG4CPLUS_INFO(logger, "Data read: " << string(buf.get(), msgSize) << "Length: " << msgSize);
+                        // NOLINTNEXTLINE
+                        LOG4CPLUS_INFO(logger, "Data read: " <<
+                            string(buf.get(), msgSize) << "Length: " << msgSize);
                 }
                 else // Break on signal
                     break;
             }while(readLen == SocketInfo::OP_STATUS::SUCCESS);
 
-            LOG4CPLUS_INFO(logger, "No more data");
+            LOG4CPLUS_INFO(logger, "No more data"); // NOLINT
         }
         else
-            LOG4CPLUS_ERROR(logger, "Failed to send data to server");
+            LOG4CPLUS_ERROR(logger, "Failed to send data to server"); // NOLINT
     }
     else
     {
-        LOG4CPLUS_ERROR(logger, "Failed to connect to " <<
+        LOG4CPLUS_ERROR(logger, "Failed to connect to " << // NOLINT
             argState.args[1] << ":" << argState.args[0]);
     }
 

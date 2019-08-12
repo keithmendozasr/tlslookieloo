@@ -29,6 +29,13 @@ namespace tlslookieloo
 class Wrapper
 {
 public:
+    Wrapper() = default;
+    Wrapper(const Wrapper &) = default;
+    Wrapper(Wrapper &&) = default;
+    Wrapper &operator =(const Wrapper &) = default;
+    Wrapper &operator =(Wrapper &&) = default;
+    virtual ~Wrapper(){};
+
     /**
      * Wrap POSIX select()
      */

@@ -76,6 +76,11 @@ public:
     Target & operator = (Target && rhs);
 
     /**
+     * Destructor
+     */
+    virtual ~Target(){}
+
+    /**
      * Start listening for client-side
      */
     void start();
@@ -86,7 +91,7 @@ public:
     static void stop()
     {
         auto logger = log4cplus::Logger::getInstance("Target");
-        LOG4CPLUS_INFO(logger, "Stopping target handling");
+        LOG4CPLUS_INFO(logger, "Stopping target handling"); // NOLINT
         keepRunning = false;
     }
 

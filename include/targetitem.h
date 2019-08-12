@@ -22,7 +22,7 @@
 namespace tlslookieloo
 {
 
-typedef struct _TargetItem
+typedef struct _TargetItem // NOLINT
 {
     std::string name;           ///< name
     std::string serverHost;     ///< server-side host

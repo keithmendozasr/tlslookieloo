@@ -30,13 +30,14 @@ using namespace std;
 namespace tlslookieloo
 {
 
-MATCHER_P(IsVoidEqStr, str, "")
+MATCHER_P(IsVoidEqStr, str, "") // NOLINT
 {
     return string(static_cast<const char*>(arg)) == str;
 }
 
-MATCHER_P2(IsFdSet, clientFd, serverFd, "fd is set")
+MATCHER_P2(IsFdSet, clientFd, serverFd, "fd is set") // NOLINT
 {
+    // NOLINTNEXTLINE
     return arg != nullptr && FD_ISSET(clientFd, arg) && FD_ISSET(serverFd, arg);
 }
 
@@ -65,7 +66,7 @@ protected:
     }
 };
 
-TEST_F(TargetTest, waitForReadableTimeout)
+TEST_F(TargetTest, waitForReadableTimeout) // NOLINT
 {
     client.setSocket(4);
     server.setSocket(5);
@@ -80,7 +81,7 @@ TEST_F(TargetTest, waitForReadableTimeout)
     EXPECT_EQ(0u, t.waitForReadable(client, server).size());
 }
 
-TEST_F(TargetTest, waitForReadableClient)
+TEST_F(TargetTest, waitForReadableClient) // NOLINT
 {
     client.setSocket(4);
     server.setSocket(5);
@@ -102,7 +103,7 @@ TEST_F(TargetTest, waitForReadableClient)
     EXPECT_EQ(Target::READREADYSTATE::CLIENT_READY, testVal[0]);
 }
 
-TEST_F(TargetTest, waitForReadableServer)
+TEST_F(TargetTest, waitForReadableServer) // NOLINT
 {
     client.setSocket(4);
     server.setSocket(5);
@@ -124,7 +125,7 @@ TEST_F(TargetTest, waitForReadableServer)
     EXPECT_EQ(Target::READREADYSTATE::SERVER_READY, testVal[0]);
 }
 
-TEST_F(TargetTest, waitForReadableInterrupted)
+TEST_F(TargetTest, waitForReadableInterrupted) // NOLINT
 {
     {
         client.setSocket(4);
@@ -157,7 +158,7 @@ TEST_F(TargetTest, waitForReadableInterrupted)
     }
 }
 
-TEST_F(TargetTest, waitForReadableError)
+TEST_F(TargetTest, waitForReadableError) // NOLINT
 {
     client.setSocket(4);
     server.setSocket(5);
@@ -170,10 +171,10 @@ TEST_F(TargetTest, waitForReadableError)
     errno = EBADF;
 
     Target t(mock);
-    EXPECT_THROW(t.waitForReadable(client, server), system_error);
+    EXPECT_THROW(t.waitForReadable(client, server), system_error); // NOLINT
 }
 
-TEST_F(TargetTest, storeMessageClient)
+TEST_F(TargetTest, storeMessageClient) // NOLINT
 {
     string expectMsg("===BEGIN client-->server===\nTesting<00>\n===END===\n");
     EXPECT_CALL((*mock),
@@ -183,11 +184,11 @@ TEST_F(TargetTest, storeMessageClient)
 
     Target t(mock);
     auto payload = "Testing";
-    EXPECT_NO_THROW(
+    EXPECT_NO_THROW( // NOLINT
         t.storeMessage(payload, sizeof(payload), t.MSGOWNER::CLIENT));
 }
 
-TEST_F(TargetTest, storeMessageServer)
+TEST_F(TargetTest, storeMessageServer) // NOLINT
 {
     string expectMsg("===BEGIN server-->client===\nTesting<00>\n===END===\n");
     EXPECT_CALL((*mock),
@@ -196,11 +197,11 @@ TEST_F(TargetTest, storeMessageServer)
 
     Target t(mock);
     auto payload = "Testing";
-    EXPECT_NO_THROW(
+    EXPECT_NO_THROW( // NOLINT
         t.storeMessage(payload, sizeof(payload), t.MSGOWNER::SERVER));
 }
 
-TEST_F(TargetTest, storeMessageBinary)
+TEST_F(TargetTest, storeMessageBinary) // NOLINT
 {
     string expectMsg("===BEGIN server-->client===\n<00><7f><10>\n===END===\n");
     EXPECT_CALL((*mock),
@@ -209,23 +210,23 @@ TEST_F(TargetTest, storeMessageBinary)
 
     Target t(mock);
     char payload[] = { 0x0, 0x7f, 0x10 };
-    EXPECT_NO_THROW(
+    EXPECT_NO_THROW( // NOLINT
         t.storeMessage(payload, sizeof(payload), t.MSGOWNER::SERVER));
 }
 
-TEST_F(TargetTest, storeMessageNullPtr)
+TEST_F(TargetTest, storeMessageNullPtr) // NOLINT
 {
     EXPECT_CALL((*mock),
         ostream_write(_, _, _))
         .Times(0);
 
     Target t(mock);
-    EXPECT_THROW(
+    EXPECT_THROW( // NOLINT
         t.storeMessage(nullptr, 1, t.MSGOWNER::CLIENT),
         logic_error);
 }
 
-TEST_F(TargetTest, messageRelayGood)
+TEST_F(TargetTest, messageRelayGood) // NOLINT
 {
     {
         InSequence s;
@@ -233,10 +234,11 @@ TEST_F(TargetTest, messageRelayGood)
         EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 1024))
             .WillOnce(DoAll(WithArg<1>(Invoke(
                 [expectData](void *ptr){
-                    memcpy(ptr, expectData, sizeof(expectData));
+                    memcpy(ptr, &expectData[0], sizeof(expectData));
                 })),
                 Return(sizeof(expectData))));
 
+        // NOLINTNEXTLINE
         EXPECT_CALL((*mock), SSL_write(NotNull(), IsVoidEqStr(expectData), sizeof(expectData)))
             .WillOnce(Return(sizeof(expectData)));
 
@@ -251,13 +253,13 @@ TEST_F(TargetTest, messageRelayGood)
     EXPECT_TRUE(obj.messageRelay(client, server, Target::MSGOWNER::CLIENT));
 }
 
-TEST_F(TargetTest, messageRelayRemoteDisconnect)
+TEST_F(TargetTest, messageRelayRemoteDisconnect) // NOLINT
 {
     const char expectData[] = "abc";
     EXPECT_CALL((*mock), SSL_read(_, _, _))
         .WillRepeatedly(DoAll(WithArg<1>(Invoke(
             [expectData](void *ptr){
-                memcpy(ptr, expectData, 4);
+                memcpy(ptr, &expectData[0], 4);
             })),
             Return(4)));
 

@@ -30,9 +30,9 @@ using namespace std;
 namespace tlslookieloo
 {
 
-MATCHER_P(IsFdSet, fd, "fd is set")
+MATCHER_P(IsFdSet, fd, "fd is set") // NOLINT
 {
-    return arg != nullptr && FD_ISSET(fd, arg);
+    return arg != nullptr && FD_ISSET(fd, arg); // NOLINT
 }
 
 class ServerSideTest : public ::testing::Test
@@ -55,17 +55,17 @@ protected:
     }
 };
 
-TEST_F(ServerSideTest, socketReadyGood)
+TEST_F(ServerSideTest, socketReadyGood) // NOLINT
 {
     EXPECT_CALL(
         (*mock),
         select(5, IsNull(), IsFdSet(fd), IsNull(), NotNull())
     ).WillOnce(Return(1));
 
-    EXPECT_NO_THROW(EXPECT_TRUE(client.socketReady()));
+    EXPECT_NO_THROW(EXPECT_TRUE(client.socketReady())); // NOLINT
 }
 
-TEST_F(ServerSideTest, socketReadyBadFd)
+TEST_F(ServerSideTest, socketReadyBadFd) // NOLINT
 {
     EXPECT_CALL(
         (*mock),
@@ -77,17 +77,17 @@ TEST_F(ServerSideTest, socketReadyBadFd)
         })),
         Return(-1)));
 
-    EXPECT_THROW(client.socketReady(), system_error);
+    EXPECT_THROW(client.socketReady(), system_error); // NOLINT
 }
 
-TEST_F(ServerSideTest, socketReadyTimeout)
+TEST_F(ServerSideTest, socketReadyTimeout) // NOLINT
 {
     EXPECT_CALL(
         (*mock),
         select(5, IsNull(), IsFdSet(fd), IsNull(), NotNull())
     ).WillOnce(Return(0));
 
-    EXPECT_NO_THROW(EXPECT_FALSE(client.socketReady()));
+    EXPECT_NO_THROW(EXPECT_FALSE(client.socketReady())); // NOLINT
 }
 
 } //namespace tlslookieloo

@@ -30,6 +30,7 @@ using namespace log4cplus;
 
 namespace tlslookieloo
 {
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 SocketInfo::SocketInfo(shared_ptr<Wrapper> wrapper) :
     wrapper(wrapper)
 {}
@@ -99,14 +100,14 @@ const bool SocketInfo::resolveHostPort(const unsigned int &port, const string &h
 
     bool retVal = true;
     int rv;
-    struct addrinfo hints;
+    struct addrinfo hints; // NOLINT
 
-    memset(&hints, 0, sizeof hints);
+    memset(&hints, 0, sizeof hints); // NOLINT
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE; // use my IP
 
-    LOG4CPLUS_TRACE(logger, "Getting address info");
+    LOG4CPLUS_TRACE(logger, "Getting address info"); // NOLINT
     struct addrinfo *tmp;
     rv = getaddrinfo(
         (host.size() ? host.c_str() : nullptr),
@@ -114,14 +115,15 @@ const bool SocketInfo::resolveHostPort(const unsigned int &port, const string &h
         &hints, &tmp);
     if (rv != 0)
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_DEBUG(logger, "Failed to resolve host. " << gai_strerror(rv));
         retVal = false;
     }
     else
     {
-        LOG4CPLUS_DEBUG(logger, "Hostname and port info resolved");
+        LOG4CPLUS_DEBUG(logger, "Hostname and port info resolved"); // NOLINT
         servInfo = shared_ptr<struct addrinfo>(tmp, &freeaddrinfo);
-        LOG4CPLUS_TRACE(logger, "servInfo set: " <<
+        LOG4CPLUS_TRACE(logger, "servInfo set: " << // NOLINT
             (servInfo ? "yes" : "no"));
         sockAddr = nextServ = servInfo.get();
     }
@@ -131,7 +133,7 @@ const bool SocketInfo::resolveHostPort(const unsigned int &port, const string &h
 
 void SocketInfo::initNextSocket()
 {
-    LOG4CPLUS_TRACE(logger,
+    LOG4CPLUS_TRACE(logger, // NOLINT
         "Value of servInfo at start: " << servInfo.get() <<
         " nextServ: " << nextServ
     );
@@ -142,13 +144,14 @@ void SocketInfo::initNextSocket()
     else if(nextServ == nullptr)
         throw range_error("No more resolved IP's to try");
     else
-        LOG4CPLUS_TRACE(logger, "Initialize socket");
+        LOG4CPLUS_TRACE(logger, "Initialize socket"); // NOLINT
 
     sockAddr = nextServ;
     saveSocketIP(
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<const struct sockaddr_storage *>(sockAddr->ai_addr)
     );
-    LOG4CPLUS_TRACE(logger, "Attempt to get socket");
+    LOG4CPLUS_TRACE(logger, "Attempt to get socket"); // NOLINT
     sockfd = shared_ptr<int>(new int(socket(sockAddr->ai_family,
         sockAddr->ai_socktype | SOCK_NONBLOCK, sockAddr->ai_protocol)),
         SockfdDeleter()
@@ -158,16 +161,16 @@ void SocketInfo::initNextSocket()
         int err = errno;
         char buf[256];
         char *errmsg = strerror_r(err, &buf[0], 256);
-        LOG4CPLUS_TRACE(logger, "Value of err: " << err << " String: " <<
+        LOG4CPLUS_TRACE(logger, "Value of err: " << err << " String: " << // NOLINT
             errmsg);
         throw runtime_error(string("Failed to get socket fd: ") + errmsg);
     }
     else
     {
-        LOG4CPLUS_DEBUG(logger, "Socket ready");
+        LOG4CPLUS_DEBUG(logger, "Socket ready"); // NOLINT
         nextServ = sockAddr->ai_next;
     }
-    LOG4CPLUS_TRACE(logger, "Value of nextServ: "<<nextServ);
+    LOG4CPLUS_TRACE(logger, "Value of nextServ: "<<nextServ); // NOLINT
 }
 
 void SocketInfo::saveSocketIP(const sockaddr_storage *addrInfo)
@@ -179,30 +182,32 @@ void SocketInfo::saveSocketIP(const sockaddr_storage *addrInfo)
 
     if(addrInfo->ss_family == AF_INET)
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__ << " ai_family is AF_INET");
         bufSize = INET_ADDRSTRLEN;
         const struct sockaddr_in *t =
-            reinterpret_cast<const struct sockaddr_in *>(addrInfo);
-        addrPtr = const_cast<void *>(
-            reinterpret_cast<const void *>(&(t->sin_addr)));
+            reinterpret_cast<const struct sockaddr_in *>(addrInfo); // NOLINT
+        addrPtr = const_cast<void *>( // NOLINT
+            reinterpret_cast<const void *>(&(t->sin_addr))); // NOLINT
         af = t->sin_family;
     }
     else if(addrInfo->ss_family == AF_INET6)
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__ << " ai_family is AF_INET6");
         bufSize = INET6_ADDRSTRLEN;
         const struct sockaddr_in6 *t =
-            reinterpret_cast<const struct sockaddr_in6 *>(addrInfo);
-        addrPtr = const_cast<void *>(
-            reinterpret_cast<const void *>(&(t->sin6_addr)));
+            reinterpret_cast<const struct sockaddr_in6 *>(addrInfo); // NOLINT
+        addrPtr = const_cast<void *>( // NOLINT
+            reinterpret_cast<const void *>(&(t->sin6_addr))); // NOLINT
         af = t->sin6_family;
     }
     else
         throw invalid_argument("Unexpected sa_family value");
 
     auto buf = make_unique<char[]>(bufSize);
-    LOG4CPLUS_TRACE(logger, "Value of af: " << af);
-    LOG4CPLUS_TRACE(logger, "Value of bufSize: " << bufSize);
+    LOG4CPLUS_TRACE(logger, "Value of af: " << af); // NOLINT
+    LOG4CPLUS_TRACE(logger, "Value of bufSize: " << bufSize); // NOLINT
     if(inet_ntop(af, addrPtr, buf.get(), bufSize)
         == nullptr)
     {
@@ -211,37 +216,37 @@ void SocketInfo::saveSocketIP(const sockaddr_storage *addrInfo)
     }
 
     socketIP = make_optional(string(buf.get(), bufSize));
-    LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__<<" Value of ip: "<< socketIP.value());
+    LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__<<" Value of ip: "<< socketIP.value()); // NOLINT
 }
 
 const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt, const bool withTimeout)
 {
     fd_set monitorFd;
     FD_ZERO(&monitorFd);
-    FD_SET(*sockfd, &monitorFd);
+    FD_SET(*sockfd, &monitorFd); // NOLINT
     fd_set *readFds, *writeFds;
 
     OP_STATUS retVal = OP_STATUS::INITIALIZED;
     readFds = writeFds = nullptr;
 
     auto code = wrapper->SSL_get_error(getSSLPtr(), rslt);
-    LOG4CPLUS_TRACE(logger, "Code: " << code);
+    LOG4CPLUS_TRACE(logger, "Code: " << code); // NOLINT
     switch(code)
     {
     case SSL_ERROR_NONE:
         throw logic_error("Cannot retry operation on SSL_ERROR_NONE");
         break;
     case SSL_ERROR_WANT_READ:
-        LOG4CPLUS_DEBUG(logger, "Wait for socket to be readable");
+        LOG4CPLUS_DEBUG(logger, "Wait for socket to be readable"); // NOLINT
         readFds = &monitorFd;
         break;
     case SSL_ERROR_WANT_WRITE:
-        LOG4CPLUS_DEBUG(logger, "Wait for socket to be writable");
+        LOG4CPLUS_DEBUG(logger, "Wait for socket to be writable"); // NOLINT
         writeFds = &monitorFd;
         break;
     case SSL_ERROR_ZERO_RETURN:
         // Handle case of an orderly shutdown from remote
-        LOG4CPLUS_DEBUG(logger, "Remote side closed TLS connection");
+        LOG4CPLUS_DEBUG(logger, "Remote side closed TLS connection"); // NOLINT
         retVal = OP_STATUS::DISCONNECTED;
         break;
     case SSL_ERROR_SYSCALL:
@@ -251,7 +256,7 @@ const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt, const bool 
             // someone pulled the network cable
             if(err == 0)
             {
-                LOG4CPLUS_DEBUG(logger, "Socket connection lost");
+                LOG4CPLUS_DEBUG(logger, "Socket connection lost"); // NOLINT
                 retVal = OP_STATUS::DISCONNECTED;
             }
             else
@@ -278,10 +283,11 @@ const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt, const bool 
     // Error was either SSL_ERROR_WANT_READ or SSL_ERROR_WANT_WRITE
     if(retVal == OP_STATUS::INITIALIZED)
     {
-        LOG4CPLUS_DEBUG(logger, "Wait for socket to be ready");
+        LOG4CPLUS_DEBUG(logger, "Wait for socket to be ready"); // NOLINT
         unique_ptr<timeval> waitTime = nullptr;
         if(withTimeout)
         {
+            // NOLINTNEXTLINE
             LOG4CPLUS_TRACE(logger, "Setting timeout to " << timeout << " seconds");
             waitTime = unique_ptr<timeval>(new timeval);
             if(!waitTime)
@@ -299,7 +305,7 @@ const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt, const bool 
         case -1:
             {
                 auto err = errno;
-                LOG4CPLUS_TRACE(logger, "Error code: " << err << ": "
+                LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
                     << strerror(err));
                 if(err != 0 && err != EINTR)
                 {
@@ -308,19 +314,19 @@ const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt, const bool 
                 }
                 else
                 {
-                    LOG4CPLUS_DEBUG(logger, "Caught signal");
+                    LOG4CPLUS_DEBUG(logger, "Caught signal"); // NOLINT
                     retVal = OP_STATUS::INTERRUPTED;
                 }
             }
             break;
         case 0:
-            LOG4CPLUS_DEBUG(logger, "Wait time expired");
+            LOG4CPLUS_DEBUG(logger, "Wait time expired"); // NOLINT
             retVal = OP_STATUS::TIMEOUT;
             break;
         default:
-            if(FD_ISSET(*sockfd, &monitorFd))
+            if(FD_ISSET(*sockfd, &monitorFd)) // NOLINT
             {
-                LOG4CPLUS_DEBUG(logger, "Socket ready for reading");
+                LOG4CPLUS_DEBUG(logger, "Socket ready for reading"); // NOLINT
                 retVal = OP_STATUS::SUCCESS;
             }
             else
@@ -331,7 +337,7 @@ const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt, const bool 
         }
     }
     else
-        LOG4CPLUS_DEBUG(logger, "No need to wait for socket");
+        LOG4CPLUS_DEBUG(logger, "No need to wait for socket"); // NOLINT
 
     return retVal;
 }
@@ -346,17 +352,17 @@ const SocketInfo::OP_STATUS SocketInfo::readData(char *data, size_t &dataSize)
     do
     {
         auto rslt = wrapper->SSL_read(ptr, data, dataSize);
-        LOG4CPLUS_TRACE(logger, "SSL_read return: " << rslt);
+        LOG4CPLUS_TRACE(logger, "SSL_read return: " << rslt); // NOLINT
         if(rslt > 0)
         {
             shouldRetry = false;
             dataSize = rslt;
             retVal = OP_STATUS::SUCCESS;
-            LOG4CPLUS_DEBUG(logger, "Read " << dataSize << " bytes of data");
+            LOG4CPLUS_DEBUG(logger, "Read " << dataSize << " bytes of data"); // NOLINT
         }
         else if(wrapper->SSL_get_error(ptr, rslt) == SSL_ERROR_WANT_READ)
         {
-            LOG4CPLUS_DEBUG(logger, "No application data available");
+            LOG4CPLUS_DEBUG(logger, "No application data available"); // NOLINT
             dataSize = 0;
             retVal = OP_STATUS::SUCCESS;
             shouldRetry = false;
@@ -365,10 +371,10 @@ const SocketInfo::OP_STATUS SocketInfo::readData(char *data, size_t &dataSize)
         {
             retVal = handleRetry(rslt);
             if(retVal == OP_STATUS::SUCCESS)
-                LOG4CPLUS_DEBUG(logger, "Retry reading data");
+                LOG4CPLUS_DEBUG(logger, "Retry reading data"); // NOLINT
             else
             {
-                LOG4CPLUS_DEBUG(logger, "Stop attempts to read data");
+                LOG4CPLUS_DEBUG(logger, "Stop attempts to read data"); // NOLINT
                 shouldRetry = false;
             }
         }
@@ -387,21 +393,21 @@ const SocketInfo::OP_STATUS SocketInfo::writeData(const char *msg, const size_t 
     do
     {
         auto rslt = wrapper->SSL_write(ptr, msg, msgSize);
-        LOG4CPLUS_TRACE(logger, "SSL_write return: " << rslt);
+        LOG4CPLUS_TRACE(logger, "SSL_write return: " << rslt); // NOLINT
         if(rslt <= 0)
         {
             retVal = handleRetry(rslt);
             if(retVal == OP_STATUS::SUCCESS)
-                LOG4CPLUS_DEBUG(logger, "Retry writing data");
+                LOG4CPLUS_DEBUG(logger, "Retry writing data"); // NOLINT
             else
             {
-                LOG4CPLUS_DEBUG(logger, "Stop attempts to write data");
+                LOG4CPLUS_DEBUG(logger, "Stop attempts to write data"); // NOLINT
                 shouldRetry = false;
             }
         }
         else
         {
-            LOG4CPLUS_DEBUG(logger, to_string(msgSize) <<
+            LOG4CPLUS_DEBUG(logger, to_string(msgSize) << // NOLINT
                 " sent over the wire");
             shouldRetry = false;
             retVal = OP_STATUS::SUCCESS;
@@ -420,21 +426,21 @@ void SocketInfo::newSSLCtx()
     if(!sslCtx)
     {
         const string msg = sslErrMsg("Failed to create SSL context. Cause: ");
-        LOG4CPLUS_ERROR(logger, msg);
+        LOG4CPLUS_ERROR(logger, msg); // NOLINT
         throw bad_alloc();
     }
     else
-        LOG4CPLUS_TRACE(logger, "Context object created");
+        LOG4CPLUS_TRACE(logger, "Context object created"); // NOLINT
 
     if(SSL_CTX_set_min_proto_version(sslCtx.get(), SSL3_VERSION) != 1)
     {
         const string msg = sslErrMsg("Failed to set minimum SSL version. Cause: ");
-        LOG4CPLUS_ERROR(logger, msg);
+        LOG4CPLUS_ERROR(logger, msg); // NOLINT
         logSSLErrorStack();
         throw logic_error(msg);
     }
     else
-        LOG4CPLUS_TRACE(logger, "Minimum version set to SSL v3");
+        LOG4CPLUS_TRACE(logger, "Minimum version set to SSL v3"); // NOLINT
 }
 
 void SocketInfo::newSSLObj()
@@ -443,16 +449,16 @@ void SocketInfo::newSSLObj()
     if(!sslObj)
     {
         const string msg = sslErrMsg("Failed to create SSL instance. Cause: ");
-        LOG4CPLUS_ERROR(logger, msg);
+        LOG4CPLUS_ERROR(logger, msg); // NOLINT
         throw bad_alloc();
     }
     else
-        LOG4CPLUS_TRACE(logger, "SSL object created");
+        LOG4CPLUS_TRACE(logger, "SSL object created"); // NOLINT
 }
 
 void SocketInfo::logSSLErrorStack()
 {
-    LOG4CPLUS_ERROR(logger, "SSL error encountered. Error stack");
+    LOG4CPLUS_ERROR(logger, "SSL error encountered. Error stack"); // NOLINT
     unsigned long errCode;
     do
     {
@@ -460,7 +466,7 @@ void SocketInfo::logSSLErrorStack()
         if(errCode != 0)
         {
             const char *msg = ERR_reason_error_string(errCode);
-            LOG4CPLUS_ERROR(logger, "\t" <<
+            LOG4CPLUS_ERROR(logger, "\t" << // NOLINT
                 (msg != nullptr ? msg : "Code " + to_string(errCode)));
         }
     } while(errCode != 0);

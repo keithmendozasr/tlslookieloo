@@ -35,7 +35,7 @@ using namespace log4cplus;
 /**
  * Used in argp_parser to hold arg state
  */
-struct ArgState
+struct ArgState // NOLINT
 {
     optional<string> logconfig;
     char *args[4];
@@ -50,7 +50,8 @@ struct ArgState
  */
 static error_t parseArgs(int key, char *arg, struct argp_state *state)
 {
-    struct ArgState *argState = reinterpret_cast<ArgState *>(state->input);
+    struct ArgState *argState = reinterpret_cast<ArgState *>(state->input); // NOLINT
+    // NOLINTNEXTLINE
     LOG4CPLUS_DEBUG(argState->logger, "Value of key: " << hex << key);
     switch(key)
     {
@@ -67,7 +68,7 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
             argp_usage(state);
         
         // Save the argument
-        argState->args[state->arg_num] = arg;
+        argState->args[state->arg_num] = arg; // NOLINT
         break;
     case ARGP_KEY_END:
         if(state->arg_num < argState->expectArgs)
@@ -88,7 +89,7 @@ bool keepRunning = true;
 void sigHandler(int sig)
 {
 	Logger logger = Logger::getRoot();
-	LOG4CPLUS_INFO(logger, "Stopping program");
+	LOG4CPLUS_INFO(logger, "Stopping program"); // NOLINT
 	keepRunning = false;
 }
 
@@ -99,17 +100,17 @@ bool waitSocketReadable(const int sockFd)
 
     fd_set readFd;
     FD_ZERO(&readFd);
-    FD_SET(sockFd, &readFd);
+    FD_SET(sockFd, &readFd); // NOLINT
 
     auto maxSocket = sockFd + 1;
 
-    LOG4CPLUS_TRACE(logger, "Wait for one side to be ready");
+    LOG4CPLUS_TRACE(logger, "Wait for one side to be ready"); // NOLINT
     auto rslt = select(maxSocket+1, &readFd, nullptr, nullptr, nullptr);
-    LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt);
+    LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt); // NOLINT
     if(rslt <= 0)
     {
         auto err = errno;
-        LOG4CPLUS_TRACE(logger, "Error code: " << err << ": "
+        LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
             << strerror(err));
         if(err != 0 && err != EINTR)
         {
@@ -117,11 +118,11 @@ bool waitSocketReadable(const int sockFd)
                 "Error waiting for socket to be ready for reading.");
         }
         else
-            LOG4CPLUS_DEBUG(logger, "Caught signal");
+            LOG4CPLUS_DEBUG(logger, "Caught signal"); // NOLINT
     }
-    else if(FD_ISSET(sockFd, &readFd))
+    else if(FD_ISSET(sockFd, &readFd)) // NOLINT
     {
-        LOG4CPLUS_DEBUG(logger, "Client ready for reading");
+        LOG4CPLUS_DEBUG(logger, "Client ready for reading"); // NOLINT
         retVal = true;
     }
 
@@ -130,9 +131,9 @@ bool waitSocketReadable(const int sockFd)
 
 int main(int argc, char *argv[])
 {
-    struct sigaction sa;
-    sa.sa_handler = sigHandler;
-    sa.sa_flags = 0;
+    struct sigaction sa; // NOLINT
+    sa.sa_handler = sigHandler; // NOLINT
+    sa.sa_flags = 0; // NOLINT
     sigemptyset(&sa.sa_mask);
     if(sigaction(SIGINT, &sa, nullptr) == -1)
     {
@@ -165,13 +166,14 @@ int main(int argc, char *argv[])
 
     if(argp_parse(&argp, argc, argv, 0, nullptr, &argState))
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters");
         return -1;
     }
 
     if(argState.logconfig)
     {
-        LOG4CPLUS_DEBUG(logger, "Loading logconfig file");
+        LOG4CPLUS_DEBUG(logger, "Loading logconfig file"); // NOLINT
         logger.getHierarchy().resetConfiguration();
         PropertyConfigurator::doConfigure(argState.logconfig.value());
     }
@@ -182,24 +184,29 @@ int main(int argc, char *argv[])
         c.initializeSSLContext(argState.args[1], argState.args[2]);
         if(argState.withClientCert)
         {
-            LOG4CPLUS_INFO(logger, "Enable expecting client cert");
+            LOG4CPLUS_INFO(logger, "Enable expecting client cert"); // NOLINT
             c.loadRefClientCertPubkey(argState.args[1], argState.args[3]);
         }
 
         c.startListener(stoi(argState.args[0]), 2);
 
+        // NOLINTNEXTLINE
         LOG4CPLUS_INFO(logger, "Listening on " << argState.args[0]);
+
         while(keepRunning)
         {
             auto client = c.acceptClient();
             try
             {
+                // NOLINTNEXTLINE
                 LOG4CPLUS_INFO(logger, "Got client " << client.getSocketIP() << " with FD: "
                     << client.getSocket());
             }
             catch(const bad_optional_access &e)
             {
-                LOG4CPLUS_WARN(logger, "Unable to get IP or socket data of connecting client");
+                // NOLINTNEXTLINE
+                LOG4CPLUS_WARN(logger,
+                    "Unable to get IP or socket data of connecting client");
             }
 
             if(client.sslHandshake())
@@ -215,11 +222,12 @@ int main(int argc, char *argv[])
                         {
                             if(bufSize > 0)
                             {
-                                LOG4CPLUS_INFO(logger, "Data from server: " <<
+                                LOG4CPLUS_INFO(logger, "Data from server: " << // NOLINT
                                     string(buf.get(), bufSize));
                                 client.writeData("Bye", 4);
                             }
                             else
+                                // NOLINTNEXTLINE
                                 LOG4CPLUS_INFO(logger, "No data received from remote end");
                         }
                         else
@@ -229,21 +237,24 @@ int main(int argc, char *argv[])
                         break;
                 }
 
-                LOG4CPLUS_INFO(logger, "Client went away");
+                LOG4CPLUS_INFO(logger, "Client went away"); // NOLINT
             }
             else
-                LOG4CPLUS_ERROR(logger, "SSL handshake failed");
+                LOG4CPLUS_ERROR(logger, "SSL handshake failed"); // NOLINT
         }
     }
     catch(const runtime_error &e)
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "Error encountered testing ClientSide. Cause: " <<
             e.what());
         return 1;
     }
     catch(const logic_error &e)
     {
-        LOG4CPLUS_ERROR(logger, "Logic error encountere testing ClientSide. Cause: " <<
+        // NOLINTNEXTLINE
+        LOG4CPLUS_ERROR(logger,
+            "Logic error encountere testing ClientSide. Cause: " <<
             e.what());
     }
 

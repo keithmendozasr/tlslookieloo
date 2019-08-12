@@ -32,8 +32,9 @@ using ::testing::MatchesRegex;
 namespace tlslookieloo
 {
 
-TEST(parseTargetsFile, goodFile)
+TEST(parseTargetsFile, goodFile) // NOLINT
 {
+    // NOLINTNEXTLINE
     EXPECT_NO_THROW({
         auto retVal = parseTargetsFile(tgtFilesPath + "/good_targets.yaml");
         EXPECT_EQ(retVal.size(), 2u);
@@ -60,7 +61,7 @@ TEST(parseTargetsFile, goodFile)
     });
 }
 
-TEST(parseTargetsFile, missingname)
+TEST(parseTargetsFile, missingname) // NOLINT
 {
     try
     {
@@ -76,7 +77,7 @@ TEST(parseTargetsFile, missingname)
     }
 }
 
-TEST(parseTargetsFile, missingclientport)
+TEST(parseTargetsFile, missingclientport) // NOLINT
 {
     try
     {
@@ -93,7 +94,7 @@ TEST(parseTargetsFile, missingclientport)
     }
 }
 
-TEST(parseTargetsFile, missingclientcert)
+TEST(parseTargetsFile, missingclientcert) // NOLINT
 {
     try
     {
@@ -110,7 +111,7 @@ TEST(parseTargetsFile, missingclientcert)
     }
 }
 
-TEST(parseTargetsFile, missingserverport)
+TEST(parseTargetsFile, missingserverport) // NOLINT
 {
     try
     {
@@ -127,7 +128,7 @@ TEST(parseTargetsFile, missingserverport)
     }
 }
 
-TEST(parseTargetsFile, missingserverhost)
+TEST(parseTargetsFile, missingserverhost) // NOLINT
 {
     try
     {
@@ -144,7 +145,7 @@ TEST(parseTargetsFile, missingserverhost)
     }
 }
 
-TEST(parseTargetsFile, missingrecordfile)
+TEST(parseTargetsFile, missingrecordfile) // NOLINT
 {
     try
     {
@@ -161,8 +162,9 @@ TEST(parseTargetsFile, missingrecordfile)
     }
 }
 
-TEST(parseTargetsFile, withclientkey)
+TEST(parseTargetsFile, withclientkey) // NOLINT
 {
+    // NOLINTNEXTLINE
     EXPECT_NO_THROW({
         auto retVal = parseTargetsFile(tgtFilesPath + "/withclientkey.yaml");
         auto item = retVal[0];
@@ -170,7 +172,7 @@ TEST(parseTargetsFile, withclientkey)
     });
 }
 
-TEST(parseTargetsFile, nonsequence)
+TEST(parseTargetsFile, nonsequence) // NOLINT
 {
     try
     {
@@ -187,8 +189,9 @@ TEST(parseTargetsFile, nonsequence)
     }
 }
 
-TEST(parseTargetsFile, noclientauth)
+TEST(parseTargetsFile, noclientauth) // NOLINT
 {
+    // NOLINTNEXTLINE
     EXPECT_NO_THROW({
         auto retVal = parseTargetsFile(tgtFilesPath + "/good_targets.yaml");
         auto item = retVal[0];
@@ -197,8 +200,9 @@ TEST(parseTargetsFile, noclientauth)
     });
 }
 
-TEST(parseTargetsFile, clientauthfull)
+TEST(parseTargetsFile, clientauthfull) // NOLINT
 {
+    // NOLINTNEXTLINE
     EXPECT_NO_THROW({
         auto retVal = parseTargetsFile(tgtFilesPath + "/clientauth_full.yaml");
         auto item = retVal[0];
@@ -208,8 +212,9 @@ TEST(parseTargetsFile, clientauthfull)
     });
 }
 
-TEST(parseTargetsFile, clientauthminimal)
+TEST(parseTargetsFile, clientauthminimal) // NOLINT
 {
+    // NOLINTNEXTLINE
     EXPECT_NO_THROW({
         auto retVal = parseTargetsFile(tgtFilesPath + "/clientauth_minimal.yaml");
         auto item = retVal[0];
@@ -218,7 +223,7 @@ TEST(parseTargetsFile, clientauthminimal)
     });
 }
 
-TEST(parseTargetsFile, clientauthnocert)
+TEST(parseTargetsFile, clientauthnocert) // NOLINT
 {
     try
     {
@@ -249,7 +254,7 @@ TEST(parseTargetsFile, clientauthnocert)
     }
 }
 
-TEST(parseTargetsFile, clientauthnoca)
+TEST(parseTargetsFile, clientauthnoca) // NOLINT
 {
     try
     {
@@ -280,13 +285,14 @@ TEST(parseTargetsFile, clientauthnoca)
     }
 }
 
-TEST(parseTargetsFile, withtimeout)
+TEST(parseTargetsFile, withtimeout) // NOLINT
 {
-    //EXPECT_NO_THROW({
+    // NOLINTNEXTLINE
+    EXPECT_NO_THROW({
         auto retVal = parseTargetsFile(tgtFilesPath + "/withtimeout.yaml");
         auto item = retVal[0];
         EXPECT_EQ(100u, item.timeout.value());
-    //});
+    });
 }
 
 } //namespace tlslookieloo

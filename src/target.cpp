@@ -38,21 +38,16 @@ atomic_bool Target::keepRunning = true;
 Target::Target(const TargetItem &tgtItem) :
     tgtItem(tgtItem),
     wrapper(make_shared<ConcreteWrapper>())
-{
-    LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__ << " called");
-}
+{}
 
 Target::Target(const Target &rhs) :
     tgtItem(rhs.tgtItem),
     wrapper(rhs.wrapper),
     timeout(rhs.timeout)
-{
-    LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__ << " called");
-}
+{}
 
 Target & Target::operator = (const Target &rhs)
 {
-    LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__ << " called");
     tgtItem = rhs.tgtItem;
     wrapper = rhs.wrapper;
 
@@ -63,13 +58,10 @@ Target::Target(Target && rhs) :
     tgtItem(std::move(rhs.tgtItem)),
     wrapper(std::move(rhs.wrapper)),
     recordFileStream(std::move(rhs.recordFileStream))
-{
-    LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__ << " called");
-}
+{}
 
 Target & Target::operator = (Target && rhs)
 {
-    LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__ << " called");
     tgtItem = std::move(rhs.tgtItem);
     wrapper = std::move(rhs.wrapper);
     recordFileStream = std::move(rhs.recordFileStream);
@@ -80,14 +72,14 @@ Target & Target::operator = (Target && rhs)
 void Target::start()
 {
     NDCContextCreator ndc(tgtItem.name);
-    LOG4CPLUS_DEBUG(logger, "Start target handler");
+    LOG4CPLUS_DEBUG(logger, "Start target handler"); // NOLINT
 
     try
     {
         if(tgtItem.timeout)
         {
             auto val = tgtItem.timeout.value();
-            LOG4CPLUS_DEBUG(logger, "Setting timeout to " << val);
+            LOG4CPLUS_DEBUG(logger, "Setting timeout to " << val); // NOLINT
             timeout = val;
         }
 
@@ -98,34 +90,37 @@ void Target::start()
         );
         if(tgtItem.clientAuthCert)
         {
-            LOG4CPLUS_DEBUG(logger, "Expecting SSL client authentication");
+            LOG4CPLUS_DEBUG(logger, "Expecting SSL client authentication"); // NOLINT
             clientListener.loadRefClientCertPubkey(tgtItem.clientAuthCert.value(),
                 tgtItem.clientAuthCA.value());
         }
         else
-            LOG4CPLUS_TRACE(logger, "SSL client authentication not expected");
+            LOG4CPLUS_TRACE(logger, "SSL client authentication not expected"); // NOLINT
 
+        //NOLINTNEXTLINE
         LOG4CPLUS_INFO(logger, "Listening on " << tgtItem.clientPort);
         while(keepRunning)
         {
-            LOG4CPLUS_DEBUG(logger, "Wait for clientside connection");
+            LOG4CPLUS_DEBUG(logger, "Wait for clientside connection"); // NOLINT
             auto acceptRslt = clientListener.acceptClient();
-            LOG4CPLUS_INFO(logger, "Clientside connected");
+            LOG4CPLUS_INFO(logger, "Clientside connected"); // NOLINT
             handleClient(acceptRslt);
         }
     }
     catch(const runtime_error &e)
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "Error encountered handling target. Cause: " <<
             e.what());
     }
     catch(const logic_error &e)
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "Logic error encountered handling target. Cause: " <<
             e.what());
     }
 
-    LOG4CPLUS_INFO(logger, "Target " << tgtItem.name << " stopping");
+    LOG4CPLUS_INFO(logger, "Target " << tgtItem.name << " stopping"); // NOLINT
 }
 
 bool Target::messageRelay(SocketInfo &src, SocketInfo &dest, const MSGOWNER owner)
@@ -143,22 +138,25 @@ bool Target::messageRelay(SocketInfo &src, SocketInfo &dest, const MSGOWNER owne
         case SocketInfo::OP_STATUS::SUCCESS:
             if(amtRead > 0)
             {
+                // NOLINTNEXTLINE
                 LOG4CPLUS_TRACE(logger, "Data from src: " <<
                     string(buf.get(), amtRead));
                 storeMessage(buf.get(), amtRead, owner);
-                LOG4CPLUS_DEBUG(logger, "Send data to dest");
+                LOG4CPLUS_DEBUG(logger, "Send data to dest"); // NOLINT
 
                 switch(dest.writeData(buf.get(), amtRead))
                 {
                 case SocketInfo::OP_STATUS::SUCCESS:
-                    LOG4CPLUS_DEBUG(logger, "Data sent to destination");
+                    LOG4CPLUS_DEBUG(logger, "Data sent to destination"); // NOLINT
                     break;
                 case SocketInfo::OP_STATUS::TIMEOUT:
+                    // NOLINTNEXTLINE
                     LOG4CPLUS_INFO(logger,
                         "Timed-out attempting to send to destination");
                     retVal = keepReading = false;
                     break;
                 case SocketInfo::OP_STATUS::DISCONNECTED:
+                    // NOLINTNEXTLINE
                     LOG4CPLUS_INFO(logger,
                         "Destination disconnected while data being sent");
                     retVal = keepReading = false;
@@ -169,16 +167,19 @@ bool Target::messageRelay(SocketInfo &src, SocketInfo &dest, const MSGOWNER owne
             }
             else
             {
+                // NOLINTNEXTLINE
                 LOG4CPLUS_DEBUG(logger, "No more data to relay");
                 keepReading = false;
             }
             break;
         case SocketInfo::OP_STATUS::TIMEOUT:
+             // NOLINTNEXTLINE
             LOG4CPLUS_INFO(logger,
                 "Timed-out attempting to receive data from source");
             retVal = keepReading = false;
             break;
         case SocketInfo::OP_STATUS::DISCONNECTED:
+            // NOLINTNEXTLINE
             LOG4CPLUS_INFO(logger,
                 "Source disconnected while getting data");
             retVal = keepReading = false;
@@ -188,45 +189,46 @@ bool Target::messageRelay(SocketInfo &src, SocketInfo &dest, const MSGOWNER owne
         } // select(src.readData())
     } // while(keepReading)
 
-    LOG4CPLUS_DEBUG(logger, "Done sending message between source and destination");
+    LOG4CPLUS_DEBUG(logger, "Done sending message between source and destination"); // NOLINT
     return retVal;
 }
 
 void Target::handleClient(ClientSide client)
 {
-    LOG4CPLUS_INFO(logger, "Start monitoring");
+    LOG4CPLUS_INFO(logger, "Start monitoring"); // NOLINT
     client.setTimeout(timeout);
 
     if(!client.sslHandshake())
     {
-        LOG4CPLUS_INFO(logger, "SSL handshake failed");
+        LOG4CPLUS_INFO(logger, "SSL handshake failed"); // NOLINT
         return;
     }
     else
-        LOG4CPLUS_DEBUG(logger, "Client-side handshake complete");
+        LOG4CPLUS_DEBUG(logger, "Client-side handshake complete"); // NOLINT
 
     ServerSide::ClientCertInfo clientCertInfo = nullopt;
     if(tgtItem.clientAuthCert)
     {   
-        LOG4CPLUS_TRACE(logger, "Set client auth cert data");
+        LOG4CPLUS_TRACE(logger, "Set client auth cert data"); // NOLINT
         clientCertInfo = make_tuple(tgtItem.clientAuthCert.value(),
             (tgtItem.clientAuthKey ? tgtItem.clientAuthKey.value() :
                 tgtItem.clientAuthCert.value())
         );
     }
     else
-        LOG4CPLUS_TRACE(logger, "Not setting client auth cert data");
+        LOG4CPLUS_TRACE(logger, "Not setting client auth cert data"); // NOLINT
 
     ServerSide server;
     server.setTimeout(timeout);
     if(!server.connect(tgtItem.serverPort, tgtItem.serverHost, clientCertInfo))
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_INFO(logger, "Failed to connect to server " <<
             tgtItem.serverHost << ":" << tgtItem.serverPort);
         return;
     }
     else
-        LOG4CPLUS_DEBUG(logger, "Connected to server-side");
+        LOG4CPLUS_DEBUG(logger, "Connected to server-side"); // NOLINT
 
     recordFileStream.open(tgtItem.recordFile, ios_base::out | ios_base::app);
     if(!recordFileStream.is_open())
@@ -236,7 +238,7 @@ void Target::handleClient(ClientSide client)
             "Failed to open " + tgtItem.recordFile);
     }
     else
-        LOG4CPLUS_DEBUG(logger, tgtItem.recordFile << " open");
+        LOG4CPLUS_DEBUG(logger, tgtItem.recordFile << " open"); // NOLINT
 
     bool keepHandling = true;
     try
@@ -244,7 +246,9 @@ void Target::handleClient(ClientSide client)
         while(keepRunning && keepHandling)
         {
             auto readable = waitForReadable(client, server);
-            LOG4CPLUS_TRACE(logger, "Available readable items: " << readable.size());
+            // NOLINTNEXTLINE
+            LOG4CPLUS_TRACE(logger, "Available readable items: " <<
+                readable.size());
             if(readable.size())
             {
                 for(auto item : readable)
@@ -254,12 +258,13 @@ void Target::handleClient(ClientSide client)
                     case CLIENT_READY:
                         {
                             NDCContextCreator ctx("ClientToServer");
-                            LOG4CPLUS_DEBUG(logger, "Client ready for reading");
+                            LOG4CPLUS_DEBUG(logger, "Client ready for reading"); // NOLINT
                             if(messageRelay(client, server, MSGOWNER::CLIENT))
+                                // NOLINTNEXTLINE
                                 LOG4CPLUS_DEBUG(logger, "Message sent from client to server");
                             else
                             {
-                                LOG4CPLUS_DEBUG(logger, "Client-side disconnected");
+                                LOG4CPLUS_DEBUG(logger, "Client-side disconnected"); // NOLINT
                                 keepHandling = false;
                             }
                         }
@@ -267,12 +272,13 @@ void Target::handleClient(ClientSide client)
                     case SERVER_READY:
                         {
                             NDCContextCreator ctx("ServerToClient");
-                            LOG4CPLUS_TRACE(logger, "Server ready for reading");
+                            LOG4CPLUS_TRACE(logger, "Server ready for reading"); // NOLINT
                             if(messageRelay(server, client, MSGOWNER::SERVER))
+                                // NOLINTNEXTLINE
                                 LOG4CPLUS_DEBUG(logger, "Message sent from server to client");
                             else
                             {
-                                LOG4CPLUS_INFO(logger, "Server-side disconnected");
+                                LOG4CPLUS_INFO(logger, "Server-side disconnected"); // NOLINT
                                 keepHandling = false;
                             }
                         }
@@ -282,19 +288,22 @@ void Target::handleClient(ClientSide client)
             } // if(readable.size())
             else
             {
-                LOG4CPLUS_INFO(logger, "Neither side ready with message. Ending handling");
+                // NOLINTNEXTLINE
+                LOG4CPLUS_INFO(logger,
+                    "Neither side ready with message. Ending handling");
                 keepHandling = false;
             }
         } // while(keepRunning && keepHandling)
     }
     catch(const system_error &e)
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "Error encountered handling client. Cause: "
             << e.what());
     }
 
     recordFileStream.close();
-    LOG4CPLUS_INFO(logger, "Exiting");
+    LOG4CPLUS_INFO(logger, "Exiting"); // NOLINT
 }
 
 vector<Target::READREADYSTATE> Target::waitForReadable(ClientSide &client, ServerSide &server)
@@ -304,32 +313,33 @@ vector<Target::READREADYSTATE> Target::waitForReadable(ClientSide &client, Serve
     auto clientFd = client.getSocket();
     auto serverFd = server.getSocket();
 
-    LOG4CPLUS_TRACE(logger, "Client FD: " << clientFd);
-    LOG4CPLUS_TRACE(logger, "Server FD: " << serverFd);
+    LOG4CPLUS_TRACE(logger, "Client FD: " << clientFd); // NOLINT
+    LOG4CPLUS_TRACE(logger, "Server FD: " << serverFd); // NOLINT
 
     fd_set readFd;
     FD_ZERO(&readFd);
-    FD_SET(clientFd, &readFd);
-    FD_SET(serverFd, &readFd);
+    FD_SET(clientFd, &readFd); // NOLINT
+    FD_SET(serverFd, &readFd); // NOLINT
 
     auto maxSocket = max({ clientFd, serverFd });
-    LOG4CPLUS_TRACE(logger, "Value of maxSocket: " << maxSocket);
+    LOG4CPLUS_TRACE(logger, "Value of maxSocket: " << maxSocket); // NOLINT
 
-    timeval waitTime;
+    timeval waitTime; // NOLINT
+    // NOLINTNEXTLINE
     LOG4CPLUS_TRACE(logger, "Setting timeout to " << timeout << " seconds");
     waitTime.tv_sec=timeout;
     waitTime.tv_usec=0;
 
-    LOG4CPLUS_TRACE(logger, "Wait for one side to be ready");
+    LOG4CPLUS_TRACE(logger, "Wait for one side to be ready"); // NOLINT
     auto rslt = wrapper->select(maxSocket+1, &readFd, nullptr, nullptr,
         &waitTime);
-    LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt);
+    LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt); // NOLINT
     if(rslt == 0)
-        LOG4CPLUS_DEBUG(logger, "Read wait time expired");
+        LOG4CPLUS_DEBUG(logger, "Read wait time expired"); // NOLINT
     else if(rslt == -1)
     {
         auto err = errno;
-        LOG4CPLUS_TRACE(logger, "Error code: " << err << ": "
+        LOG4CPLUS_TRACE(logger, "Error code: " << err << ": " // NOLINT
             << strerror(err));
         if(err != 0 && err != EINTR)
         {
@@ -337,19 +347,19 @@ vector<Target::READREADYSTATE> Target::waitForReadable(ClientSide &client, Serve
                 "Error waiting for socket to be ready for reading.");
         }
         else
-            LOG4CPLUS_DEBUG(logger, "Caught signal");
+            LOG4CPLUS_DEBUG(logger, "Caught signal"); // NOLINT
     }
     else
     {
-        if(FD_ISSET(client.getSocket(), &readFd))
+        if(FD_ISSET(client.getSocket(), &readFd)) // NOLINT
         {
-            LOG4CPLUS_DEBUG(logger, "Client ready for reading");
+            LOG4CPLUS_DEBUG(logger, "Client ready for reading"); // NOLINT
             retVal.push_back(CLIENT_READY);
         }
 
-        if(FD_ISSET(server.getSocket(), &readFd))
+        if(FD_ISSET(server.getSocket(), &readFd)) // NOLINT
         {
-            LOG4CPLUS_DEBUG(logger, "Server ready for reading");
+            LOG4CPLUS_DEBUG(logger, "Server ready for reading"); // NOLINT
             retVal.push_back(SERVER_READY);
         }
     }
@@ -363,7 +373,7 @@ void Target::storeMessage(const char * data, const size_t &len,
     if(data == nullptr)
         throw logic_error("data is nullptr");
 
-    struct std::tm tmObj;
+    struct std::tm tmObj; // NOLINT
     time_t cTime;
     {
         lock_guard<mutex> lk(tmGuard);
@@ -376,7 +386,7 @@ void Target::storeMessage(const char * data, const size_t &len,
     char tmBuf[tmBufSize];
     strftime(&tmBuf[0], tmBufSize, "%F %T", &tmObj);
     ostringstream cleandata("===", ios_base::ate);
-    cleandata << tmBuf << " BEGIN ";
+    cleandata << &tmBuf[0] << " BEGIN ";
     switch(owner)
     {
     case MSGOWNER::CLIENT:
@@ -401,7 +411,7 @@ void Target::storeMessage(const char * data, const size_t &len,
     }
     cleandata << "\n===END===\n";
 
-    LOG4CPLUS_TRACE(logger, "Value of cleandata: " << cleandata.str());
+    LOG4CPLUS_TRACE(logger, "Value of cleandata: " << cleandata.str()); // NOLINT
     wrapper->ostream_write(recordFileStream, cleandata.str().c_str(),
         cleandata.str().size());
 }

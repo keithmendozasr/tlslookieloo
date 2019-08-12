@@ -43,7 +43,7 @@ const char *argp_program_bug_address = "keith@homepluspower.info";
 /**
  * Hold info about a running target
  */
-struct TargetRunner
+struct TargetRunner // NOLINT
 {
     std::thread::native_handle_type handle;
     std::thread runner;
@@ -59,7 +59,7 @@ vector<TargetRunner> targetThreads;
 void sigHandler(int sig)
 {
 	Logger logger = Logger::getRoot();
-	LOG4CPLUS_INFO(logger, "Stopping program");
+	LOG4CPLUS_INFO(logger, "Stopping program"); // NOLINT
 
     auto myTid = this_thread::get_id();
     Target::stop();
@@ -68,11 +68,11 @@ void sigHandler(int sig)
         auto tid = t.runner.get_id();
         if(tid != myTid)
         {
-            LOG4CPLUS_TRACE(logger, "Signaling thread " << tid);
+            LOG4CPLUS_TRACE(logger, "Signaling thread " << tid); // NOLINT
             pthread_kill(t.handle, sig);
         }
         else
-            LOG4CPLUS_TRACE(logger, "Not signaling ourself");
+            LOG4CPLUS_TRACE(logger, "Not signaling ourself"); // NOLINT
     }
 }
 
@@ -91,8 +91,8 @@ struct ArgState
  */
 static error_t parseArgs(int key, char *arg, struct argp_state *state)
 {
-    struct ArgState *argState = reinterpret_cast<ArgState *>(state->input);
-    LOG4CPLUS_DEBUG(argState->logger, "Value of key: " << hex << key);
+    struct ArgState *argState = reinterpret_cast<ArgState *>(state->input); // NOLINT
+    LOG4CPLUS_DEBUG(argState->logger, "Value of key: " << hex << key); // NOLINT
     switch(key)
     {
     case 't':
@@ -103,10 +103,11 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
         break;
     case ARGP_KEY_END:
         if(argState->targets)
-            LOG4CPLUS_DEBUG(argState->logger, "Required options set");
+            LOG4CPLUS_DEBUG(argState->logger, "Required options set"); // NOLINT
         else
         {
-                   LOG4CPLUS_ERROR(argState->logger,
+            // NOLINTNEXTLINE
+            LOG4CPLUS_ERROR(argState->logger,
                 "targets command-line option required");
             argp_usage(state);
         }
@@ -126,9 +127,10 @@ static void start(const string &targets)
     auto logger = Logger::getRoot();
     try
     {
-        LOG4CPLUS_DEBUG(logger, "Process targets files");
+        LOG4CPLUS_DEBUG(logger, "Process targets files"); // NOLINT
         for(auto item : parseTargetsFile(targets))
         {
+            // NOLINTNEXTLINE
             LOG4CPLUS_INFO(logger, "Starting " << item.name << " bridge");
             TargetRunner obj;
             obj.runner =std::thread([](TargetItem tgtItem)
@@ -142,12 +144,13 @@ static void start(const string &targets)
     }
     catch(const YAML::Exception &e)
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "Failed to parse targets file, cause: " <<
             e.what() << ". Exiting");
     }
     catch(const system_error &e)
     {
-        LOG4CPLUS_ERROR(logger, "Error encountered starting bridges");
+        LOG4CPLUS_ERROR(logger, "Error encountered starting bridges"); // NOLINT
         Target::stop();
     }
 }
@@ -157,9 +160,9 @@ int main(int argc, char *argv[])
     Initializer initializer;
     BasicConfigurator::doConfigure();
 
-    struct sigaction sa;
-    sa.sa_handler = sigHandler;
-    sa.sa_flags = 0;
+    struct sigaction sa; // NOLINT
+    sa.sa_handler = sigHandler; // NOLINT
+    sa.sa_flags = 0; // NOLINT
     sigemptyset(&sa.sa_mask);
     if(sigaction(SIGINT, &sa, nullptr) == -1)
     {
@@ -189,13 +192,13 @@ int main(int argc, char *argv[])
 
     if(argp_parse(&argp, argc, argv, 0, nullptr, &argState))
     {
-        LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters");
+        LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters"); // NOLINT
         return -1;
     }
 
     if(argState.logconfig)
     {
-        LOG4CPLUS_DEBUG(logger, "Loading logconfig file");
+        LOG4CPLUS_DEBUG(logger, "Loading logconfig file"); // NOLINT
         logger.getHierarchy().resetConfiguration();
         PropertyConfigurator::doConfigure(argState.logconfig.value());
     }
@@ -204,16 +207,16 @@ int main(int argc, char *argv[])
         start(argState.targets.value());
     else
     {
-        LOG4CPLUS_ERROR(logger, "Targets file to use not provided");
+        LOG4CPLUS_ERROR(logger, "Targets file to use not provided"); // NOLINT
         return -1;
     }
 
-    LOG4CPLUS_TRACE(logger, "Waiting for target threads to exit");
+    LOG4CPLUS_TRACE(logger, "Waiting for target threads to exit"); // NOLINT
     for(auto &t : targetThreads)
         t.runner.join();
     // So the SocketInfo logging doesn't trigger log4cplus to complain
     targetThreads.clear();
-    LOG4CPLUS_INFO(logger, "tlslookieloo exiting");
+    LOG4CPLUS_INFO(logger, "tlslookieloo exiting"); // NOLINT
 
     return 0;
 }
