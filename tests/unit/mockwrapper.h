@@ -31,6 +31,8 @@ public:
     MOCK_METHOD3(SSL_read, int(SSL *, void *, int));
     MOCK_METHOD3(SSL_write, int(SSL *, const void *, int));
     MOCK_METHOD3(ostream_write, void(std::ostream &, const char * const, const size_t &));
+    MOCK_METHOD4(getaddrinfo, int(const char *, const char *,
+        const struct addrinfo *, struct addrinfo **));
 };
 
 }

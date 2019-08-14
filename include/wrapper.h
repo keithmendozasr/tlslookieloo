@@ -15,6 +15,8 @@
  */
 #pragma once
 
+#include <netdb.h>
+
 #include <openssl/ssl.h>
 
 namespace tlslookieloo
@@ -65,6 +67,12 @@ public:
      */
     virtual void ostream_write(std::ostream & ostream,
         const char * data, const size_t &len) = 0;
+
+    /**
+     * Wrap getaddrinfo()
+     */
+    virtual int getaddrinfo(const char *, const char *, const struct addrinfo*,
+        struct addrinfo **) = 0;
 };
 
 } // namespace

@@ -59,6 +59,41 @@ MATCHER_P2(IsVoidEqStr, str, len, "") // NOLINT
     return string(static_cast<const char*>(arg), len) == str;
 }
 
+MATCHER(CheckHints, "Correct hints") // NOLINT
+{
+    return arg->ai_family == AF_UNSPEC && arg->ai_socktype == SOCK_STREAM &&
+        arg->ai_flags == AI_PASSIVE;
+}
+
+TEST_F(SocketInfoTest, resolveHostPortInstanceInitialized) // NOLINT
+{
+    s.servInfo = shared_ptr<struct addrinfo>(
+        new struct addrinfo,
+        &freeaddrinfo);
+    EXPECT_THROW(s.resolveHostPort(9000, ""), logic_error); // NOLINT
+}
+
+TEST_F(SocketInfoTest, resolveHostPortNoHost) // NOLINT
+{
+    EXPECT_CALL((*mock), getaddrinfo(IsNull(), StrEq("9900"), CheckHints(), _))
+        .WillOnce(Return(EAI_NONAME));
+    EXPECT_FALSE(s.resolveHostPort(9900, ""));
+}
+
+TEST_F(SocketInfoTest, resolveHostPortHostProvided) // NOLINT
+{
+    auto addrInfoObj = new struct addrinfo; // NOLINT
+    EXPECT_CALL((*mock), getaddrinfo(StrEq("hostone"), StrEq("9900"), CheckHints(), _))
+        .WillOnce(DoAll(WithArg<3>(Invoke(
+            [addrInfoObj](struct addrinfo **tmp){
+                *tmp = addrInfoObj;
+            })),
+            Return(0)));
+    EXPECT_TRUE(s.resolveHostPort(9900, "hostone"));
+    EXPECT_EQ(addrInfoObj, s.sockAddr);
+    EXPECT_EQ(addrInfoObj, s.nextServ);
+}
+
 TEST_F(SocketInfoTest, handleRetryReady) // NOLINT
 {
     {

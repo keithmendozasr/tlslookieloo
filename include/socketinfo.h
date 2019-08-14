@@ -315,6 +315,12 @@ private:
     std::shared_ptr<SSL> sslObj;
 
     friend class SocketInfoTest;
+
+    FRIEND_TEST(SocketInfoTest, resolveHostPortInstanceInitialized);
+    FRIEND_TEST(SocketInfoTest, resolveHostPortBadPort);
+    FRIEND_TEST(SocketInfoTest, resolveHostPortNoHost);
+    FRIEND_TEST(SocketInfoTest, resolveHostPortHostProvided);
+
     FRIEND_TEST(SocketInfoTest, handleRetryReady);
     FRIEND_TEST(SocketInfoTest, handleRetryTimeout);
     FRIEND_TEST(SocketInfoTest, handleRetrySetTimeout);

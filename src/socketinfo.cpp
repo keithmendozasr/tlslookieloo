@@ -93,7 +93,7 @@ SocketInfo &SocketInfo::operator =(SocketInfo &&rhs)
 const bool SocketInfo::resolveHostPort(const unsigned int &port, const string &host)
 {
     if(sockfd && servInfo)
-            throw logic_error("Instance already initialized");
+        throw logic_error("Instance already initialized");
 
     if(port > 65535)
         throw invalid_argument("port parameter > 65535");
@@ -109,7 +109,7 @@ const bool SocketInfo::resolveHostPort(const unsigned int &port, const string &h
 
     LOG4CPLUS_TRACE(logger, "Getting address info"); // NOLINT
     struct addrinfo *tmp;
-    rv = getaddrinfo(
+    rv = wrapper->getaddrinfo(
         (host.size() ? host.c_str() : nullptr),
         to_string(port).c_str(),
         &hints, &tmp);

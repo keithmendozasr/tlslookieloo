@@ -50,4 +50,10 @@ void ConcreteWrapper::ostream_write(std::ostream & ostream,
     ostream.write(data, len);
 }
 
+int ConcreteWrapper::getaddrinfo(const char *node, const char *service,
+    const struct addrinfo* hints, struct addrinfo **res)
+{
+    return ::getaddrinfo(node, service, hints, res);
+}
+
 } // namespace
