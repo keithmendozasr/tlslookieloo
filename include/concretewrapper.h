@@ -48,6 +48,8 @@ public:
 
     virtual int getaddrinfo(const char *node, const char *service,
         const struct addrinfo* hints, struct addrinfo **res) override;
+
+    virtual int socket(int domain, int type, int protocol) override;
 };
 
 } // namespace

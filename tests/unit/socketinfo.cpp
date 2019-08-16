@@ -90,8 +90,54 @@ TEST_F(SocketInfoTest, resolveHostPortHostProvided) // NOLINT
             })),
             Return(0)));
     EXPECT_TRUE(s.resolveHostPort(9900, "hostone"));
-    EXPECT_EQ(addrInfoObj, s.sockAddr);
     EXPECT_EQ(addrInfoObj, s.nextServ);
+}
+
+TEST_F(SocketInfoTest, initNextSocketUnresolved) // NOLINT
+{
+    EXPECT_THROW(s.initNextSocket(), logic_error); // NOLINT
+}
+
+TEST_F(SocketInfoTest, initNextSocketAllTried) // NOLINT
+{
+    s.servInfo = shared_ptr<struct addrinfo>(new struct addrinfo);
+    s.sockAddr = s.servInfo.get();
+    s.nextServ = nullptr;
+    EXPECT_THROW(s.initNextSocket(), range_error); // NOLINT
+}
+
+TEST_F(SocketInfoTest, initNextSocketSocketFail) // NOLINT
+{
+    ON_CALL((*mock), getaddrinfo(_, _, _, _))
+        .WillByDefault(Invoke(::getaddrinfo));
+
+    EXPECT_CALL((*mock), socket(_, _, _))
+        .WillOnce(Return(-1));
+
+    ASSERT_NO_THROW(s.resolveHostPort(9900, "localhost")); // NOLINT
+    EXPECT_THROW(s.initNextSocket(), runtime_error); // NOLINT
+}
+
+TEST_F(SocketInfoTest, initNextSocketGood) // NOLINT
+{
+    struct addrinfo *expectData;
+    ON_CALL((*mock), getaddrinfo(_, _, _, _))
+        .WillByDefault(Invoke(
+            [&expectData](const char *node, const char *svc,
+                const struct addrinfo *hints, struct addrinfo **res)->int
+            {
+                auto rv = ::getaddrinfo(node, svc, hints, &expectData);
+                *res = expectData;
+                return rv;
+            }
+        ));
+
+    EXPECT_CALL((*mock), socket(_, _, _))
+        .WillOnce(Return(4));
+
+    ASSERT_NO_THROW(s.resolveHostPort(9900, "localhost")); // NOLINT
+    EXPECT_NO_THROW(s.initNextSocket()); // NOLINT
+    EXPECT_EQ(s.nextServ, expectData->ai_next);
 }
 
 TEST_F(SocketInfoTest, handleRetryReady) // NOLINT

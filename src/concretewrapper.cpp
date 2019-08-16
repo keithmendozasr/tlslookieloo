@@ -56,4 +56,9 @@ int ConcreteWrapper::getaddrinfo(const char *node, const char *service,
     return ::getaddrinfo(node, service, hints, res);
 }
 
+int ConcreteWrapper::socket(int domain, int type, int protocol)
+{
+    return ::socket(domain, type, protocol);
+}
+
 } // namespace

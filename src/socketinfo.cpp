@@ -125,7 +125,7 @@ const bool SocketInfo::resolveHostPort(const unsigned int &port, const string &h
         servInfo = shared_ptr<struct addrinfo>(tmp, &freeaddrinfo);
         LOG4CPLUS_TRACE(logger, "servInfo set: " << // NOLINT
             (servInfo ? "yes" : "no"));
-        sockAddr = nextServ = servInfo.get();
+        nextServ = servInfo.get();
     }
 
     return retVal;
@@ -152,18 +152,14 @@ void SocketInfo::initNextSocket()
         reinterpret_cast<const struct sockaddr_storage *>(sockAddr->ai_addr)
     );
     LOG4CPLUS_TRACE(logger, "Attempt to get socket"); // NOLINT
-    sockfd = shared_ptr<int>(new int(socket(sockAddr->ai_family,
+    sockfd = shared_ptr<int>(new int(wrapper->socket(sockAddr->ai_family,
         sockAddr->ai_socktype | SOCK_NONBLOCK, sockAddr->ai_protocol)),
         SockfdDeleter()
     );
     if (*sockfd == -1)
     {
-        int err = errno;
-        char buf[256];
-        char *errmsg = strerror_r(err, &buf[0], 256);
-        LOG4CPLUS_TRACE(logger, "Value of err: " << err << " String: " << // NOLINT
-            errmsg);
-        throw runtime_error(string("Failed to get socket fd: ") + errmsg);
+        throw system_error(errno, std::generic_category(),
+            "Failed to get socket fd");
     }
     else
     {

@@ -73,6 +73,11 @@ public:
      */
     virtual int getaddrinfo(const char *, const char *, const struct addrinfo*,
         struct addrinfo **) = 0;
+
+    /**
+     * Wrap socket()
+     */
+    virtual int socket(int, int, int) = 0;
 };
 
 } // namespace

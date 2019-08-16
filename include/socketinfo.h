@@ -321,6 +321,11 @@ private:
     FRIEND_TEST(SocketInfoTest, resolveHostPortNoHost);
     FRIEND_TEST(SocketInfoTest, resolveHostPortHostProvided);
 
+    FRIEND_TEST(SocketInfoTest, initNextSocketUnresolved);
+    FRIEND_TEST(SocketInfoTest, initNextSocketAllTried);
+    FRIEND_TEST(SocketInfoTest, initNextSocketSocketFail);
+    FRIEND_TEST(SocketInfoTest, initNextSocketGood);
+
     FRIEND_TEST(SocketInfoTest, handleRetryReady);
     FRIEND_TEST(SocketInfoTest, handleRetryTimeout);
     FRIEND_TEST(SocketInfoTest, handleRetrySetTimeout);
