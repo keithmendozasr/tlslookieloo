@@ -1,0 +1,27 @@
+language: c++
+dist: bionic
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-8
+      - libssl1.1
+      - cmake-data
+env:
+- MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
+
+before_install:
+- eval ${MATRIX_EVAL}
+- sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 04EE7237B7D453EC 648ACFD622F3D138 EF0F382A1A7B6500 DCC9EFBF77E11517
+- sudo add-apt-repository 'deb http://ftp.de.debian.org/debian buster main'
+- sudo apt update
+
+install:
+- sudo apt install libyaml-cpp-dev>=0.6
+
+script:
+- pushd log4cplus
+- autoreconf -f
+- popd
+- mkdir Debug && cd Debug && cmake .. && cmake --build . && ctest
