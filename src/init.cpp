@@ -116,6 +116,9 @@ const vector<TargetItem> parseTargetsFile(const string &file)
             item["name"].as<string>(),
             item["serverhost"].as<string>(),
             item["serverport"].as<unsigned int>(),
+
+            (item["serverinsecure"] ? item["serverinsecure"].as<bool>() : false),
+
             item["clientport"].as<unsigned int>(),
             item["clientcert"].as<string>(),
             item["recordfile"].as<string>(),

@@ -44,6 +44,7 @@ struct ArgState // NOLINT
 {
     optional<string> logconfig;
     vector<string> args;
+    bool allowInsecure = false;
     Logger logger;
 };
 
@@ -60,6 +61,9 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
     {
     case 'l':
         argState->logconfig = arg;
+        break;
+    case 'i':
+        argState->allowInsecure = true;
         break;
     case ARGP_KEY_ARG:
         if(state->arg_num >= 4)
@@ -131,6 +135,7 @@ int main(int argc, char *argv[])
 
     const struct argp_option options[] = {
         { "logconfig",  'l', "logcfgfile",  0, "Logging configuration file" },
+        { "allowinsecure", 'i', nullptr, 0, "Allow insecure connection" },
         { 0 } 
     };
     const string argsDoc = "port host [clientCert clientKey]";
@@ -179,7 +184,8 @@ int main(int argc, char *argv[])
         LOG4CPLUS_TRACE(logger, "Client-side cert not set"); // NOLINT
 
     ServerSide s;
-    if(s.connect(stoi(argState.args[0]), argState.args[1], clientCert))
+    if(s.connect(stoi(argState.args[0]), argState.args[1], clientCert,
+        argState.allowInsecure))
     {
         // NOLINTNEXTLINE
         LOG4CPLUS_INFO(logger, "Connected to " << argState.args[1] << ":" <<

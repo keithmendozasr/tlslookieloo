@@ -33,7 +33,7 @@ namespace tlslookieloo
 {
 
 const bool ServerSide::connect(const unsigned int &port, const string &host,
-        ClientCertInfo clientCert)
+        ClientCertInfo clientCert, const bool allowInsecure)
 {
     bool retVal = true;
 
@@ -51,7 +51,7 @@ const bool ServerSide::connect(const unsigned int &port, const string &host,
         try
         {
             initializeSSLContext();
-            if(!sslHandshake(host, clientCert))
+            if(!sslHandshake(host, clientCert, allowInsecure))
             {
                 // NOLINTNEXTLINE
                 LOG4CPLUS_ERROR(logger, "SSL handshake with " << host << " failed");
@@ -196,7 +196,7 @@ void ServerSide::initializeSSLContext()
 }
 
 const bool ServerSide::sslHandshake(const std::string &host,
-    ClientCertInfo clientCert)
+    ClientCertInfo clientCert, const bool allowInsecure)
 {
     bool retVal = true;
     newSSLObj();
@@ -271,15 +271,20 @@ const bool ServerSide::sslHandshake(const std::string &host,
                 LOG4CPLUS_WARN(logger, "Failed to verify peer. Cause: " << // NOLINT
                     X509_verify_cert_error_string(peerVal)
                 );
+                retVal = (allowInsecure == true);
             }
         }
         else
+        {
             // NOLINTNEXTLINE
             LOG4CPLUS_WARN(logger, "Remote server did not provide a certificate");
+            retVal = (allowInsecure == true);
+        }
     }
     else
         LOG4CPLUS_DEBUG(logger, "Handshake failed"); // NOLINT
 
+    LOG4CPLUS_TRACE(logger, "Handshake result to return: " << retVal);
     return retVal;
 }
 

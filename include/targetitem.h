@@ -27,6 +27,7 @@ typedef struct _TargetItem // NOLINT
     std::string name;           ///< name
     std::string serverHost;     ///< server-side host
     unsigned int serverPort;    ///< server-side port
+    bool serverInsecure;        ///< True to allow invalid server cert
     unsigned int clientPort;    ///< client-side listen port
     std::string clientCert;     ///< client-side server cert
     std::string recordFile;     ///< Filename to save recorded messages

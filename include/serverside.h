@@ -82,7 +82,7 @@ public:
      * \return true if the tls connection was successful. False otherwise
      **/
     const bool connect(const unsigned int &port, const std::string &host,
-        ClientCertInfo clientCert);
+        ClientCertInfo clientCert, const bool allowInsecure);
 
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("ServerSide");
@@ -109,8 +109,10 @@ private:
      *
      * \param host Expected hostname to connect to
      * \param clientCert tuple of client key files, if server expects client certs
+     * \param allowInsecure Allow "insecure" TLS connection
      **/
-    const bool sslHandshake(const std::string &host, ClientCertInfo clientCert);
+    const bool sslHandshake(const std::string &host, ClientCertInfo clientCert,
+        const bool allowInsecure);
 
     /**
      * Wait for socket to be writable

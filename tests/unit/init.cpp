@@ -44,6 +44,7 @@ TEST(parseTargetsFile, goodFile) // NOLINT
             EXPECT_EQ(item.name, "App1");
             EXPECT_EQ(item.serverHost, "server");
             EXPECT_EQ(item.serverPort, 8908u);
+            EXPECT_FALSE(item.serverInsecure);
             EXPECT_EQ(item.clientPort, 9988u);
             EXPECT_EQ(item.clientCert, "test_certs/cert.pem");
             EXPECT_EQ(item.recordFile, "app1.msgs");
@@ -53,12 +54,41 @@ TEST(parseTargetsFile, goodFile) // NOLINT
             auto item = retVal[1];
             EXPECT_EQ(item.name, "App2");
             EXPECT_EQ(item.serverHost, "servertwo");
+            EXPECT_FALSE(item.serverInsecure);
             EXPECT_EQ(item.serverPort, 9087u);
             EXPECT_EQ(item.clientPort, 8899u);
             EXPECT_EQ(item.clientCert, "test_certs/certapp2.pem");
             EXPECT_EQ(item.recordFile, "app2.msgs");
         }
     });
+}
+
+TEST(parseTargetsFile, serverInsecure) // NOLINT
+{
+    auto retVal = parseTargetsFile(tgtFilesPath + "/serverinsecure.yaml");
+    EXPECT_EQ(retVal.size(), 2u);
+
+    {
+        auto item = retVal[0];
+        EXPECT_EQ(item.name, "App1");
+        EXPECT_EQ(item.serverHost, "server");
+        EXPECT_EQ(item.serverPort, 8908u);
+        EXPECT_FALSE(item.serverInsecure);
+        EXPECT_EQ(item.clientPort, 9988u);
+        EXPECT_EQ(item.clientCert, "test_certs/cert.pem");
+        EXPECT_EQ(item.recordFile, "app1.msgs");
+    }
+
+    {
+        auto item = retVal[1];
+        EXPECT_EQ(item.name, "App2");
+        EXPECT_EQ(item.serverHost, "servertwo");
+        EXPECT_TRUE(item.serverInsecure);
+        EXPECT_EQ(item.serverPort, 9087u);
+        EXPECT_EQ(item.clientPort, 8899u);
+        EXPECT_EQ(item.clientCert, "test_certs/certapp2.pem");
+        EXPECT_EQ(item.recordFile, "app2.msgs");
+    }
 }
 
 TEST(parseTargetsFile, missingname) // NOLINT
