@@ -48,6 +48,11 @@ TEST(parseTargetsFile, goodFile) // NOLINT
             EXPECT_EQ(item.clientPort, 9988u);
             EXPECT_EQ(item.clientCert, "test_certs/cert.pem");
             EXPECT_EQ(item.recordFile, "app1.msgs");
+            EXPECT_FALSE(item.clientKey);
+            EXPECT_FALSE(item.clientAuthCert);
+            EXPECT_FALSE(item.clientAuthKey);
+            EXPECT_FALSE(item.clientAuthCA);
+            EXPECT_FALSE(item.timeout);
         }
 
         {
@@ -59,6 +64,11 @@ TEST(parseTargetsFile, goodFile) // NOLINT
             EXPECT_EQ(item.clientPort, 8899u);
             EXPECT_EQ(item.clientCert, "test_certs/certapp2.pem");
             EXPECT_EQ(item.recordFile, "app2.msgs");
+            EXPECT_FALSE(item.clientKey);
+            EXPECT_FALSE(item.clientAuthCert);
+            EXPECT_FALSE(item.clientAuthKey);
+            EXPECT_FALSE(item.clientAuthCA);
+            EXPECT_FALSE(item.timeout);
         }
     });
 }
