@@ -335,4 +335,14 @@ TEST(parseTargetsFile, withtimeout) // NOLINT
     });
 }
 
+TEST(parseTargetsFile, withservercachainfile) // NOLINT
+{
+    // NOLINTNEXTLINE
+    EXPECT_NO_THROW({
+        auto retVal = parseTargetsFile(tgtFilesPath + "/withservercachainfile.yaml");
+        auto item = retVal[0];
+        EXPECT_EQ("servercachain.pem", item.serverCAChainFile.value());
+    });
+}
+
 } //namespace tlslookieloo

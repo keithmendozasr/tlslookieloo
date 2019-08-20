@@ -46,6 +46,7 @@ struct ArgState // NOLINT
     vector<string> args;
     bool allowInsecure = false;
     Logger logger;
+    optional<string> serverCAChainFile;
 };
 
 /**
@@ -64,6 +65,9 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
         break;
     case 'i':
         argState->allowInsecure = true;
+        break;
+    case 'k':
+        argState->serverCAChainFile = arg;
         break;
     case ARGP_KEY_ARG:
         if(state->arg_num >= 4)
@@ -136,6 +140,7 @@ int main(int argc, char *argv[])
     const struct argp_option options[] = {
         { "logconfig",  'l', "logcfgfile",  0, "Logging configuration file" },
         { "allowinsecure", 'i', nullptr, 0, "Allow insecure connection" },
+        { "servercachainfile", 'k', "filename", 0, "Provide a CA cert chain" },
         { 0 } 
     };
     const string argsDoc = "port host [clientCert clientKey]";
@@ -185,7 +190,7 @@ int main(int argc, char *argv[])
 
     ServerSide s;
     if(s.connect(stoi(argState.args[0]), argState.args[1], clientCert,
-        argState.allowInsecure))
+        argState.allowInsecure, argState.serverCAChainFile))
     {
         // NOLINTNEXTLINE
         LOG4CPLUS_INFO(logger, "Connected to " << argState.args[1] << ":" <<

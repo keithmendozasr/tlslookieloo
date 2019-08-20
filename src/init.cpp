@@ -126,7 +126,11 @@ const vector<TargetItem> parseTargetsFile(const string &file)
             clientAuthCert,
             clientAuthKey,
             clientAuthCA,
-            timeout
+            timeout,
+
+            (item["servercachainfile"] ?
+                make_optional(item["servercachainfile"].as<string>()) :
+                nullopt)
         });
     }
 
