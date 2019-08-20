@@ -26,7 +26,7 @@ Make sure to process the git submodule with --recurse accordingly.
 
 This project uses cmake. Here's a way to compile it in Debian 10:
 1. Make sure the following packages are installed:
-	1. libss-dev
+	1. libssl-dev
 	1. cmake
 1. mkdir build
 1. cd build
