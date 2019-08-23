@@ -259,7 +259,7 @@ const bool ServerSide::sslHandshake(const std::string &host,
         if(rslt == -1)
         {
             LOG4CPLUS_TRACE(logger, "SSL_connect reporting error"); // NOLINT
-            shouldRetry = handleRetry(rslt);
+            shouldRetry = (handleRetry(rslt) == SocketInfo::OP_STATUS::SUCCESS);
         }
         else if(rslt == 0)
         {
