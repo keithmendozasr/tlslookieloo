@@ -193,8 +193,9 @@ void ServerSide::initializeSSLContext(const optional<const string> &serverCAChai
         LOG4CPLUS_INFO(logger, "Using CA cert chain in " << CAChainFile);
         if(SSL_CTX_use_certificate_chain_file(ptr, CAChainFile.c_str()) == 0)
         {
-            logSSLErrorStack();
-            throw runtime_error("Failed to load CA certificate chain file");
+            const string msg = "Failed to load CA certificate chain file.";
+            logSSLError(msg);
+            throw runtime_error(msg);
         }
         else
             LOG4CPLUS_TRACE(logger, "CA cert chain file loaded"); // NOLINT
@@ -205,8 +206,9 @@ void ServerSide::initializeSSLContext(const optional<const string> &serverCAChai
     // Load certificates from store
     if(SSL_CTX_set_default_verify_paths(ptr) == 0)
     {
-        logSSLErrorStack();
-        throw runtime_error("Failed to set CA verify paths");
+        const string msg = "Failed to set CA verify paths.";
+        logSSLError(msg);
+        throw runtime_error(msg);
     }
     else
         LOG4CPLUS_TRACE(logger, "CA verify paths set"); // NOLINT
@@ -221,8 +223,8 @@ const bool ServerSide::sslHandshake(const std::string &host,
     ERR_clear_error();
     if(SSL_set_fd(ptr, getSocket()) == 0)
     {
-        const string msg = sslErrMsg("Failed to set FD to SSL. Cause: ");
-        LOG4CPLUS_ERROR(logger, msg); // NOLINT
+        const string msg = "Failed to set FD to SSL.";
+        logSSLError(msg);
         throw runtime_error(msg);
     }
     else
@@ -230,8 +232,8 @@ const bool ServerSide::sslHandshake(const std::string &host,
 
     if(SSL_set1_host(ptr, host.c_str()) != 1)
     {
-        const string msg = sslErrMsg("Failed to set expected host. Cause: ");
-        LOG4CPLUS_ERROR(logger, msg); // NOLINT
+        const string msg = "Failed to set expected host.";
+        logSSLError(msg);
         throw runtime_error(msg);
     }
     else
@@ -261,7 +263,7 @@ const bool ServerSide::sslHandshake(const std::string &host,
         }
         else if(rslt == 0)
         {
-            const string msg = sslErrMsg("Remote closed SSL handshake. Cause: ");
+            const string msg = "Remote closed SSL handshake.";
             LOG4CPLUS_WARN(logger, msg); // NOLINT
             retVal = shouldRetry = false;
         }
@@ -347,11 +349,9 @@ void ServerSide::loadClientCertificate(const string &clientCertFile,
     if(SSL_use_certificate_file(ptr, clientCertFile.c_str(),
         SSL_FILETYPE_PEM) == 0)
     {
-        const string msg = sslErrMsg(
-            string("Failed to load certificate file ") + clientCertFile +
-            ". Cause: "
-        );
-        LOG4CPLUS_ERROR(logger, msg); // NOLINT
+        const string msg = string("Failed to load certificate file ") +
+            clientCertFile + ".";
+        logSSLError(msg);
         throw runtime_error(msg);
     }
     else
@@ -361,11 +361,9 @@ void ServerSide::loadClientCertificate(const string &clientCertFile,
     if(SSL_use_PrivateKey_file(ptr, clientPrivKeyFile.c_str(),
         SSL_FILETYPE_PEM) == 0)
     {
-        const string msg = sslErrMsg(
-            string("Failed to load private key ") + clientPrivKeyFile +
-            ". Cause: "
-        );
-        LOG4CPLUS_ERROR(logger, msg); // NOLINT
+        const string msg =  string("Failed to load private key ") +
+            clientPrivKeyFile + ".";
+        logSSLError(msg);
         throw runtime_error(msg);
     }
     else

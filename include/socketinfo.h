@@ -205,16 +205,6 @@ protected:
     }
 
     /**
-     * Collect the SSL error message
-     */
-    const inline std::string sslErrMsg(const std::string &prefix)
-    {
-        auto code = ERR_get_error();
-        auto txt = ERR_reason_error_string(code);
-        return prefix + txt;
-    }
-
-    /**
      * Allocate a new SSL_CTX object
      */
     void newSSLCtx();
@@ -248,8 +238,9 @@ protected:
 
     /**
      * Log the SSL error stack
+     * \param msg Message to include in the error stack
      */
-    void logSSLErrorStack();
+    void logSSLError(const std::string &msg);
 
     /**
      * Save the socket IP information

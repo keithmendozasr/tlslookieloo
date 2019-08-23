@@ -265,13 +265,14 @@ const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt, const bool 
     default:
         if(ERR_FATAL_ERROR(ERR_peek_error()))
         {
-            logSSLErrorStack();
-            throw runtime_error(string("SSL API-related error encountered"));
+            const string msg = "SSL API-related error encountered";
+            logSSLError(msg);
+            throw runtime_error(msg);
         }
         else
         {
             // Log the issue; but, move on
-            logSSLErrorStack();
+            logSSLError("Error encountered retrying operation, continuing.");
             retVal = OP_STATUS::SUCCESS;
         }
     }
@@ -421,8 +422,7 @@ void SocketInfo::newSSLCtx()
         SSL_CTX_new(TLS_method()), &SSL_CTX_free);
     if(!sslCtx)
     {
-        const string msg = sslErrMsg("Failed to create SSL context. Cause: ");
-        LOG4CPLUS_ERROR(logger, msg); // NOLINT
+        logSSLError("Failed to create SSL context.");
         throw bad_alloc();
     }
     else
@@ -430,9 +430,8 @@ void SocketInfo::newSSLCtx()
 
     if(SSL_CTX_set_min_proto_version(sslCtx.get(), SSL3_VERSION) != 1)
     {
-        const string msg = sslErrMsg("Failed to set minimum SSL version. Cause: ");
-        LOG4CPLUS_ERROR(logger, msg); // NOLINT
-        logSSLErrorStack();
+        const string msg = "Failed to set minimum SSL version.";
+        logSSLError(msg);
         throw logic_error(msg);
     }
     else
@@ -444,17 +443,16 @@ void SocketInfo::newSSLObj()
     sslObj = shared_ptr<SSL>(SSL_new(getSSLCtxPtr()), SSLDeleter());
     if(!sslObj)
     {
-        const string msg = sslErrMsg("Failed to create SSL instance. Cause: ");
-        LOG4CPLUS_ERROR(logger, msg); // NOLINT
+        logSSLError("Failed to create SSL instance.");
         throw bad_alloc();
     }
     else
         LOG4CPLUS_TRACE(logger, "SSL object created"); // NOLINT
 }
 
-void SocketInfo::logSSLErrorStack()
+void SocketInfo::logSSLError(const string &msg)
 {
-    LOG4CPLUS_ERROR(logger, "SSL error encountered. Error stack"); // NOLINT
+    LOG4CPLUS_ERROR(logger, msg << " SSL error stack"); // NOLINT
     unsigned long errCode;
     do
     {

@@ -126,11 +126,9 @@ void ClientSide::initializeSSLContext(const string &certFile, const string &priv
     if(SSL_CTX_use_certificate_file(ptr, certFile.c_str(),
         SSL_FILETYPE_PEM) == 0)
     {
-        const string msg = sslErrMsg(
-            string("Failed to load certificate file ") + certFile +
-            ". Cause: "
-        );
-        LOG4CPLUS_ERROR(logger, msg); // NOLINT
+        const string msg = string("Failed to load certificate file ") +
+            certFile + ".";
+        logSSLError(msg);
         throw runtime_error(msg);
     }
     else
@@ -139,11 +137,9 @@ void ClientSide::initializeSSLContext(const string &certFile, const string &priv
     if(SSL_CTX_use_PrivateKey_file(ptr, privKeyFile.c_str(),
         SSL_FILETYPE_PEM) == 0)
     {
-        const string msg = sslErrMsg(
-            string("Failed to load private key ") + privKeyFile +
-            ". Cause: "
-        );
-        LOG4CPLUS_ERROR(logger, msg); // NOLINT
+        const string msg = string("Failed to load private key ") +
+            privKeyFile + ".";
+        logSSLError(msg);
         throw runtime_error(msg);
     }
     else
@@ -161,8 +157,8 @@ const bool ClientSide::sslHandshake()
 
     if(SSL_set_fd(ptr, getSocket()) == 0)
     {
-        const string msg = sslErrMsg("Failed to set FD to SSL. Cause: ");
-        LOG4CPLUS_ERROR(logger, msg); // NOLINT
+        const string msg = "Failed to set FD to SSL.";
+        logSSLError(msg);
         throw runtime_error(msg);
     }
     else
@@ -245,8 +241,9 @@ void ClientSide::loadRefClientCertPubkey(const string &certFile,
         X509_get_pubkey(pubCert.get()), &EVP_PKEY_free);
     if(!refClientPubKey)
     {
-        throw runtime_error(
-            sslErrMsg("Failed to extract expected client public key"));
+        const string msg = "Failed to extract expected client public key.";
+        logSSLError(msg);
+        throw runtime_error(msg);
     }
 
     LOG4CPLUS_TRACE(logger, "Set client cert verification callback"); // NOLINT
@@ -256,8 +253,9 @@ void ClientSide::loadRefClientCertPubkey(const string &certFile,
     exDataIndex = SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
     if(exDataIndex == -1)
     {
-        logSSLErrorStack();
-        throw runtime_error("Failed to get verify callback data index");
+        const string msg = "Failed to get verify callback data index.";
+        logSSLError(msg);
+        throw runtime_error(msg);
     }
         
     LOG4CPLUS_TRACE(logger, "Value of exDataIndex: " << exDataIndex); // NOLINT
@@ -267,8 +265,9 @@ void ClientSide::loadRefClientCertPubkey(const string &certFile,
     auto caCert = loadCertFile(caFile);
     if(!SSL_CTX_add_client_CA(ptr, caCert.get()))
     {
-        logSSLErrorStack();
-        throw runtime_error("Failed to add client CA");
+        const string msg = "Failed to add client CA.";
+        logSSLError(msg);
+        throw runtime_error(msg);
     }
 
     LOG4CPLUS_DEBUG(logger, "Expected client certificate loaded"); // NOLINT
@@ -310,8 +309,9 @@ ClientSide::X509Mem ClientSide::loadCertFile(const string &fileName)
         PEM_read_X509(f.get(), nullptr, nullptr, nullptr), &X509_free);
     if(!pubCert)
     {
-        throw runtime_error(
-            sslErrMsg("Error encountered reading pubkey. Cause: "));
+        const string msg = "Error encountered reading pubkey.";
+        logSSLError(msg);
+        throw runtime_error(msg);
     }
 
     LOG4CPLUS_DEBUG(logger, "Certificate in " << fileName << " loaded"); // NOLINT
