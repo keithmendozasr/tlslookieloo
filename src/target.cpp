@@ -107,6 +107,21 @@ void Target::start()
             handleClient(acceptRslt);
         }
     }
+    catch(const system_error &e)
+    {
+        if(e.code() == make_error_code(errc::interrupted))
+        {
+            // NOLINTNEXTLINE
+            LOG4CPLUS_INFO(logger,
+                "Interrupted while waiting for client-side to connect");
+        }
+        else
+        {
+            // NOLINTNEXTLINE
+            LOG4CPLUS_ERROR(logger,
+                "Error ecnountered handling target. Cause: " << e.what());
+        }
+    }
     catch(const runtime_error &e)
     {
         // NOLINTNEXTLINE
