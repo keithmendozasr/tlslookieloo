@@ -190,7 +190,7 @@ void ServerSide::initializeSSLContext(const optional<const string> &serverCAChai
     if(serverCAChainFile)
     {
         auto CAChainFile = serverCAChainFile.value();
-        LOG4CPLUS_INFO(logger, "Using CA cert chain in " << CAChainFile);
+        LOG4CPLUS_INFO(logger, "Using CA cert chain in " << CAChainFile); // NOLINT
         if(SSL_CTX_use_certificate_chain_file(ptr, CAChainFile.c_str()) == 0)
         {
             const string msg = "Failed to load CA certificate chain file.";
@@ -303,7 +303,7 @@ const bool ServerSide::sslHandshake(const std::string &host,
     else
         LOG4CPLUS_DEBUG(logger, "Handshake failed"); // NOLINT
 
-    LOG4CPLUS_TRACE(logger, "Handshake result to return: " << retVal);
+    LOG4CPLUS_TRACE(logger, "Handshake result to return: " << retVal); // NOLINT
     return retVal;
 }
 
