@@ -221,7 +221,7 @@ void Target::handleClient(ClientSide client)
     ServerSide server;
     server.setTimeout(timeout);
     if(!server.connect(tgtItem.serverPort, tgtItem.serverHost, clientCertInfo,
-        tgtItem.serverInsecure))
+        tgtItem.serverInsecure, tgtItem.serverCAChainFile))
     {
         // NOLINTNEXTLINE
         LOG4CPLUS_INFO(logger, "Failed to connect to server " <<

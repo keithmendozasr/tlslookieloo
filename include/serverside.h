@@ -17,6 +17,8 @@
 #pragma once
 
 #include <string>
+#include <tuple>
+#include <optional>
 
 #include "log4cplus/logger.h"
 #include "gtest/gtest_prod.h"
@@ -77,12 +79,19 @@ public:
      * failure can be caused by failing to connect to the remote port, or a
      * failure during the TLS handshake.
      *
-     * \arg port Server port to connect to
-     * \arg host Server host to connect to
+     * \param[in] port Server port to connect to
+     * \param[in] host Server host to connect to
+     * \param[in] clientCert Client authentication certificate
+     * \param[in] allowInsecure If true, contine with handshake when TLS peer
+     *  verification fails.
+     * \param[in] serverCACertFile If provided, use the certificates in the
+     *  chain file to verify the peer. Otherwise, CAs in the default cert store
+     *  will be used.
      * \return true if the tls connection was successful. False otherwise
      **/
     const bool connect(const unsigned int &port, const std::string &host,
-        ClientCertInfo clientCert, const bool allowInsecure);
+        ClientCertInfo clientCert, const bool allowInsecure,
+        const std::optional<const std::string> serverCACertFile);
 
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("ServerSide");
@@ -101,8 +110,10 @@ private:
 
     /**
      * Create the socket context for this instance
+     * \param[in] serverCAChainFile Path to CA chain file, if provided
      **/
-    void initializeSSLContext();
+    void initializeSSLContext(
+        const std::optional<const std::string> &serverCAChainFle);
 
     /**
      * Go through the SSL handshake

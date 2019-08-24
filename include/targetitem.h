@@ -46,6 +46,9 @@ typedef struct _TargetItem // NOLINT
 
     //! Optional, message timeout
     std::optional<unsigned int> timeout;
+
+    //! Optional, server CA chain file
+    std::optional<std::string> serverCAChainFile;
 } TargetItem;
 
 } //namespace

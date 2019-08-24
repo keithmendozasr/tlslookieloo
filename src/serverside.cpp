@@ -33,7 +33,8 @@ namespace tlslookieloo
 {
 
 const bool ServerSide::connect(const unsigned int &port, const string &host,
-        ClientCertInfo clientCert, const bool allowInsecure)
+    ClientCertInfo clientCert, const bool allowInsecure,
+    const optional<const string> serverCACertFile)
 {
     bool retVal = true;
 
@@ -50,7 +51,7 @@ const bool ServerSide::connect(const unsigned int &port, const string &host,
             "Socket connection successful. Start TLS handshake");
         try
         {
-            initializeSSLContext();
+            initializeSSLContext(serverCACertFile);
             if(!sslHandshake(host, clientCert, allowInsecure))
             {
                 // NOLINTNEXTLINE
@@ -181,15 +182,31 @@ const bool ServerSide::sockConnect(const unsigned int &port, const string &host)
     return retVal;
 }
 
-void ServerSide::initializeSSLContext()
+void ServerSide::initializeSSLContext(const optional<const string> &serverCAChainFile)
 {
     newSSLCtx();
     auto ptr = getSSLCtxPtr();
+
+    if(serverCAChainFile)
+    {
+        auto CAChainFile = serverCAChainFile.value();
+        LOG4CPLUS_INFO(logger, "Using CA cert chain in " << CAChainFile);
+        if(SSL_CTX_use_certificate_chain_file(ptr, CAChainFile.c_str()) == 0)
+        {
+            logSSLErrorStack();
+            throw runtime_error("Failed to load CA certificate chain file");
+        }
+        else
+            LOG4CPLUS_TRACE(logger, "CA cert chain file loaded"); // NOLINT
+    }
+    else
+        LOG4CPLUS_TRACE(logger, "Extra CA chain not provided"); // NOLINT
+
+    // Load certificates from store
     if(SSL_CTX_set_default_verify_paths(ptr) == 0)
     {
-        const string msg = sslErrMsg("Failed to set CA verify paths");
-        LOG4CPLUS_ERROR(logger, msg); // NOLINT
-        throw runtime_error(msg);
+        logSSLErrorStack();
+        throw runtime_error("Failed to set CA verify paths");
     }
     else
         LOG4CPLUS_TRACE(logger, "CA verify paths set"); // NOLINT
