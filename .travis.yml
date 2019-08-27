@@ -8,6 +8,13 @@ addons:
       - g++-8
       - libssl1.1
       - cmake-data
+
+cache:
+  directories:
+  - Debug/googletest
+  - Debug/log4cplus
+  - yaml-cpp-yaml-cpp-0.6.2/build
+
 env:
 - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
 
@@ -18,12 +25,19 @@ install:
 - travis_retry wget https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.6.2.tar.gz
 - tar zxvf yaml-cpp-0.6.2.tar.gz
 - cd yaml-cpp-yaml-cpp-0.6.2
-- mkdir build
-- cd build
-- cmake .. && cmake --build . && sudo env "PATH=$PATH" cmake --build . --target install
+- if [ ! -d build ]; then mkdir build; fi &&
+  cd build &&
+  cmake .. &&
+  cmake --build . &&
+  sudo env "PATH=$PATH" cmake --build . --target install
 
 script:
+- cd ${TRAVIS_BUILD_DIR}
 - pushd log4cplus
 - autoreconf -f
 - popd
-- mkdir Debug && cd Debug && cmake .. && cmake --build . && ctest
+- if [ ! -d Debug ]; then mkdir Debug; fi &&
+  cd Debug &&
+  cmake .. &&
+  cmake --build . &&
+  ctest
