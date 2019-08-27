@@ -13,12 +13,14 @@ env:
 
 before_install:
 - eval ${MATRIX_EVAL}
-- sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 04EE7237B7D453EC 648ACFD622F3D138 EF0F382A1A7B6500 DCC9EFBF77E11517
-- sudo add-apt-repository 'deb http://ftp.de.debian.org/debian buster main'
-- sudo apt-get update
 
 install:
-- sudo apt-get install libyaml-cpp-dev>=0.6
+- travis_retry wget https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.6.2.tar.gz
+- tar zxvf yaml-cpp-0.6.2.tar.gz
+- cd yaml-cpp-yaml-cpp-0.6.2
+- mkdir build
+- cd build
+- cmake .. && cmake --build . && sudo cmake --build . --target install
 
 script:
 - pushd log4cplus
