@@ -1,7 +1,6 @@
 # tlslookieloo
 Utility to view stream message between server and client
 
-![Coverity Scan](https://img.shields.io/coverity/scan/18672)
 ![Travis-CI](https://img.shields.io/travis/com/keithmendozasr/tlslookieloo)
 
 # Longer idea
