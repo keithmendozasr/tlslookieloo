@@ -64,6 +64,12 @@ protected:
         server.newSSLCtx();
         server.newSSLObj();
     }
+
+    const string msgBanner =
+        "===[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] "
+        "[0-9][0-9]:[0-9][0-9]:[0-9][0-9] BEGIN ";
+
+    const string msgTail = "===END===.$";
 };
 
 TEST_F(TargetTest, waitForReadableTimeout) // NOLINT
@@ -176,10 +182,11 @@ TEST_F(TargetTest, waitForReadableError) // NOLINT
 
 TEST_F(TargetTest, storeMessageClient) // NOLINT
 {
-    string expectMsg("===BEGIN client-->server===\nTesting<00>\n===END===\n");
-    EXPECT_CALL((*mock),
-        ostream_write(_, StrEq(expectMsg),
-        static_cast<const size_t>(expectMsg.size())))
+    EXPECT_CALL((*mock), ostream_write(
+        _, MatchesRegex(
+                msgBanner +
+                "client-->server===.Testing<00>." +
+                msgTail), _))
         .Times(1);
 
     Target t(mock);
@@ -190,9 +197,11 @@ TEST_F(TargetTest, storeMessageClient) // NOLINT
 
 TEST_F(TargetTest, storeMessageServer) // NOLINT
 {
-    string expectMsg("===BEGIN server-->client===\nTesting<00>\n===END===\n");
-    EXPECT_CALL((*mock),
-        ostream_write(_, StrEq(expectMsg), expectMsg.size()))
+    string expectMsg("===END===\n");
+    EXPECT_CALL((*mock), ostream_write(
+        _, MatchesRegex(msgBanner +
+                "server-->client===.Testing<00>." +
+                msgTail), _))
         .Times(1);
 
     Target t(mock);
@@ -204,8 +213,10 @@ TEST_F(TargetTest, storeMessageServer) // NOLINT
 TEST_F(TargetTest, storeMessageBinary) // NOLINT
 {
     string expectMsg("===BEGIN server-->client===\n<00><7f><10>\n===END===\n");
-    EXPECT_CALL((*mock),
-        ostream_write(_, StrEq(expectMsg), expectMsg.size()))
+    EXPECT_CALL((*mock), ostream_write(
+        _, MatchesRegex(msgBanner +
+                "server-->client===.<00><7f><10>." +
+                msgTail), _))
         .Times(1);
 
     Target t(mock);
