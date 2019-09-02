@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <argp.h>
@@ -62,7 +63,7 @@ int main(int argc, char *argv[])
     auto logger = log4cplus::Logger::getRoot();
     logger.setLogLevel(log4cplus::FATAL_LOG_LEVEL);
 
-    ::testing::InitGoogleTest(&argc, argv);
+    testing::InitGoogleMock(&argc, argv);
 
     struct argp_option options[] = {
         { "targets", 't', "tgtfile", 0, "Path to test target files" },

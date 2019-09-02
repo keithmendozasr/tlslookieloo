@@ -78,6 +78,21 @@ public:
      * Wrap socket()
      */
     virtual int socket(int, int, int) = 0;
+
+    /**
+     * Wrap setsockopt()
+     */
+    virtual int setsockopt(int, int, int, const void *, socklen_t) = 0;
+
+    /**
+     * Wrap bind()
+     */
+    virtual int bind(int, const struct sockaddr *, socklen_t) = 0;
+
+    /**
+     * Wrap listen()
+     */
+    virtual int listen(int, int) = 0;
 };
 
 } // namespace

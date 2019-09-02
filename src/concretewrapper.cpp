@@ -61,4 +61,21 @@ int ConcreteWrapper::socket(int domain, int type, int protocol)
     return ::socket(domain, type, protocol);
 }
 
+int ConcreteWrapper::setsockopt(int sockfd, int level, int optname,
+    const void *optval, socklen_t optlen)
+{
+    return ::setsockopt(sockfd, level, optname, optval, optlen);
+}
+
+int ConcreteWrapper::bind(int sockfd, const struct sockaddr *addr,
+    socklen_t addrlen)
+{
+    return ::bind(sockfd, addr, addrlen);
+}
+
+int ConcreteWrapper::listen(int sockfd, int backlog)
+{
+    return ::listen(sockfd, backlog);
+}
+
 } // namespace

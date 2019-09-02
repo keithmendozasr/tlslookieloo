@@ -15,6 +15,10 @@
  */
 #pragma once
 
+#include <memory>
+
+#include <netdb.h>
+
 #include "gmock/gmock.h"
 
 #include "wrapper.h"
@@ -34,6 +38,15 @@ public:
     MOCK_METHOD4(getaddrinfo, int(const char *, const char *,
         const struct addrinfo *, struct addrinfo **));
     MOCK_METHOD3(socket, int(int, int, int));
+    MOCK_METHOD5(setsockopt, int(int, int, int, const void *, socklen_t));
+    MOCK_METHOD3(bind, int(int, const struct sockaddr *, socklen_t));
+    MOCK_METHOD2(listen, int(int, int));
 };
+
+void setDefaultgetaddrinfo(std::shared_ptr<MockWrapper> mock);
+void setDefaultsocket(std::shared_ptr<MockWrapper> mock);
+void setDefaultsetsockopt(std::shared_ptr<MockWrapper> mock);
+void setDefaultbind(std::shared_ptr<MockWrapper> mock);
+void setDefaultlisten(std::shared_ptr<MockWrapper> mock);
 
 }

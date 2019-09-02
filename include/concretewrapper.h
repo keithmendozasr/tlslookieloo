@@ -50,6 +50,14 @@ public:
         const struct addrinfo* hints, struct addrinfo **res) override;
 
     virtual int socket(int domain, int type, int protocol) override;
+
+    virtual int setsockopt(int sockfd, int level, int optname,
+        const void *optval, socklen_t optlen) override;
+
+    virtual int bind(int sockfd, const struct sockaddr *addr,
+        socklen_t addrlen) override;
+
+    virtual int listen(int sockfd, int backlog) override;
 };
 
 } // namespace
