@@ -19,6 +19,7 @@
 #include <cerrno>
 #include <openssl/evp.h>
 #include <openssl/x509.h>
+#include <fcntl.h>
 
 #include "log4cplus/ndc.h"
 
@@ -28,6 +29,7 @@
 
 using namespace testing;
 using namespace std;
+using ::testing::InSequence;
 
 namespace tlslookieloo
 {
@@ -162,6 +164,50 @@ TEST_F(ClientSideTest, startListenerGood) // NOLINT
     setDefaultbind(mock);
 
     EXPECT_NO_THROW(client.startListener(1024, 1)); // NOLINT
+}
+
+TEST_F(ClientSideTest, acceptClientBadFd) // NOLINT
+{
+    setDefaultselect(mock);
+    EXPECT_CALL((*mock), accept(4, _, _))
+        .WillOnce(Invoke(
+            [](int, struct sockaddr *, socklen_t *)->int{
+                errno = ENOMEM;
+                return -1;
+            }
+        ));
+
+    EXPECT_THROW(client.acceptClient(), system_error); // NOLINT
+}
+
+TEST_F(ClientSideTest, acceptClientNonBlockFail) // NOLINT
+{
+    setDefaultselect(mock);
+    setDefaultaccept(mock);
+
+    {
+        InSequence seq;
+        EXPECT_CALL((*mock), fcntl(5, F_GETFL, 0))
+            .WillOnce(Return(0));
+
+        EXPECT_CALL((*mock), fcntl(5, F_SETFL, O_NONBLOCK))
+            .WillOnce(Return(-1));
+    }
+
+    EXPECT_THROW(client.acceptClient(), system_error); // NOLINT
+}
+
+TEST_F(ClientSideTest, acceptClientGood) // NOLINT
+{
+    setDefaultselect(mock);
+    setDefaultaccept(mock);
+    setDefaultfcntl(mock);
+
+    //EXPECT_NO_THROW({
+        auto rslt = client.acceptClient();
+        auto socket = rslt.getSocket();
+        EXPECT_EQ(socket, 5);
+    //});
 }
 
 TEST_F(ClientSideTest, waitSocketReadableGood) // NOLINT

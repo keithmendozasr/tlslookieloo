@@ -58,6 +58,10 @@ public:
         socklen_t addrlen) override;
 
     virtual int listen(int sockfd, int backlog) override;
+
+    virtual int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) override;
+
+    virtual int fcntl(int fd, int cmd, int val) override;
 };
 
 } // namespace

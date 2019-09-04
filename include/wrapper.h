@@ -93,6 +93,18 @@ public:
      * Wrap listen()
      */
     virtual int listen(int, int) = 0;
+
+    /**
+     * Wrap accept()
+     */
+    virtual int accept(int, struct sockaddr *, socklen_t *) = 0;
+
+    /**
+     * Wrap fcntl()
+     *
+     * The POSIX fcntl's 3rd parameter is actually a variadic.
+     */
+    virtual int fcntl(int, int, int) = 0;
 };
 
 } // namespace

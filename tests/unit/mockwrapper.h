@@ -41,6 +41,19 @@ public:
     MOCK_METHOD5(setsockopt, int(int, int, int, const void *, socklen_t));
     MOCK_METHOD3(bind, int(int, const struct sockaddr *, socklen_t));
     MOCK_METHOD2(listen, int(int, int));
+    MOCK_METHOD3(accept, int(int, struct sockaddr *, socklen_t *));
+    MOCK_METHOD3(fcntl, int(int, int, int));
+
+    std::unique_ptr<struct addrinfo, decltype(&freeaddrinfo)> defaultAddrInfo;
+
+    explicit MockWrapper() :
+        defaultAddrInfo(nullptr, &freeaddrinfo)
+    {}
+
+    MockWrapper(const MockWrapper &) = delete;
+    MockWrapper & operator = (const MockWrapper &) = delete;
+
+    virtual ~MockWrapper(){}
 };
 
 void setDefaultgetaddrinfo(std::shared_ptr<MockWrapper> mock);
@@ -48,5 +61,8 @@ void setDefaultsocket(std::shared_ptr<MockWrapper> mock);
 void setDefaultsetsockopt(std::shared_ptr<MockWrapper> mock);
 void setDefaultbind(std::shared_ptr<MockWrapper> mock);
 void setDefaultlisten(std::shared_ptr<MockWrapper> mock);
+void setDefaultselect(std::shared_ptr<MockWrapper> mock);
+void setDefaultaccept(std::shared_ptr<MockWrapper> mock);
+void setDefaultfcntl(std::shared_ptr<MockWrapper> mock);
 
 }

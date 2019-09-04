@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
+#include <ostream>
+
+#include <unistd.h>
+#include <fcntl.h>
+
 #include <sys/select.h>
 #include <openssl/ssl.h>
-#include <ostream>
 
 #include "concretewrapper.h"
 
@@ -76,6 +80,18 @@ int ConcreteWrapper::bind(int sockfd, const struct sockaddr *addr,
 int ConcreteWrapper::listen(int sockfd, int backlog)
 {
     return ::listen(sockfd, backlog);
+}
+
+int ConcreteWrapper::accept(int sockfd, struct sockaddr *addr,
+    socklen_t *addrlen)
+{
+    return ::accept(sockfd, addr, addrlen);
+}
+
+int ConcreteWrapper::fcntl(int sockfd, int cmd, int val)
+{
+    // NOLINTNEXTLINE
+    return ::fcntl(sockfd, cmd, val);
 }
 
 } // namespace

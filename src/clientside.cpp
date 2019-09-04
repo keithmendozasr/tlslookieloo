@@ -89,7 +89,7 @@ ClientSide ClientSide::acceptClient()
 
     // We're waiting forever, so no need to check timeout
     waitSocketReadable();
-    int fd = accept(getSocket(), reinterpret_cast<struct sockaddr *>(&addr), // NOLINT
+    int fd = wrapper->accept(getSocket(), reinterpret_cast<struct sockaddr *>(&addr), // NOLINT
         &addrLen);
     if(fd < 0)
     {
@@ -99,7 +99,8 @@ ClientSide ClientSide::acceptClient()
 
     LOG4CPLUS_DEBUG(logger, "Received connection. New FD: " << fd); // NOLINT
 
-    if(fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK) == -1) // NOLINT
+    if(wrapper->fcntl(fd, F_SETFL, wrapper->fcntl(fd, F_GETFL, 0) | O_NONBLOCK) // NOLINT
+        == -1)
     {
         int err = errno;
         throwSystemError(err, "Failed to set client FD non-blocking");
@@ -110,7 +111,7 @@ ClientSide ClientSide::acceptClient()
     ClientSide c(*this);
     c.setSocket(fd);
     // NOLINTNEXTLINE
-    c.saveSocketIP(reinterpret_cast<struct sockaddr_storage *>(&addr));
+    c.saveSocketIP(&addr);
 
     return c;
 }
