@@ -141,6 +141,10 @@ private:
     void loadClientCertificate(const std::string &clientCertFile,
         const std::string &clientPrivateKeyFile);
 
+    FRIEND_TEST(ServerSideTest, waitForConnectgetsockoptError);
+    FRIEND_TEST(ServerSideTest, waitForConnectConnFail);
+    FRIEND_TEST(ServerSideTest, waitForConnectTimeout);
+    FRIEND_TEST(ServerSideTest, waitForConnectGood);
     FRIEND_TEST(ServerSideTest, socketReadyGood);
     FRIEND_TEST(ServerSideTest, socketReadyBadFd);
     FRIEND_TEST(ServerSideTest, socketReadyTimeout);

@@ -94,4 +94,10 @@ int ConcreteWrapper::fcntl(int sockfd, int cmd, int val)
     return ::fcntl(sockfd, cmd, val);
 }
 
+int ConcreteWrapper::getsockopt(int sockfd, int level, int optname,
+    void *optval, socklen_t *optlen)
+{
+    return ::getsockopt(sockfd, level, optname, optval, optlen);
+}
+
 } // namespace

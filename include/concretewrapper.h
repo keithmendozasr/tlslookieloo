@@ -62,6 +62,9 @@ public:
     virtual int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) override;
 
     virtual int fcntl(int fd, int cmd, int val) override;
+
+    virtual int getsockopt(int sockfd, int level, int optname, void *optval,
+        socklen_t *optlen) override;
 };
 
 } // namespace

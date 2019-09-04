@@ -86,7 +86,7 @@ bool ServerSide::waitForConnect()
 
         int val;
         socklen_t len = sizeof(val);
-        auto err = getsockopt(getSocket(), SOL_SOCKET, SO_ERROR, &val, &len);
+        auto err = wrapper->getsockopt(getSocket(), SOL_SOCKET, SO_ERROR, &val, &len);
         const string ip = getSocketIP();
         if(err != 0)
             throwSystemError(err, "getsockopt error");

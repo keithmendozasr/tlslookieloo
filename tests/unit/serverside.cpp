@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "gtest/gtest.h"
+#include "gmock/gmock.h"
 
 #include <cerrno>
 
@@ -35,6 +35,7 @@ MATCHER_P(IsFdSet, fd, "fd is set") // NOLINT
     return arg != nullptr && FD_ISSET(fd, arg); // NOLINT
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class ServerSideTest : public ::testing::Test
 {
 protected:
@@ -47,13 +48,76 @@ protected:
         client(mock)
     {}
 
-    void SetUp() override
+    virtual void SetUp() override
     {
         client.setSocket(fd);
         client.newSSLCtx();
         client.newSSLObj();
+        client.socketIP = "unit_test";
     }
+
+    virtual ~ServerSideTest(){}
 };
+
+TEST_F(ServerSideTest, waitForConnectgetsockoptError) // NOLINT
+{
+    setDefaultselect(mock);
+
+    EXPECT_CALL((*mock),
+        getsockopt(4, SOL_SOCKET, SO_ERROR, NotNull(), Pointee(sizeof(int))))
+        .WillOnce(Return(EACCES));
+
+    EXPECT_THROW(client.waitForConnect(), system_error); // NOLINT
+}
+
+TEST_F(ServerSideTest, waitForConnectConnFail) // NOLINT
+{
+    setDefaultselect(mock);
+
+    EXPECT_CALL((*mock),
+        getsockopt(4, SOL_SOCKET, SO_ERROR, NotNull(), Pointee(sizeof(int))))
+        .WillOnce(WithArg<3>(
+            [](void *opt)->int
+            {
+                int *val = reinterpret_cast<int *>(opt); // NOLINT
+                *val = ETIMEDOUT;
+                return 0;
+            }
+        ));
+
+    EXPECT_FALSE(client.waitForConnect());
+}
+
+TEST_F(ServerSideTest, waitForConnectTimeout) // NOLINT
+{
+    EXPECT_CALL((*mock), select(_, _, _, _, _))
+        .WillOnce(Return(0));
+
+    // NOLINTNEXTLINE
+    EXPECT_NO_THROW(
+        EXPECT_FALSE(client.waitForConnect())
+    );
+}
+
+TEST_F(ServerSideTest, waitForConnectGood) // NOLINT
+{
+    setDefaultselect(mock);
+    EXPECT_CALL((*mock),
+        getsockopt(4, SOL_SOCKET, SO_ERROR, NotNull(), Pointee(sizeof(int))))
+        .WillOnce(WithArg<3>(
+            [](void *opt)->int
+            {
+                int *val = reinterpret_cast<int *>(opt); // NOLINT
+                *val = 0;
+                return 0;
+            }
+        ));
+
+    // NOLINTNEXTLINE
+    EXPECT_NO_THROW(
+        EXPECT_TRUE(client.waitForConnect())
+    );
+}
 
 TEST_F(ServerSideTest, socketReadyGood) // NOLINT
 {

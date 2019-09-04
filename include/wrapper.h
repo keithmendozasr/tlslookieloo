@@ -105,6 +105,11 @@ public:
      * The POSIX fcntl's 3rd parameter is actually a variadic.
      */
     virtual int fcntl(int, int, int) = 0;
+
+    /**
+     * Wrap getsockopt()
+     */
+    virtual int getsockopt(int, int, int, void *, socklen_t *) = 0;
 };
 
 } // namespace
