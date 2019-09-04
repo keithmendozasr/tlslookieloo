@@ -41,7 +41,9 @@ protected:
         s(mock)
     {}
 
-    void SetUp() override
+    virtual ~SocketInfoTest(){}
+
+    virtual void SetUp() override
     {
         s.setSocket(fd);
         s.newSSLCtx();
@@ -70,6 +72,7 @@ TEST_F(SocketInfoTest, resolveHostPortInstanceInitialized) // NOLINT
     s.servInfo = shared_ptr<struct addrinfo>(
         new struct addrinfo,
         &freeaddrinfo);
+    s.servInfo->ai_next = nullptr;
     EXPECT_THROW(s.resolveHostPort(9000, ""), logic_error); // NOLINT
 }
 
