@@ -40,4 +40,4 @@ script:
   cd Debug &&
   cmake .. &&
   cmake --build . &&
-  ctest
+  ctest --output-on-failure
