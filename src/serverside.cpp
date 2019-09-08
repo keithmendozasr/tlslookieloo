@@ -126,7 +126,7 @@ const bool ServerSide::sockConnect(const unsigned int &port, const string &host)
                 ip = getSocketIP();
                 auto addrInfo = getAddrInfo();
                 LOG4CPLUS_DEBUG(logger, "Attempt connecting to " << ip); // NOLINT
-                if(::connect(getSocket(),
+                if(wrapper->connect(getSocket(),
                     reinterpret_cast<const struct sockaddr *>(addrInfo->ai_addr), // NOLINT
                     addrInfo->ai_addrlen) != 0
                 )

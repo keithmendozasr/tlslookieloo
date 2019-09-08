@@ -145,6 +145,14 @@ private:
     FRIEND_TEST(ServerSideTest, waitForConnectConnFail);
     FRIEND_TEST(ServerSideTest, waitForConnectTimeout);
     FRIEND_TEST(ServerSideTest, waitForConnectGood);
+
+    FRIEND_TEST(ServerSideTest, sockConnectResolveFail);
+    FRIEND_TEST(ServerSideTest, sockConnectNoMoreIPs);
+    FRIEND_TEST(ServerSideTest, sockConnectFirstIPReject);
+    FRIEND_TEST(ServerSideTest, sockConnectTimeout);
+    FRIEND_TEST(ServerSideTest, sockConnectDelay);
+    FRIEND_TEST(ServerSideTest, sockConnectFirstGood);
+
     FRIEND_TEST(ServerSideTest, socketReadyGood);
     FRIEND_TEST(ServerSideTest, socketReadyBadFd);
     FRIEND_TEST(ServerSideTest, socketReadyTimeout);

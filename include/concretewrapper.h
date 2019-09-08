@@ -65,6 +65,8 @@ public:
 
     virtual int getsockopt(int sockfd, int level, int optname, void *optval,
         socklen_t *optlen) override;
+
+    virtual int connect(int, const struct sockaddr *, socklen_t) override;
 };
 
 } // namespace

@@ -100,4 +100,10 @@ int ConcreteWrapper::getsockopt(int sockfd, int level, int optname,
     return ::getsockopt(sockfd, level, optname, optval, optlen);
 }
 
+int ConcreteWrapper::connect(int sockfd, const struct sockaddr *addr,
+    socklen_t addrlen)
+{
+    return ::connect(sockfd, addr, addrlen);
+}
+
 } // namespace

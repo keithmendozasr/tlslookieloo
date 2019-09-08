@@ -44,6 +44,7 @@ public:
     MOCK_METHOD3(accept, int(int, struct sockaddr *, socklen_t *));
     MOCK_METHOD3(fcntl, int(int, int, int));
     MOCK_METHOD5(getsockopt, int(int, int, int, void *, socklen_t *));
+    MOCK_METHOD3(connect, int(int, const struct sockaddr *, socklen_t));
 
     std::unique_ptr<struct addrinfo, decltype(&freeaddrinfo)> defaultAddrInfo;
 

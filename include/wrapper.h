@@ -110,6 +110,11 @@ public:
      * Wrap getsockopt()
      */
     virtual int getsockopt(int, int, int, void *, socklen_t *) = 0;
+
+    /**
+     * Wrap connect()
+     */
+    virtual int connect(int, const struct sockaddr *, socklen_t) = 0;
 };
 
 } // namespace
