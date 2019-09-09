@@ -18,6 +18,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
 
 #include "mockwrapper.h"
 
@@ -68,33 +69,17 @@ void setDefaultselect(shared_ptr<MockWrapper> mock)
 
 void setDefaultaccept(shared_ptr<MockWrapper> mock)
 {
-    if(!mock->defaultAddrInfo)
-    {
-        struct addrinfo hints; // NOLINT
-
-        memset(&hints, 0, sizeof hints); // NOLINT
-        hints.ai_family = AF_UNSPEC;
-        hints.ai_socktype = SOCK_STREAM;
-        hints.ai_flags = AI_PASSIVE; // use my IP
-
-        struct addrinfo *tmp;
-
-        // NOTE: Do not do ignore return value in production
-        ::getaddrinfo(nullptr, "9000", &hints, &tmp);
-        mock->defaultAddrInfo =
-            unique_ptr<struct addrinfo, decltype(&freeaddrinfo)>(tmp, &freeaddrinfo);
-    }
-
-    ON_CALL((*mock), accept(_, _, _))
+    ON_CALL((*mock), accept(4, NotNull(), Pointee(sizeof(struct sockaddr_storage))))
         .WillByDefault(DoAll(
             WithArgs<1,2>(
-                [&mock](struct sockaddr *addr, socklen_t *addrlen)
+                [](struct sockaddr *addr, socklen_t *addrlen)
                 {
-                    if(addr != nullptr)
-                    {
-                        *addrlen = mock->defaultAddrInfo->ai_addrlen;
-                        memcpy(addr, mock->defaultAddrInfo->ai_addr, *addrlen);
-                    }
+                    *addrlen = sizeof(struct sockaddr_in);
+                    struct sockaddr_in *tmp =
+                        reinterpret_cast<struct sockaddr_in *>(addr);
+                    tmp->sin_family = AF_INET;
+                    tmp->sin_port = htons(1234);
+                    inet_pton(AF_INET, "127.0.0.1", &(tmp->sin_addr));
                 }
             ),
             Return(5)
