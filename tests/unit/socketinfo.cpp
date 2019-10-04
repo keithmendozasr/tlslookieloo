@@ -72,6 +72,8 @@ TEST_F(SocketInfoTest, resolveHostPortInstanceInitialized) // NOLINT
     s.servInfo = shared_ptr<struct addrinfo>(
         new struct addrinfo,
         &freeaddrinfo);
+    s.servInfo->ai_canonname = nullptr;
+    s.servInfo->ai_addr = nullptr;
     s.servInfo->ai_next = nullptr;
     EXPECT_THROW(s.resolveHostPort(9000, ""), logic_error); // NOLINT
 }
