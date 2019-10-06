@@ -76,12 +76,7 @@ void Target::start()
 
     try
     {
-        if(tgtItem.timeout)
-        {
-            auto val = tgtItem.timeout.value();
-            LOG4CPLUS_DEBUG(logger, "Setting timeout to " << val); // NOLINT
-            timeout = val;
-        }
+        timeout = tgtItem.timeout;
 
         ClientSide clientListener(wrapper);
         clientListener.startListener(tgtItem.clientPort, 2);
@@ -211,7 +206,16 @@ bool Target::messageRelay(SocketInfo &src, SocketInfo &dest, const MSGOWNER owne
 void Target::handleClient(ClientSide client)
 {
     LOG4CPLUS_INFO(logger, "Start monitoring"); // NOLINT
-    client.setTimeout(timeout);
+
+    ServerSide server;
+    if(timeout)
+    {
+        LOG4CPLUS_TRACE(logger, "Setting communication timeout to " << timeout.value());
+        client.setTimeout(timeout.value());
+        server.setTimeout(timeout.value());
+    }
+    else
+        LOG4CPLUS_TRACE(logger, "No timeout set for target");
 
     if(!client.sslHandshake())
     {
@@ -233,8 +237,6 @@ void Target::handleClient(ClientSide client)
     else
         LOG4CPLUS_TRACE(logger, "Not setting client auth cert data"); // NOLINT
 
-    ServerSide server;
-    server.setTimeout(timeout);
     if(!server.connect(tgtItem.serverPort, tgtItem.serverHost, clientCertInfo,
         tgtItem.serverInsecure, tgtItem.serverCAChainFile))
     {
@@ -340,15 +342,21 @@ vector<Target::READREADYSTATE> Target::waitForReadable(ClientSide &client, Serve
     auto maxSocket = max({ clientFd, serverFd });
     LOG4CPLUS_TRACE(logger, "Value of maxSocket: " << maxSocket); // NOLINT
 
-    timeval waitTime; // NOLINT
-    // NOLINTNEXTLINE
-    LOG4CPLUS_TRACE(logger, "Setting timeout to " << timeout << " seconds");
-    waitTime.tv_sec=timeout;
-    waitTime.tv_usec=0;
+    unique_ptr<struct timeval> waitTime;
+    if(timeout)
+    {
+        // NOLINTNEXTLINE
+        LOG4CPLUS_TRACE(logger, "Setting timeout to " << timeout.value() << " seconds");
+        waitTime = make_unique<struct timeval>();
+        waitTime->tv_sec=timeout.value();
+        waitTime->tv_usec=0;
+    }
+    else
+        LOG4CPLUS_TRACE(logger, "Not setting wait timeout");
 
     LOG4CPLUS_TRACE(logger, "Wait for one side to be ready"); // NOLINT
     auto rslt = wrapper->select(maxSocket+1, &readFd, nullptr, nullptr,
-        &waitTime);
+        waitTime.get());
     LOG4CPLUS_TRACE(logger, "Value of rslt: " << rslt); // NOLINT
     if(rslt == 0)
         LOG4CPLUS_DEBUG(logger, "Read wait time expired"); // NOLINT

@@ -215,7 +215,7 @@ void SocketInfo::saveSocketIP(const sockaddr_storage *addrInfo)
     LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__<<" Value of ip: "<< socketIP.value()); // NOLINT
 }
 
-const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt, const bool withTimeout)
+const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt)
 {
     fd_set monitorFd;
     FD_ZERO(&monitorFd);
@@ -282,16 +282,17 @@ const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt, const bool 
     {
         LOG4CPLUS_DEBUG(logger, "Wait for socket to be ready"); // NOLINT
         unique_ptr<timeval> waitTime = nullptr;
-        if(withTimeout)
+        if(timeout)
         {
             // NOLINTNEXTLINE
-            LOG4CPLUS_TRACE(logger, "Setting timeout to " << timeout << " seconds");
+            auto timeoutVal = this->timeout.value();
+            LOG4CPLUS_TRACE(logger, "Setting timeout to " << timeoutVal << " seconds");
             waitTime = unique_ptr<timeval>(new timeval);
             if(!waitTime)
                 throw bad_alloc();
             else
             {
-                waitTime->tv_sec = timeout;
+                waitTime->tv_sec = timeoutVal;
                 waitTime->tv_usec = 0;
             }
         }

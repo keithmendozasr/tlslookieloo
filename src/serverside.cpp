@@ -19,11 +19,11 @@
 #include <string>
 #include <optional>
 #include <tuple>
+#include <memory>
 
 #include <sys/socket.h>
 
 #include <log4cplus/loggingmacros.h>
-
 
 #include "serverside.h"
 
@@ -315,11 +315,19 @@ const bool ServerSide::socketReady()
     FD_ZERO(&writeFd);
     FD_SET(getSocket(), &writeFd); // NOLINT
 
-    timeval waitTime; // NOLINT
-    waitTime.tv_sec = getTimeout();
-    waitTime.tv_usec = 0;
+    unique_ptr<timeval>waitTime(nullptr);
+    auto timeout = getTimeout();
+    if(timeout)
+    {
+        LOG4CPLUS_DEBUG(logger, "Setting timeout to " << timeout.value());
+        waitTime = make_unique<timeval>();
+        waitTime->tv_sec = timeout.value();
+        waitTime->tv_usec = 0;
+    }
+    else
+        LOG4CPLUS_DEBUG(logger, "No timeout set");
 
-    auto rslt = wrapper->select(getSocket() + 1, nullptr, &writeFd, nullptr, &waitTime);
+    auto rslt = wrapper->select(getSocket() + 1, nullptr, &writeFd, nullptr, waitTime.get());
     if(rslt > 0)
     {
         if(!FD_ISSET(getSocket(), &writeFd)) // NOLINT

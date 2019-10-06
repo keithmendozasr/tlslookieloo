@@ -21,6 +21,7 @@
 #include <fstream>
 #include <vector>
 #include <mutex>
+#include <optional>
 
 #include "log4cplus/logger.h"
 #include "log4cplus/loggingmacros.h"
@@ -99,7 +100,7 @@ private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("Target");
     TargetItem tgtItem;
     std::shared_ptr<Wrapper> wrapper;
-    unsigned int timeout = 5;
+    std::optional<unsigned int> timeout;
     static std::atomic_bool keepRunning;
     std::ofstream recordFileStream;
     std::mutex tmGuard;

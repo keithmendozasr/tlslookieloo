@@ -74,16 +74,18 @@ protected:
 
 TEST_F(TargetTest, waitForReadableTimeout) // NOLINT
 {
+    const long timeout = 5;
     client.setSocket(4);
     server.setSocket(5);
 
     EXPECT_CALL(
         (*mock),
         select(6, IsFdSet(4, 5), Not(IsFdSet(4, 5)), Not(IsFdSet(4, 5)),
-            NotNull()))
+            AllOf(NotNull(), Field(&timeval::tv_sec, timeout))))
         .WillOnce(Return(0));
     
     Target t(mock);
+    t.timeout = timeout;
     EXPECT_EQ(0u, t.waitForReadable(client, server).size());
 }
 
@@ -95,7 +97,7 @@ TEST_F(TargetTest, waitForReadableClient) // NOLINT
     EXPECT_CALL(
         (*mock),
         select(6, IsFdSet(4, 5), Not(IsFdSet(4, 5)), Not(IsFdSet(4, 5)),
-            NotNull()))
+            IsNull()))
         .WillOnce(DoAll(WithArg<1>(Invoke(
             [](fd_set *ptr){
                 FD_ZERO(ptr);
@@ -117,7 +119,7 @@ TEST_F(TargetTest, waitForReadableServer) // NOLINT
     EXPECT_CALL(
         (*mock),
         select(6, IsFdSet(4, 5), Not(IsFdSet(4, 5)), Not(IsFdSet(4, 5)),
-            NotNull()))
+            IsNull()))
         .WillOnce(DoAll(WithArg<1>(Invoke(
             [](fd_set *ptr){
                 FD_ZERO(ptr);
@@ -140,7 +142,7 @@ TEST_F(TargetTest, waitForReadableInterrupted) // NOLINT
         EXPECT_CALL(
             (*mock),
             select(6, IsFdSet(4, 5), Not(IsFdSet(4, 5)), Not(IsFdSet(4, 5)),
-                NotNull()))
+                IsNull()))
             .WillOnce(Return(-1));
         errno = 0;
 
@@ -149,17 +151,19 @@ TEST_F(TargetTest, waitForReadableInterrupted) // NOLINT
     }
 
     {
+        const unsigned long timeout = 42;
         client.setSocket(4);
         server.setSocket(5);
 
         EXPECT_CALL(
             (*mock),
             select(6, IsFdSet(4, 5), Not(IsFdSet(4, 5)), Not(IsFdSet(4, 5)),
-                NotNull()))
+                AllOf(NotNull(), Field(&timeval::tv_sec, timeout))))
             .WillOnce(Return(-1));
         errno = EINTR;
 
         Target t(mock);
+        t.timeout = timeout;
         EXPECT_EQ(0u, t.waitForReadable(client, server).size());
     }
 }
@@ -172,7 +176,7 @@ TEST_F(TargetTest, waitForReadableError) // NOLINT
     EXPECT_CALL(
         (*mock),
         select(6, IsFdSet(4, 5), Not(IsFdSet(4, 5)), Not(IsFdSet(4, 5)),
-            NotNull()))
+            IsNull()))
         .WillOnce(Return(-1));
     errno = EBADF;
 

@@ -248,7 +248,7 @@ TEST_F(ServerSideTest, socketReadyGood) // NOLINT
 {
     EXPECT_CALL(
         (*mock),
-        select(5, IsNull(), IsFdSet(fd), IsNull(), NotNull())
+        select(5, IsNull(), IsFdSet(fd), IsNull(), IsNull())
     ).WillOnce(Return(1));
 
     EXPECT_NO_THROW(EXPECT_TRUE(client.socketReady())); // NOLINT
@@ -258,7 +258,7 @@ TEST_F(ServerSideTest, socketReadyBadFd) // NOLINT
 {
     EXPECT_CALL(
         (*mock),
-        select(5, IsNull(), IsFdSet(fd), IsNull(), NotNull())
+        select(5, IsNull(), IsFdSet(fd), IsNull(), IsNull())
     ).WillOnce(DoAll(WithArg<2>(Invoke(
         [](fd_set *set){
             FD_ZERO(set);
@@ -273,7 +273,7 @@ TEST_F(ServerSideTest, socketReadyTimeout) // NOLINT
 {
     EXPECT_CALL(
         (*mock),
-        select(5, IsNull(), IsFdSet(fd), IsNull(), NotNull())
+        select(5, IsNull(), IsFdSet(fd), IsNull(), IsNull())
     ).WillOnce(Return(0));
 
     EXPECT_NO_THROW(EXPECT_FALSE(client.socketReady())); // NOLINT

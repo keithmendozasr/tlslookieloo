@@ -18,6 +18,7 @@
 #include <string>
 #include <memory>
 #include <stdexcept>
+#include <optional>
 
 #include <netdb.h>
 #include <sys/socket.h>
@@ -88,7 +89,7 @@ public:
      * Get the network timeout to use for all operations
      *
      */
-    inline unsigned int getTimeout() const
+    inline std::optional<unsigned int> getTimeout() const
     {
         return timeout;
     }
@@ -257,7 +258,7 @@ protected:
      * \throw logic_error When an unexpected code was received
      *  from SSL_get_error
      */
-    const OP_STATUS handleRetry(const int &rslt, const bool withTimeout = true);
+    const OP_STATUS handleRetry(const int &rslt);
 
     std::shared_ptr<Wrapper> wrapper;
 private:
@@ -289,7 +290,7 @@ private:
     struct addrinfo *sockAddr = nullptr;
     struct addrinfo *nextServ = nullptr;
 
-    unsigned int timeout = 5;
+    std::optional<unsigned int> timeout;
 
     std::shared_ptr<SSL_CTX> sslCtx;
 
