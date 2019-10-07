@@ -287,7 +287,7 @@ const bool ServerSide::sslHandshake(const std::string &host,
             LOG4CPLUS_TRACE(logger, "Value of peerVal: " << peerVal); // NOLINT
             if(peerVal != X509_V_OK)
             {
-                LOG4CPLUS_WARN(logger, "Failed to verify peer. Cause: " << // NOLINT
+                LOG4CPLUS_WARN(logger, "Failed to verify server identity. Cause: " << // NOLINT
                     X509_verify_cert_error_string(peerVal)
                 );
                 retVal = (allowInsecure == true);
