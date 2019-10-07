@@ -41,7 +41,7 @@ struct ArgState // NOLINT
     char *args[4];
     Logger logger;
     bool withClientCert = false;
-    unsigned int expectArgs = 1;
+    unsigned int expectArgs = 4;
 };
 
 /**
@@ -64,16 +64,22 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
         break;
     case ARGP_KEY_ARG:
         if(state->arg_num > argState->expectArgs)
+        {
+            LOG4CPLUS_ERROR(argState->logger, "Too many arguments");
             // Too many
             argp_usage(state);
+        }
         
         // Save the argument
         argState->args[state->arg_num] = arg; // NOLINT
         break;
     case ARGP_KEY_END:
         if(state->arg_num < argState->expectArgs)
+        {
+            LOG4CPLUS_ERROR(argState->logger, "Too few arguments");
             // Not enough arguments
             argp_usage(state);
+        }
 
         // Got enough arguments
         break;
