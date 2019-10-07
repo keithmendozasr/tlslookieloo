@@ -116,7 +116,7 @@ public:
 private:
     log4cplus::Logger logger = log4cplus::Logger::getInstance("ClientSide");
     std::shared_ptr<EVP_PKEY> refClientPubKey;
-    static int exDataIndex;
+    static thread_local int exDataIndex;
 
     /**
      * Wait for socket to be readable

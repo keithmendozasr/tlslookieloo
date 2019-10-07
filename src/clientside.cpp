@@ -363,6 +363,6 @@ int ClientSide::verifyCB(int preverifyOk, X509_STORE_CTX *x509Ctx)
     return (rslt == 1 ? 1 : 0);
 }
 
-int ClientSide::exDataIndex;
+thread_local int ClientSide::exDataIndex;
 
 } // namespace tlslookieloo
