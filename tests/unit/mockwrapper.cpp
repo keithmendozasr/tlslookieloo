@@ -76,7 +76,7 @@ void setDefaultaccept(shared_ptr<MockWrapper> mock)
                 {
                     *addrlen = sizeof(struct sockaddr_in);
                     struct sockaddr_in *tmp =
-                        reinterpret_cast<struct sockaddr_in *>(addr);
+                        reinterpret_cast<struct sockaddr_in *>(addr); // NOLINT
                     tmp->sin_family = AF_INET;
                     tmp->sin_port = htons(1234);
                     inet_pton(AF_INET, "127.0.0.1", &(tmp->sin_addr));

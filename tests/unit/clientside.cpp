@@ -203,6 +203,7 @@ TEST_F(ClientSideTest, acceptClientGood) // NOLINT
     setDefaultaccept(mock);
     setDefaultfcntl(mock);
 
+    // NOLINTNEXTLINE
     EXPECT_NO_THROW({
         auto rslt = client.acceptClient();
         auto socket = rslt.getSocket();

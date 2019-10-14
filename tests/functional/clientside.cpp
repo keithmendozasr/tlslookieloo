@@ -65,7 +65,7 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
     case ARGP_KEY_ARG:
         if(state->arg_num > argState->expectArgs)
         {
-            LOG4CPLUS_ERROR(argState->logger, "Too many arguments");
+            LOG4CPLUS_ERROR(argState->logger, "Too many arguments"); // NOLINT
             // Too many
             argp_usage(state);
         }
@@ -76,7 +76,7 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
     case ARGP_KEY_END:
         if(state->arg_num < argState->expectArgs)
         {
-            LOG4CPLUS_ERROR(argState->logger, "Too few arguments");
+            LOG4CPLUS_ERROR(argState->logger, "Too few arguments"); // NOLINT
             // Not enough arguments
             argp_usage(state);
         }

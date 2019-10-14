@@ -41,6 +41,9 @@ protected:
         s(mock)
     {}
 
+    SocketInfoTest(const SocketInfoTest &) = delete;
+    SocketInfoTest(SocketInfoTest &&) = delete;
+
     virtual ~SocketInfoTest(){}
 
     virtual void SetUp() override

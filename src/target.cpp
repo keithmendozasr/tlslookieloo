@@ -210,12 +210,14 @@ void Target::handleClient(ClientSide client)
     ServerSide server;
     if(timeout)
     {
-        LOG4CPLUS_TRACE(logger, "Setting communication timeout to " << timeout.value());
+        // NOLINTNEXTLINE
+        LOG4CPLUS_TRACE(logger, "Setting communication timeout to "
+            << timeout.value());
         client.setTimeout(timeout.value());
         server.setTimeout(timeout.value());
     }
     else
-        LOG4CPLUS_TRACE(logger, "No timeout set for target");
+        LOG4CPLUS_TRACE(logger, "No timeout set for target"); // NOLINT
 
     if(!client.sslHandshake())
     {
@@ -352,7 +354,7 @@ vector<Target::READREADYSTATE> Target::waitForReadable(ClientSide &client, Serve
         waitTime->tv_usec=0;
     }
     else
-        LOG4CPLUS_TRACE(logger, "Not setting wait timeout");
+        LOG4CPLUS_TRACE(logger, "Not setting wait timeout"); // NOLINT
 
     LOG4CPLUS_TRACE(logger, "Wait for one side to be ready"); // NOLINT
     auto rslt = wrapper->select(maxSocket+1, &readFd, nullptr, nullptr,
@@ -404,11 +406,11 @@ void Target::storeMessage(const char * data, const size_t &len,
     {
         if(lastMsgOwner)
         {
-            LOG4CPLUS_TRACE(logger, "Close last message block");
+            LOG4CPLUS_TRACE(logger, "Close last message block"); // NOLINT
             cleandata << msgTail;
         }
 
-        LOG4CPLUS_TRACE(logger, "Add record header");
+        LOG4CPLUS_TRACE(logger, "Add record header"); // NOLINT
         struct std::tm tmObj; // NOLINT
         time_t cTime;
         {
@@ -439,12 +441,12 @@ void Target::storeMessage(const char * data, const size_t &len,
     }
     else if(len == 0)
     {
-        LOG4CPLUS_TRACE(logger, "Placing end marker");
+        LOG4CPLUS_TRACE(logger, "Placing end marker"); // NOLINT
         cleandata << msgTail;
         lastMsgOwner.reset();
     }
     else
-        LOG4CPLUS_TRACE(logger, "Data continuation");
+        LOG4CPLUS_TRACE(logger, "Data continuation"); // NOLINT
 
     for(size_t i=0; i<len; i++)
     {

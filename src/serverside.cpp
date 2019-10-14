@@ -319,13 +319,14 @@ const bool ServerSide::socketReady()
     auto timeout = getTimeout();
     if(timeout)
     {
+        // NOLINTNEXTLINE
         LOG4CPLUS_DEBUG(logger, "Setting timeout to " << timeout.value());
         waitTime = make_unique<timeval>();
         waitTime->tv_sec = timeout.value();
         waitTime->tv_usec = 0;
     }
     else
-        LOG4CPLUS_DEBUG(logger, "No timeout set");
+        LOG4CPLUS_DEBUG(logger, "No timeout set"); // NOLINT
 
     auto rslt = wrapper->select(getSocket() + 1, nullptr, &writeFd, nullptr, waitTime.get());
     if(rslt > 0)

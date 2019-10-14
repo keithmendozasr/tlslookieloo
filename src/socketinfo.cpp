@@ -286,7 +286,10 @@ const SocketInfo::OP_STATUS SocketInfo::handleRetry(const int &rslt)
         {
             // NOLINTNEXTLINE
             auto timeoutVal = this->timeout.value();
-            LOG4CPLUS_TRACE(logger, "Setting timeout to " << timeoutVal << " seconds");
+
+            // NOLINTNEXTLINE
+            LOG4CPLUS_TRACE(logger, "Setting timeout to " << timeoutVal
+                << " seconds");
             waitTime = unique_ptr<timeval>(new timeval);
             if(!waitTime)
                 throw bad_alloc();
