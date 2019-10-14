@@ -136,13 +136,12 @@ void Target::start()
 bool Target::messageRelay(SocketInfo &src, SocketInfo &dest, const MSGOWNER owner)
 {
     bool retVal = true;
-    size_t amtRead;
-    size_t bufSize = 1024;
+    size_t bufSize = 4096;
     unique_ptr<char[]> buf(new char[bufSize]);
     bool keepReading = true;
     while(keepReading)
     {
-        amtRead = 1024;
+        auto amtRead = bufSize;
         switch(src.readData(buf.get(), amtRead))
         {
         case SocketInfo::OP_STATUS::SUCCESS:
@@ -179,6 +178,7 @@ bool Target::messageRelay(SocketInfo &src, SocketInfo &dest, const MSGOWNER owne
             {
                 // NOLINTNEXTLINE
                 LOG4CPLUS_DEBUG(logger, "No more data to relay");
+                storeMessage(buf.get(), 0, owner);
                 keepReading = false;
             }
             break;
@@ -394,35 +394,57 @@ vector<Target::READREADYSTATE> Target::waitForReadable(ClientSide &client, Serve
 void Target::storeMessage(const char * data, const size_t &len,
     const MSGOWNER &owner)
 {
+    const string msgTail("\n===END===\n");
+
     if(data == nullptr)
         throw logic_error("data is nullptr");
 
-    struct std::tm tmObj; // NOLINT
-    time_t cTime;
+    ostringstream cleandata(string(), ios_base::ate);
+    if(lastMsgOwner != owner)
     {
-        lock_guard<mutex> lk(tmGuard);
-        cTime = time(nullptr);
-        memcpy(&tmObj, gmtime(&cTime), sizeof(struct tm));
-    }
+        if(lastMsgOwner)
+        {
+            LOG4CPLUS_TRACE(logger, "Close last message block");
+            cleandata << msgTail;
+        }
 
-    // YYYY-mm-dd 00:00:00
-    const size_t tmBufSize = 20;
-    char tmBuf[tmBufSize];
-    strftime(&tmBuf[0], tmBufSize, "%F %T", &tmObj);
-    ostringstream cleandata("===", ios_base::ate);
-    cleandata << &tmBuf[0] << " BEGIN ";
-    switch(owner)
-    {
-    case MSGOWNER::CLIENT:
-        cleandata << "client-->server===";
-        break;
-    case MSGOWNER::SERVER:
-        cleandata << "server-->client===";
-        break;
-    default:
-        logic_error("Unexpected owner value");
+        LOG4CPLUS_TRACE(logger, "Add record header");
+        struct std::tm tmObj; // NOLINT
+        time_t cTime;
+        {
+            lock_guard<mutex> lk(tmGuard);
+            cTime = time(nullptr);
+            memcpy(&tmObj, gmtime(&cTime), sizeof(struct tm));
+        }
+
+        // YYYY-mm-dd 00:00:00
+        const size_t tmBufSize = 20;
+        char tmBuf[tmBufSize];
+        strftime(&tmBuf[0], tmBufSize, "%F %T", &tmObj);
+
+        cleandata << "===" << &tmBuf[0] << " BEGIN ";
+        switch(owner)
+        {
+        case MSGOWNER::CLIENT:
+            cleandata << "client-->server===";
+            break;
+        case MSGOWNER::SERVER:
+            cleandata << "server-->client===";
+            break;
+        default:
+            logic_error("Unexpected owner value");
+        }
+        cleandata << "\n";
+        lastMsgOwner = owner;
     }
-    cleandata << "\n";
+    else if(len == 0)
+    {
+        LOG4CPLUS_TRACE(logger, "Placing end marker");
+        cleandata << msgTail;
+        lastMsgOwner.reset();
+    }
+    else
+        LOG4CPLUS_TRACE(logger, "Data continuation");
 
     for(size_t i=0; i<len; i++)
     {
@@ -433,7 +455,6 @@ void Target::storeMessage(const char * data, const size_t &len,
             cleandata << "<" << std::setw(2) << std::setfill('0') << std::hex
                 << static_cast<unsigned int>(c) << ">";
     }
-    cleandata << "\n===END===\n";
 
     LOG4CPLUS_TRACE(logger, "Value of cleandata: " << cleandata.str()); // NOLINT
     wrapper->ostream_write(recordFileStream, cleandata.str().c_str(),
