@@ -36,7 +36,7 @@ script:
 - pushd log4cplus
 - autoreconf -f
 - popd
-- if [ ! -d Debug ]; then mkdir Debug; fi &&
+- if [ ! -d build ]; then mkdir build; fi &&
   cd Debug &&
   cmake .. &&
   cmake --build . &&
