@@ -32,8 +32,6 @@
 
 #include "log4cplus/loggingmacros.h"
 
-#include "gtest/gtest_prod.h"
-
 #include "wrapper.h"
 
 namespace tlslookieloo
@@ -306,48 +304,12 @@ private:
     };
     std::shared_ptr<SSL> sslObj;
 
+    friend class SocketInfoTestObj;
     friend class SocketInfoTest;
-
-    FRIEND_TEST(SocketInfoTest, resolveHostPortInstanceInitialized);
-    FRIEND_TEST(SocketInfoTest, resolveHostPortBadPort);
-    FRIEND_TEST(SocketInfoTest, resolveHostPortNoHost);
-    FRIEND_TEST(SocketInfoTest, resolveHostPortHostProvided);
-
-    FRIEND_TEST(SocketInfoTest, initNextSocketUnresolved);
-    FRIEND_TEST(SocketInfoTest, initNextSocketAllTried);
-    FRIEND_TEST(SocketInfoTest, initNextSocketSocketFail);
-    FRIEND_TEST(SocketInfoTest, initNextSocketGood);
-
-    FRIEND_TEST(SocketInfoTest, handleRetryReady);
-    FRIEND_TEST(SocketInfoTest, handleRetryTimeout);
-    FRIEND_TEST(SocketInfoTest, handleRetrySetTimeout);
-    FRIEND_TEST(SocketInfoTest, handleRetryInterrupted);
-    FRIEND_TEST(SocketInfoTest, handleRetryError);
-    FRIEND_TEST(SocketInfoTest, handleRetryNoTimeout);
-    FRIEND_TEST(SocketInfoTest, handleRetryRemoteDisconnect);
-    FRIEND_TEST(SocketInfoTest, handleRetryNoError);
-
-    FRIEND_TEST(SocketInfoTest, readDataExact);
-    FRIEND_TEST(SocketInfoTest, readDataShort);
-    FRIEND_TEST(SocketInfoTest, readDataFail);
-    FRIEND_TEST(SocketInfoTest, readDataNoData);
-
-    FRIEND_TEST(SocketInfoTest, writeDataExact);
-    FRIEND_TEST(SocketInfoTest, writeDataShort);
-    FRIEND_TEST(SocketInfoTest, writeDataRemoteDisconnect);
 
     friend class ClientSideTest;
     friend class ServerSideTest;
-
     friend class TargetTest;
-    FRIEND_TEST(TargetTest, passClientToServerGood);
-    FRIEND_TEST(TargetTest, passClientToServerNoData);
-    FRIEND_TEST(TargetTest, passClientToServerRemoteDisconnect);
-    FRIEND_TEST(TargetTest, waitForReadableTimeout);
-    FRIEND_TEST(TargetTest, waitForReadableClient);
-    FRIEND_TEST(TargetTest, waitForReadableServer);
-    FRIEND_TEST(TargetTest, waitForReadableInterrupted);
-    FRIEND_TEST(TargetTest, waitForReadableError);
 };
 
 } //namespace tlslookieloo

@@ -113,16 +113,16 @@ public:
     void loadRefClientCertPubkey(const std::string &certFile,
         const std::string &caFile);
 
-private:
-    log4cplus::Logger logger = log4cplus::Logger::getInstance("ClientSide");
-    std::shared_ptr<EVP_PKEY> refClientPubKey;
-    static thread_local int exDataIndex;
-
     /**
      * Wait for socket to be readable
      * \throws system_error if an error occurred during the select() operation
      */
     void waitSocketReadable();
+
+private:
+    log4cplus::Logger logger = log4cplus::Logger::getInstance("ClientSide");
+    std::shared_ptr<EVP_PKEY> refClientPubKey;
+    static thread_local int exDataIndex;
 
     typedef std::unique_ptr<X509, decltype(&X509_free)> X509Mem;
 
@@ -145,12 +145,7 @@ private:
      */
     static int verifyCB(int preverifyOk, X509_STORE_CTX *x509Ctx);
 
-    FRIEND_TEST(ClientSideTest, waitSocketReadableGood);
-    FRIEND_TEST(ClientSideTest, waitSocketReadableError);
-    FRIEND_TEST(ClientSideTest, loadCertFileGood);
-    FRIEND_TEST(ClientSideTest, loadCertFileOpenFailed);
-    FRIEND_TEST(ClientSideTest, loadCertFileWrongFormat);
-    FRIEND_TEST(ClientSideTest, loadRefClientCertPubkey);
+    friend class ClientSideTestObj;
 };
 
 } //namespace tlslookieloo

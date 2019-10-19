@@ -34,6 +34,33 @@ using ::testing::InSequence;
 namespace tlslookieloo
 {
 
+class ClientSideTestObj : public ClientSide
+{
+public:
+    ClientSideTestObj(shared_ptr<MockWrapper> mock): ClientSide(mock)
+    {}
+
+    void waitSocketReadable()
+    {
+        ClientSide::waitSocketReadable();
+    }
+
+    ClientSide::X509Mem loadCertFile(const string &fileName)
+    {
+        return ClientSide::loadCertFile(fileName);
+    }
+
+    shared_ptr<EVP_PKEY> getRefClientPubKey()
+    {
+        return ClientSide::refClientPubKey;
+    }
+
+    SSL_CTX *getSSLCtxPtr()
+    {
+        return ClientSide::getSSLCtxPtr();
+    }
+};
+
 MATCHER_P(IsFdSet, fd, "fd is set") // NOLINT
 {
     return arg != nullptr && FD_ISSET(fd, arg); // NOLINT
@@ -50,7 +77,7 @@ class ClientSideTest : public ::testing::Test
 {
 protected:
     shared_ptr<MockWrapper> mock;
-    ClientSide client;
+    ClientSideTestObj client;
     int fd = 4;
 
     ClientSideTest() :
@@ -317,7 +344,7 @@ TEST_F(ClientSideTest, loadRefClientCertPubkey) // NOLINT
     );
 
     EXPECT_TRUE(EVP_PKEY_cmp(
-        client.refClientPubKey.get(), getExpectedPubKey().get()));
+        client.getRefClientPubKey().get(), getExpectedPubKey().get()));
 
     auto clientCAList = SSL_CTX_get_client_CA_list(client.getSSLCtxPtr());
     EXPECT_EQ(1, sk_X509_NAME_num(clientCAList));

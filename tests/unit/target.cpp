@@ -31,6 +31,39 @@ using namespace std;
 namespace tlslookieloo
 {
 
+class TargetTestObj : public Target
+{
+public:
+    TargetTestObj(shared_ptr<MockWrapper> mock) : Target(mock)
+    {}
+
+    std::vector<READREADYSTATE> waitForReadable(ClientSide &client, ServerSide &server)
+    {
+        return Target::waitForReadable(client, server);
+    }
+
+    void storeMessage(const char *data, const size_t &len, const MSGOWNER & owner)
+    {
+        return Target::storeMessage(data, len, owner);
+    }
+
+    bool messageRelay(SocketInfo &src, SocketInfo &dest,
+        const Target::MSGOWNER owner)
+    {
+        return Target::messageRelay(src, dest, owner);
+    }
+    void setTimeout(const unsigned int &val)
+    {
+        Target::setTimeout(val);
+    }
+
+    Target::READREADYSTATE CLIENT_READY_VAL = Target::READREADYSTATE::CLIENT_READY;
+    Target::READREADYSTATE SERVER_READY_VAL = Target::READREADYSTATE::SERVER_READY;
+
+    Target::MSGOWNER OWNER_CLIENT = Target::MSGOWNER::CLIENT;
+    Target::MSGOWNER OWNER_SERVER = Target::MSGOWNER::SERVER;
+};
+
 MATCHER_P(IsVoidEqStr, str, "") // NOLINT
 {
     return string(static_cast<const char*>(arg)) == str;
@@ -48,11 +81,13 @@ protected:
     shared_ptr<MockWrapper> mock = nullptr;
     ClientSide client;
     ServerSide server;
+    TargetTestObj t;
 
     TargetTest() :
         mock(make_shared<MockWrapper>()),
         client(mock),
-        server(mock)
+        server(mock),
+        t(mock)
     {}
 
     void SetUp() override
@@ -71,13 +106,18 @@ protected:
         "[0-9][0-9]:[0-9][0-9]:[0-9][0-9] BEGIN ";
 
     const string msgTail = "\n===END===\n";
+
+    void setSocketFds()
+    {
+        client.setSocket(4);
+        server.setSocket(5);
+    }
 };
 
 TEST_F(TargetTest, waitForReadableTimeout) // NOLINT
 {
     const long timeout = 5;
-    client.setSocket(4);
-    server.setSocket(5);
+    setSocketFds();
 
     EXPECT_CALL(
         (*mock),
@@ -85,15 +125,13 @@ TEST_F(TargetTest, waitForReadableTimeout) // NOLINT
             AllOf(NotNull(), Field(&timeval::tv_sec, timeout))))
         .WillOnce(Return(0));
     
-    Target t(mock);
-    t.timeout = timeout;
+    t.setTimeout(timeout);
     EXPECT_EQ(0u, t.waitForReadable(client, server).size());
 }
 
 TEST_F(TargetTest, waitForReadableClient) // NOLINT
 {
-    client.setSocket(4);
-    server.setSocket(5);
+    setSocketFds();
 
     EXPECT_CALL(
         (*mock),
@@ -106,16 +144,14 @@ TEST_F(TargetTest, waitForReadableClient) // NOLINT
             })),
             Return(1)));
     
-    Target t(mock);
     auto testVal = t.waitForReadable(client, server);
     EXPECT_EQ(1u, testVal.size());
-    EXPECT_EQ(Target::READREADYSTATE::CLIENT_READY, testVal[0]);
+    EXPECT_EQ(t.CLIENT_READY_VAL, testVal[0]);
 }
 
 TEST_F(TargetTest, waitForReadableServer) // NOLINT
 {
-    client.setSocket(4);
-    server.setSocket(5);
+    setSocketFds();
 
     EXPECT_CALL(
         (*mock),
@@ -128,17 +164,15 @@ TEST_F(TargetTest, waitForReadableServer) // NOLINT
             })),
             Return(1)));
     
-    Target t(mock);
     auto testVal = t.waitForReadable(client, server);
     EXPECT_EQ(1u, testVal.size());
-    EXPECT_EQ(Target::READREADYSTATE::SERVER_READY, testVal[0]);
+    EXPECT_EQ(t.SERVER_READY_VAL, testVal[0]);
 }
 
 TEST_F(TargetTest, waitForReadableInterrupted) // NOLINT
 {
     {
-        client.setSocket(4);
-        server.setSocket(5);
+        setSocketFds();
 
         EXPECT_CALL(
             (*mock),
@@ -147,14 +181,12 @@ TEST_F(TargetTest, waitForReadableInterrupted) // NOLINT
             .WillOnce(Return(-1));
         errno = 0;
 
-        Target t(mock);
         EXPECT_EQ(0u, t.waitForReadable(client, server).size());
     }
 
     {
         const unsigned long timeout = 42;
-        client.setSocket(4);
-        server.setSocket(5);
+        setSocketFds();
 
         EXPECT_CALL(
             (*mock),
@@ -163,16 +195,14 @@ TEST_F(TargetTest, waitForReadableInterrupted) // NOLINT
             .WillOnce(Return(-1));
         errno = EINTR;
 
-        Target t(mock);
-        t.timeout = timeout;
+        t.setTimeout(timeout);
         EXPECT_EQ(0u, t.waitForReadable(client, server).size());
     }
 }
 
 TEST_F(TargetTest, waitForReadableError) // NOLINT
 {
-    client.setSocket(4);
-    server.setSocket(5);
+    setSocketFds();
 
     EXPECT_CALL(
         (*mock),
@@ -181,7 +211,6 @@ TEST_F(TargetTest, waitForReadableError) // NOLINT
         .WillOnce(Return(-1));
     errno = EBADF;
 
-    Target t(mock);
     EXPECT_THROW(t.waitForReadable(client, server), system_error); // NOLINT
 }
 
@@ -193,10 +222,9 @@ TEST_F(TargetTest, storeMessageClient) // NOLINT
                 "client-->server===.Testing<00>"), _))
         .Times(1);
 
-    Target t(mock);
     auto payload = "Testing";
     EXPECT_NO_THROW( // NOLINT
-        t.storeMessage(payload, sizeof(payload), t.MSGOWNER::CLIENT));
+        t.storeMessage(payload, sizeof(payload), t.OWNER_CLIENT));
 }
 
 TEST_F(TargetTest, storeMessageServer) // NOLINT
@@ -207,10 +235,9 @@ TEST_F(TargetTest, storeMessageServer) // NOLINT
                 "server-->client===.Testing<00>"), _))
         .Times(1);
 
-    Target t(mock);
     auto payload = "Testing";
     EXPECT_NO_THROW( // NOLINT
-        t.storeMessage(payload, sizeof(payload), t.MSGOWNER::SERVER));
+        t.storeMessage(payload, sizeof(payload), t.OWNER_SERVER));
 }
 
 TEST_F(TargetTest, storeMessageBinary) // NOLINT
@@ -221,10 +248,9 @@ TEST_F(TargetTest, storeMessageBinary) // NOLINT
                 "server-->client===.<00><7f><10>"), _))
         .Times(1);
 
-    Target t(mock);
     char payload[] = { 0x0, 0x7f, 0x10 };
     EXPECT_NO_THROW( // NOLINT
-        t.storeMessage(payload, sizeof(payload), t.MSGOWNER::SERVER));
+        t.storeMessage(payload, sizeof(payload), t.OWNER_SERVER));
 }
 
 TEST_F(TargetTest, storeMessageNullPtr) // NOLINT
@@ -233,9 +259,8 @@ TEST_F(TargetTest, storeMessageNullPtr) // NOLINT
         ostream_write(_, _, _))
         .Times(0);
 
-    Target t(mock);
     EXPECT_THROW( // NOLINT
-        t.storeMessage(nullptr, 1, t.MSGOWNER::CLIENT),
+        t.storeMessage(nullptr, 1, t.OWNER_CLIENT),
         logic_error);
 }
 
@@ -253,9 +278,8 @@ TEST_F(TargetTest, storeSingleChunkMessage) // NOLINT
             .Times(1);
     }
 
-    Target t(mock);
     EXPECT_NO_THROW({
-        auto owner = Target::MSGOWNER::SERVER;
+        auto owner = t.OWNER_SERVER;
         t.storeMessage("abcdef", 6, owner);
         t.storeMessage("", 0, owner);
     });
@@ -283,9 +307,8 @@ TEST_F(TargetTest, storeChunkedMessage) // NOLINT
             .Times(1);
     }
 
-    Target t(mock);
     EXPECT_NO_THROW({
-        auto owner = Target::MSGOWNER::SERVER;
+        auto owner = t.OWNER_SERVER;
         t.storeMessage("abcdef", 6, owner);
         t.storeMessage("ghijklm\n", 8, owner);
         t.storeMessage("\nqrstuv\n", 8, owner);
@@ -322,17 +345,16 @@ TEST_F(TargetTest, storeAlternatingMessage) // NOLINT
             .Times(1);
     }
 
-    Target t(mock);
     EXPECT_NO_THROW({
         t.storeMessage("From the server", strlen("From the server"),
-            Target::MSGOWNER::SERVER);
+            t.OWNER_SERVER);
         t.storeMessage("From the client", strlen("From the client"),
-            Target::MSGOWNER::CLIENT);
+            t.OWNER_CLIENT);
         t.storeMessage("From the server again", strlen("From the server again"),
-            Target::MSGOWNER::SERVER);
+            t.OWNER_SERVER);
         t.storeMessage("From the client again", strlen("From the client again"),
-            Target::MSGOWNER::CLIENT);
-        t.storeMessage("", 0, Target::MSGOWNER::CLIENT);
+            t.OWNER_CLIENT);
+        t.storeMessage("", 0, t.OWNER_CLIENT);
     });
 }
 
@@ -360,8 +382,7 @@ TEST_F(TargetTest, messageRelayGood) // NOLINT
             .WillOnce(Return(SSL_ERROR_WANT_READ));
     }
 
-    Target obj;
-    EXPECT_TRUE(obj.messageRelay(client, server, Target::MSGOWNER::CLIENT));
+    EXPECT_TRUE(t.messageRelay(client, server, t.OWNER_CLIENT));
 }
 
 TEST_F(TargetTest, messageRelayRemoteDisconnect) // NOLINT
@@ -380,9 +401,8 @@ TEST_F(TargetTest, messageRelayRemoteDisconnect) // NOLINT
 
     EXPECT_CALL((*mock), SSL_write(_, _, _))
         .WillOnce(Return(-1));
-
-    Target obj;
-    EXPECT_FALSE(obj.messageRelay(client, server, Target::MSGOWNER::CLIENT));
+    
+    EXPECT_FALSE(t.messageRelay(client, server, t.OWNER_CLIENT));
 }
 
 } //namespace tlslookieloo

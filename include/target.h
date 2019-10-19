@@ -26,8 +26,6 @@
 #include "log4cplus/logger.h"
 #include "log4cplus/loggingmacros.h"
 
-#include "gtest/gtest_prod.h"
-
 #include "concretewrapper.h"
 #include "serverside.h"
 #include "clientside.h"
@@ -96,15 +94,7 @@ public:
         keepRunning = false;
     }
 
-private:
-    log4cplus::Logger logger = log4cplus::Logger::getInstance("Target");
-    TargetItem tgtItem;
-    std::shared_ptr<Wrapper> wrapper;
-    std::optional<unsigned int> timeout;
-    static std::atomic_bool keepRunning;
-    std::ofstream recordFileStream;
-    std::mutex tmGuard;
-
+protected:
     enum MSGOWNER
     {
         CLIENT,
@@ -115,12 +105,6 @@ private:
      * Relay message between 2 sides
      */
     bool messageRelay(SocketInfo &src, SocketInfo &dest, const Target::MSGOWNER owner);
-
-    /**
-     * Handle clientside connection and message processing
-     * \arg client ClientSide object containing the client connection info
-     */
-    void handleClient(ClientSide client);
 
     enum READREADYSTATE
     {
@@ -136,8 +120,6 @@ private:
      */
     std::vector<READREADYSTATE> waitForReadable(ClientSide &client, ServerSide &server);
 
-    std::optional<MSGOWNER> lastMsgOwner;
-
     /**
      * Log the data received with indicator of origin
      *
@@ -148,25 +130,31 @@ private:
     void storeMessage(const char *data, const size_t &len,
         const MSGOWNER & owner);
 
-    FRIEND_TEST(TargetTest, waitForReadableTimeout);
-    FRIEND_TEST(TargetTest, waitForReadableClient);
-    FRIEND_TEST(TargetTest, waitForReadableServer);
-    FRIEND_TEST(TargetTest, waitForReadableInterrupted);
-    FRIEND_TEST(TargetTest, waitForReadableError);
+    /**
+     * Set the target's timeout
+     * \arg t Timeout value
+     */
+    inline void setTimeout(const unsigned int &t)
+    {
+        timeout = t;
+    }
 
-    FRIEND_TEST(TargetTest, storeMessageClient);
-    FRIEND_TEST(TargetTest, storeMessageServer);
-    FRIEND_TEST(TargetTest, storeMessageBinary);
-    FRIEND_TEST(TargetTest, storeMessageNullPtr);
-    FRIEND_TEST(TargetTest, storeSingleChunkMessage);
-    FRIEND_TEST(TargetTest, storeChunkedMessage);
-    FRIEND_TEST(TargetTest, storeAlternatingMessage);
+private:
+    log4cplus::Logger logger = log4cplus::Logger::getInstance("Target");
+    TargetItem tgtItem;
+    std::shared_ptr<Wrapper> wrapper;
+    std::optional<unsigned int> timeout;
+    static std::atomic_bool keepRunning;
+    std::ofstream recordFileStream;
+    std::mutex tmGuard;
 
-    FRIEND_TEST(TargetTest, messageRelayGood);
-    FRIEND_TEST(TargetTest, messageRelayNoData);
-    FRIEND_TEST(TargetTest, messageRelayRemoteDisconnect);
-    FRIEND_TEST(TargetTest, messageRelayChunks);
+    std::optional<MSGOWNER> lastMsgOwner;
 
+    /**
+     * Handle clientside connection and message processing
+     * \arg client ClientSide object containing the client connection info
+     */
+    void handleClient(ClientSide client);
 };
 
 } // namespace tlslookieloo

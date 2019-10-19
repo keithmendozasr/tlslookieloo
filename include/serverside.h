@@ -21,7 +21,6 @@
 #include <optional>
 
 #include "log4cplus/logger.h"
-#include "gtest/gtest_prod.h"
 
 #include "socketinfo.h"
 #include "wrapper.h"
@@ -93,9 +92,6 @@ public:
         ClientCertInfo clientCert, const bool allowInsecure,
         const std::optional<const std::string> serverCACertFile);
 
-private:
-    log4cplus::Logger logger = log4cplus::Logger::getInstance("ServerSide");
-
     /**
      * Wait for connect() call to complete
      **/
@@ -107,6 +103,16 @@ private:
      * \seee ServerSide::connect() for parameter and return info
      **/
     const bool sockConnect(const unsigned int &port, const std::string &host);
+
+    /**
+     * Wait for socket to be writable
+     * \throws system_error if an error occurred during the select() operation
+     * \return true if socket is writable. False if it times out
+     **/
+    const bool socketReady();
+
+private:
+    log4cplus::Logger logger = log4cplus::Logger::getInstance("ServerSide");
 
     /**
      * Create the socket context for this instance
@@ -126,13 +132,6 @@ private:
         const bool allowInsecure);
 
     /**
-     * Wait for socket to be writable
-     * \throws system_error if an error occurred during the select() operation
-     * \return true if socket is writable. False if it times out
-     **/
-    const bool socketReady();
-
-    /**
      * Load client-side certificate.
      *
      * \param clientCertFile Path to the client certificate public key file
@@ -140,22 +139,6 @@ private:
      **/
     void loadClientCertificate(const std::string &clientCertFile,
         const std::string &clientPrivateKeyFile);
-
-    FRIEND_TEST(ServerSideTest, waitForConnectgetsockoptError);
-    FRIEND_TEST(ServerSideTest, waitForConnectConnFail);
-    FRIEND_TEST(ServerSideTest, waitForConnectTimeout);
-    FRIEND_TEST(ServerSideTest, waitForConnectGood);
-
-    FRIEND_TEST(ServerSideTest, sockConnectResolveFail);
-    FRIEND_TEST(ServerSideTest, sockConnectNoMoreIPs);
-    FRIEND_TEST(ServerSideTest, sockConnectFirstIPReject);
-    FRIEND_TEST(ServerSideTest, sockConnectTimeout);
-    FRIEND_TEST(ServerSideTest, sockConnectDelay);
-    FRIEND_TEST(ServerSideTest, sockConnectFirstGood);
-
-    FRIEND_TEST(ServerSideTest, socketReadyGood);
-    FRIEND_TEST(ServerSideTest, socketReadyBadFd);
-    FRIEND_TEST(ServerSideTest, socketReadyTimeout);
 };
 
 } //namespace tlslookieloo

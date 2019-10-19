@@ -31,6 +31,28 @@ using namespace std;
 namespace tlslookieloo
 {
 
+class ServerSideTestObj : public ServerSide
+{
+public:
+    ServerSideTestObj(shared_ptr<MockWrapper> mock) : ServerSide(mock)
+    {}
+
+    bool waitForConnect()
+    {
+        return ServerSide::waitForConnect();
+    }
+
+    const bool sockConnect(const unsigned int &port, const string &host)
+    {
+        return ServerSide::sockConnect(port, host);
+    }
+
+    const bool socketReady()
+    {
+        return ServerSide::socketReady();
+    }
+};
+
 MATCHER_P(IsFdSet, fd, "fd is set") // NOLINT
 {
     return arg != nullptr && FD_ISSET(fd, arg); // NOLINT
