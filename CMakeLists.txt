@@ -15,7 +15,7 @@
 cmake_minimum_required (VERSION 3.10)
 include(FindPkgConfig)
 
-project (tlslookieloo VERSION 0.0.1.0)
+project (tlslookieloo VERSION 0.2.1)
 enable_testing()
 configure_file(include/version.h.in ${CMAKE_BINARY_DIR}/include/version.h)
 

@@ -16,14 +16,5 @@
 
 #pragma once
 
-#include <string>
-
-namespace tlslookieloo
-{
-
-const inline std::string version()
-{
-    return "@PROJECT_VERSION@";
-}
-
-} //namespace
+const char *argp_program_version = "@PROJECT_NAME@ @PROJECT_VERSION@";
+const char *argp_program_bug_address = "keith@homepluspower.info";

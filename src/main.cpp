@@ -37,9 +37,6 @@ using namespace std;
 using namespace tlslookieloo;
 using namespace log4cplus;
 
-const char *argp_program_version = tlslookieloo::version().c_str();
-const char *argp_program_bug_address = "keith@homepluspower.info";
-
 /**
  * Hold info about a running target
  */
