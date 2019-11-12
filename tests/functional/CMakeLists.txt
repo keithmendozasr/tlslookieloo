@@ -12,5 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(unit)
-add_subdirectory(functional)
+configure_file(commonvars.py.in commonvars.py)
+configure_file(payloads/single_target_test_1.yaml payloads/single_target_test_1.yaml)
+
+add_test(NAME single_target
+         COMMAND robot --variablefile ${CMAKE_CURRENT_BINARY_DIR}/commonvars.py
+                 ${CMAKE_CURRENT_SOURCE_DIR}/single_target.robot
+)

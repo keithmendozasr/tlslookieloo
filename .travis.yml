@@ -8,6 +8,7 @@ addons:
       - g++-8
       - libssl1.1
       - cmake-data
+      - python3-pip
 
 cache:
   directories:
@@ -22,6 +23,7 @@ before_install:
 - eval ${MATRIX_EVAL}
 
 install:
+- pip3 install robotframework
 - travis_retry wget https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.6.2.tar.gz
 - tar zxvf yaml-cpp-0.6.2.tar.gz
 - cd yaml-cpp-yaml-cpp-0.6.2
