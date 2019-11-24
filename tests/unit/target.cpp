@@ -242,15 +242,47 @@ TEST_F(TargetTest, storeMessageServer) // NOLINT
 
 TEST_F(TargetTest, storeMessageBinary) // NOLINT
 {
-    string expectMsg("===BEGIN server-->client===\n<00><7f><10>\n===END===\n");
     EXPECT_CALL((*mock), ostream_write(
         _, MatchesRegex(msgBanner +
-                "server-->client===.<00><7f><10>"), _))
+                "server-->client===.<00><7f><0b>"), _))
         .Times(1);
 
-    char payload[] = { 0x0, 0x7f, 0x10 };
+    char payload[] = { 0x00, 0x7f, 0x0b };
     EXPECT_NO_THROW( // NOLINT
         t.storeMessage(payload, sizeof(payload), t.OWNER_SERVER));
+}
+
+TEST_F(TargetTest, storeMessageNewlines) // NOLINT
+{
+    // NOTE: Alternating source is to make it easier to test the different
+    // newline values
+    InSequence seq;
+    EXPECT_CALL((*mock), ostream_write(
+        _, MatchesRegex(msgBanner +
+            "server-->client===.Hello<0d>."), _))
+        .Times(1);
+
+    EXPECT_CALL((*mock), ostream_write(
+        _, MatchesRegex(msgTail + msgBanner +
+            "client-->server===.Hello<0a>."), _))
+        .Times(1);
+
+    EXPECT_CALL((*mock), ostream_write(
+        _, MatchesRegex(msgTail + msgBanner +
+            "server-->client===.Hello<0d><0a>."), _))
+        .Times(1);
+
+    const char crPayload[] = "Hello\r";
+    EXPECT_NO_THROW( // NOLINT
+        t.storeMessage(crPayload, sizeof(crPayload)-1, t.OWNER_SERVER));
+
+    const char lfPayload[] = "Hello\n";
+    EXPECT_NO_THROW( // NOLINT
+        t.storeMessage(lfPayload, sizeof(lfPayload)-1, t.OWNER_CLIENT));
+
+    const char crlfPayload[] = "Hello\r\n";
+    EXPECT_NO_THROW( // NOLINT
+        t.storeMessage(crlfPayload, sizeof(crlfPayload)-1, t.OWNER_SERVER));
 }
 
 TEST_F(TargetTest, storeMessageNullPtr) // NOLINT
@@ -295,11 +327,11 @@ TEST_F(TargetTest, storeChunkedMessage) // NOLINT
             .Times(1);
 
         EXPECT_CALL((*mock), ostream_write(
-            _, MatchesRegex("ghijklm\n"), _))
+            _, MatchesRegex("ghijklm<0a>\n"), _))
             .Times(1);
 
         EXPECT_CALL((*mock), ostream_write(
-            _, MatchesRegex("\nqrstuv\n"), _))
+            _, MatchesRegex("<0a>\nqrstuv<0a>\n"), _))
             .Times(1);
 
         EXPECT_CALL((*mock), ostream_write(

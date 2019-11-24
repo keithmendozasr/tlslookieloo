@@ -451,11 +451,26 @@ void Target::storeMessage(const char * data, const size_t &len,
     for(size_t i=0; i<len; i++)
     {
         auto c = static_cast<unsigned char>(data[i]);
-        if(isprint(c) || isspace(c))
+        if(c == '\r')
+        {
+            cleandata << "<0d>";
+            if(data[i+1] == '\n')
+            {
+                cleandata << "<0a>";
+                i++;
+            }
+
+            cleandata << endl;
+        }
+        else if(c == '\n')
+            cleandata << "<0a>" << endl;
+        else if(isprint(c))
             cleandata << c;
         else
+        {
             cleandata << "<" << std::setw(2) << std::setfill('0') << std::hex
                 << static_cast<unsigned int>(c) << ">";
+        }
     }
 
     LOG4CPLUS_TRACE(logger, "Value of cleandata: " << cleandata.str()); // NOLINT
