@@ -2,12 +2,12 @@
 Library     String
 Resource    functional.resource
 
-Suite Setup     Check Data Clear
+Test Setup  Reset Data Dir
 Test Teardown   Run Keyword And Ignore Error    Terminate All Processes
 
 *** Test Cases ***
-Single Message
-    [Timeout]       25s
+Single Message Text
+    [Timeout]   25s
     ${server}   ${server_obj} =     Start Server    9901    ${SERVER_CERT}  ${SERVER_KEY}
     ${sut} =    Start tlslookieloo  ${PAYLOAD_DIR}/single_target_test_1.yaml
     ${client}   ${client_obj} =     Start Client    localhost:9900
@@ -56,3 +56,47 @@ Single Message
 
     ${line} =   Get Line    ${file_data}    5
     Should Be Equal As Strings  ${line}     ${END_TAG}
+
+Single Message Binary
+    [Timeout]   25s
+    ${server}   ${server_obj} =     Start Server    9901    ${SERVER_CERT}  ${SERVER_KEY}
+    ${sut} =    Start tlslookieloo  ${PAYLOAD_DIR}/single_target_test_1.yaml
+    ${client}   ${client_obj} =     Start Client    localhost:9900
+
+    ${server_msg} =     Convert To Bytes    \x00\x00\x00\x0BHello there
+    ${client_msg} =    Convert To Bytes    \x00\x00\x00\x01Y
+
+    ${retval} =     Call Method     ${server_obj.stdin}     write   ${server_msg}
+    Log     server written returned: ${retval}
+    Call Method     ${server_obj.stdin}     flush
+
+    ${rslt} =   Call Method     ${client_obj.stdout}    read    ${15}
+    Log     Message from server: ${rslt}
+    Should Be Equal    ${rslt}     ${server_msg}
+
+    ${retval} =     Call Method     ${client_obj.stdin}     write   ${client_msg}
+    Log     write returned ${retval}
+    Call Method     ${client_obj.stdin}     flush
+
+    ${rslt} =   Call Method     ${server_obj.stdout}    read    ${5}
+    Log     Message from client: ${rslt}
+    Should Be Equal    ${rslt}     ${client_msg}
+
+    ${rslt} =   Terminate Process   ${sut}
+    Log     tlslookieloo exit code: ${rslt.rc}
+    Log     tlslookieloo stdout: ${rslt.stdout}
+    Log     tlslookieloo stderr: ${rslt.stderr}
+
+    ${data_file} =  Set Variable    data/single_target_test1.msgs
+    Should Exist    ${data_file}
+    ${file_content} =   Get File     ${data_file}
+    Log     File data content
+    Log     ${file_content}
+
+    ${line} =   Get Line    ${file_content}     1
+    Log     Line block: ${line}
+    Should Be Equal As Strings   ${line}     <00><00><00><0B>Hello there
+
+    ${line} =   Get Line    ${file_content}     2
+    Log     Line: ${line}
+    Should Be Equal As Strings   ${line}     <00><00><00><01>Y

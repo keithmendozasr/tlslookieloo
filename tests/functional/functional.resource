@@ -32,13 +32,13 @@ Start server
 
 Start client
     [Arguments]     ${host}
-    ${client} =     Start Process   ${openssl}  s_client    -ign_eof    -quiet  -connect    ${host}
-    Sleep   1
+    ${client} =     Start Process   ${openssl}  s_client    -ign_eof    -quiet  -CAfile     ${CA_FILE}  -connect    ${host}
+    Sleep   1s
     ${rslt} =   Is Process Running  ${client}
     Run Keyword If  ${rslt} == ${False}     Log Process Failed Start    ${client}   s_client
     ${client_obj} =     Get Process Object  ${client}
     [Return]    ${client}   ${client_obj}
 
-Check Data Clear
-    Directory Should Not Exist  data/   \"data\" directory present from previous test
+Reset Data Dir
+    Remove Directory    data    recursive=${True}
     Create Directory    data
