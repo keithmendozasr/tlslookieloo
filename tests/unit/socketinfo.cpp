@@ -46,6 +46,9 @@ public:
         return SocketInfo::resolveHostPort(port, host);
     }
 
+    SocketInfoTestObj operator = (const SocketInfoTestObj) = delete;
+    SocketInfoTestObj operator = (SocketInfoTestObj &&) = delete;
+
     const struct addrinfo *getNextServ()
     {
         return nextServ;
