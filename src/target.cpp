@@ -404,6 +404,12 @@ void Target::storeMessage(const char * data, const size_t &len,
     ostringstream cleandata(string(), ios_base::ate);
     if(lastMsgOwner != owner)
     {
+        if(len == 0)
+        {
+            LOG4CPLUS_TRACE(logger, "Not recording 0-byte 1st chunck");
+            return;
+        }
+
         if(lastMsgOwner)
         {
             LOG4CPLUS_TRACE(logger, "Close last message block"); // NOLINT
