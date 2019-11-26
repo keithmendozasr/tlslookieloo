@@ -21,6 +21,13 @@ Start tlslookieloo
     Run Keyword If  ${rslt} == ${False}     Log Process Failed Start    ${sut}  tlslookieloo
     [Return]    ${sut}
 
+Stop tlslookieloo
+    [Arguments]     ${sut}
+    ${rslt} =   Terminate Process   ${sut}
+    Log     tlslookieloo exit code: ${rslt.rc}
+    Log     tlslookieloo stdout: ${rslt.stdout}
+    Log     tlslookieloo stderr: ${rslt.stderr}
+
 Start server
     [Arguments]     ${listen_port}  ${cert}     ${key}
     ${server} =     Start Process   ${openssl}  s_server    -ign_eof    -quiet  -cert   ${cert}     -key    ${key}  -port   +${listen_port}
@@ -42,3 +49,18 @@ Start client
 Reset Data Dir
     Remove Directory    data    recursive=${True}
     Create Directory    data
+
+Send Message String
+    [Arguments]     ${src}      ${dest}     ${msg}
+    ${expect_len} =     Get Length  ${msg}
+    Log     Message length: ${expect_len}
+    ${msg_byte} =   Encode String To Bytes  ${msg}  ASCII
+
+    ${rslt} =   Call Method     ${src.stdin}    write   ${msg_byte}
+    Should Be Equal As Integers  ${expect_len}    ${rslt}
+    Call Method     ${src.stdin}    flush
+
+    ${recv_msg} =   Call Method     ${dest.stdout}  read    ${rslt}
+    ${str_recv} =   Decode Bytes To String      ${recv_msg}     ASCII
+    Log     Message Received: ${str_recv}
+    Should Be Equal As Strings  ${str_recv}     ${msg}

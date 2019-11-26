@@ -57,10 +57,7 @@ Single Message Text
     ${rslt} =   Call Method     ${server_obj.stdout}    read    ${11}
     Log     Message from client: ${rslt}
 
-    ${rslt} =   Terminate Process   ${sut}
-    Log     tlslookieloo exit code: ${rslt.rc}
-    Log     tlslookieloo stdout: ${rslt.stdout}
-    Log     tlslookieloo stderr: ${rslt.stderr}
+    Stop tlslookieloo   ${sut}
 
     Validate Single Message File Content    data/single_target_test1.msgs   ${server_msg}   ${client_msg}
 
@@ -89,9 +86,88 @@ Single Message Binary
     Log     Message from client: ${rslt}
     Should Be Equal    ${rslt}     ${client_msg}
 
-    ${rslt} =   Terminate Process   ${sut}
-    Log     tlslookieloo exit code: ${rslt.rc}
-    Log     tlslookieloo stdout: ${rslt.stdout}
-    Log     tlslookieloo stderr: ${rslt.stderr}
+    Stop tlslookieloo   ${sut}
 
     Validate Single Message File Content  data/single_target_test1.msgs   <00><00><00><0b>Hello there     <00><00><00><01>Y
+
+Multiple Message Same Source
+    [Timeout]   25s
+    ${server}   ${server_obj} =     Start Server    9901    ${SERVER_CERT}  ${SERVER_KEY}
+    ${sut} =    Start tlslookieloo  ${PAYLOAD_DIR}/single_target_test_1.yaml
+    ${client}   ${client_obj} =     Start Client    localhost:9900
+
+    Send Message String     ${client_obj}   ${server_obj}   Client Part 1\n
+    Send Message String     ${client_obj}   ${server_obj}   Client Part 2
+    Send Message String     ${client_obj}   ${server_obj}   \ Client Part 3
+
+    Send Message String     ${server_obj}   ${client_obj}   Server Part 1\n
+    Send Message String     ${server_obj}   ${client_obj}   Server Part 2
+    Send Message String     ${server_obj}   ${client_obj}   \ Server Part 3
+
+    Stop tlslookieloo   ${sut}
+
+    ${data_file} =  Set Variable    data/single_target_test1.msgs
+    Should Exist    ${data_file}
+    ${file_data} =  Get File    ${data_file}
+    ${num_lines} =  Get Line Count  ${file_data}
+    Should Be Equal     ${20}    ${num_lines}
+
+	${line} =   Get Line    ${file_data}    0
+    Should Match Regexp     ${line}     ${CTOS_HEADER_LINE}
+
+    ${line} =   Get Line    ${file_data}    1
+    Should Be Equal As Strings  ${line}     Client Part 1<0a>
+
+    ${line} =   Get Line    ${file_data}    2
+    Should Be Empty     ${line}
+
+    ${line} =   Get Line    ${file_data}    3
+    Should Be Equal As Strings  ${line}     ${END_TAG}
+
+	${line} =   Get Line    ${file_data}    4
+    Should Match Regexp     ${line}     ${CTOS_HEADER_LINE}
+
+    ${line} =   Get Line    ${file_data}    5
+    Should Be Equal As Strings  ${line}     Client Part 2
+
+    ${line} =   Get Line    ${file_data}    6
+    Should Be Equal As Strings  ${line}     ${END_TAG}
+
+    ${line} =   Get Line    ${file_data}    7
+    Should Match Regexp     ${line}     ${CTOS_HEADER_LINE}
+
+    ${line} =   Get Line    ${file_data}    8
+    Should Be Equal As Strings  ${line}     \ Client Part 3
+
+    ${line} =   Get Line    ${file_data}    9
+    Should Be Equal As Strings  ${line}     ${END_TAG}
+
+    ${line} =   Get Line    ${file_data}    10
+    Should Match Regexp     ${line}     ${STOC_HEADER_LINE}
+
+    ${line} =   Get Line    ${file_data}    11
+    Should Be Equal As Strings  ${line}     Server Part 1<0a>
+
+    ${line} =   Get Line    ${file_data}    12
+    Should Be Empty     ${line}
+
+    ${line} =   Get Line    ${file_data}    13
+    Should Be Equal As Strings  ${line}     ${END_TAG}
+
+	${line} =   Get Line    ${file_data}    14
+    Should Match Regexp     ${line}     ${STOC_HEADER_LINE}
+
+    ${line} =   Get Line    ${file_data}    15
+    Should Be Equal As Strings  ${line}     Server Part 2
+
+    ${line} =   Get Line    ${file_data}    16
+    Should Be Equal As Strings  ${line}     ${END_TAG}
+
+    ${line} =   Get Line    ${file_data}    17
+    Should Match Regexp     ${line}     ${STOC_HEADER_LINE}
+
+    ${line} =   Get Line    ${file_data}    18
+    Should Be Equal As Strings  ${line}     \ Server Part 3
+
+    ${line} =   Get Line    ${file_data}    19
+    Should Be Equal As Strings  ${line}     ${END_TAG}
