@@ -35,9 +35,7 @@ Validate Single Message File Content
 *** Test Cases ***
 Single Message Text
     [Timeout]   25s
-    ${server}   ${server_obj} =     Start Server    9901    ${SERVER_CERT}  ${SERVER_KEY}
-    ${sut} =    Start tlslookieloo  ${PAYLOAD_DIR}/single_target_test_1.yaml
-    ${client}   ${client_obj} =     Start Client    localhost:9900
+    ${server}   ${server_obj}   ${sut}  ${client}   ${client_obj} =     Start Test System   9901    localhost:9900  ${PAYLOAD_DIR}/single_target_test_1.yaml
 
     ${server_msg} =     Set Variable    Hello from server
     ${msg} =    Encode String To Bytes  ${server_msg}   ASCII
@@ -63,9 +61,7 @@ Single Message Text
 
 Single Message Binary
     [Timeout]   25s
-    ${server}   ${server_obj} =     Start Server    9901    ${SERVER_CERT}  ${SERVER_KEY}
-    ${sut} =    Start tlslookieloo  ${PAYLOAD_DIR}/single_target_test_1.yaml
-    ${client}   ${client_obj} =     Start Client    localhost:9900
+    ${server}   ${server_obj}   ${sut}  ${client}   ${client_obj} =     Start Test System   9901    localhost:9900  ${PAYLOAD_DIR}/single_target_test_1.yaml
 
     ${server_msg} =     Convert To Bytes    \x00\x00\x00\x0bHello there
     ${client_msg} =    Convert To Bytes    \x00\x00\x00\x01Y
@@ -92,9 +88,7 @@ Single Message Binary
 
 Multiple Message Same Source
     [Timeout]   25s
-    ${server}   ${server_obj} =     Start Server    9901    ${SERVER_CERT}  ${SERVER_KEY}
-    ${sut} =    Start tlslookieloo  ${PAYLOAD_DIR}/single_target_test_1.yaml
-    ${client}   ${client_obj} =     Start Client    localhost:9900
+    ${server}   ${server_obj}   ${sut}  ${client}   ${client_obj} =     Start Test System   9901    localhost:9900  ${PAYLOAD_DIR}/single_target_test_1.yaml
 
     Send Message String     ${client_obj}   ${server_obj}   Client Part 1\n
     Send Message String     ${client_obj}   ${server_obj}   Client Part 2

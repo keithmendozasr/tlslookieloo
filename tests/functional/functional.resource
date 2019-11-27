@@ -64,3 +64,11 @@ Send Message String
     ${str_recv} =   Decode Bytes To String      ${recv_msg}     ASCII
     Log     Message Received: ${str_recv}
     Should Be Equal As Strings  ${str_recv}     ${msg}
+
+Start Test System
+    [Arguments]     ${server_port}  ${client_conn}  ${tlslookieloo_config}
+    ${server}   ${server_obj} =     Start Server    ${server_port}  ${SERVER_CERT}  ${SERVER_KEY}
+    ${sut} =    Start tlslookieloo  ${tlslookieloo_config}
+    ${client}   ${client_obj} =     Start Client    ${client_conn}
+
+    [Return]    ${server}   ${server_obj}   ${sut}  ${client}   ${client_obj}
