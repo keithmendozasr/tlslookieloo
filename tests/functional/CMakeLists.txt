@@ -14,6 +14,7 @@
 
 configure_file(commonvars.py.in commonvars.py)
 configure_file(payloads/single_target_test_1.yaml payloads/single_target_test_1.yaml)
+configure_file(payloads/largetext.txt payloads/largetext.txt COPYONLY)
 
 add_test(NAME single_target
          COMMAND robot --variablefile ${CMAKE_CURRENT_BINARY_DIR}/commonvars.py

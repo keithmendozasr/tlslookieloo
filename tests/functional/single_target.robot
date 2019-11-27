@@ -165,3 +165,35 @@ Multiple Message Same Source
 
     ${line} =   Get Line    ${file_data}    19
     Should Be Equal As Strings  ${line}     ${END_TAG}
+
+Large Payload
+    [Timeout]   25s
+    ${payload_file} =   Get File    ${PAYLOAD_DIR}/largetext.txt
+
+    ${server}   ${server_obj}   ${sut}  ${client}   ${client_obj} =     Start Test System   9901    localhost:9900  ${PAYLOAD_DIR}/single_target_test_1.yaml
+    Send Message String     ${client_obj}   ${server_obj}   ${payload_file}
+    Send Message String     ${server_obj}   ${client_obj}   ${payload_file}
+
+    Terminate All Processes
+
+    ${data_file} =  Set Variable    data/single_target_test1.msgs
+    Should Exist    ${data_file}
+    ${file_data} =  Get File    ${data_file}
+
+    ${line} =   Get Line    ${file_data}    0
+    Should Match Regexp     ${line}     ${CTOS_HEADER_LINE}
+
+    ${line} =   Get Line    ${file_data}    1
+    Should Be Equal As Strings  ${payload_file}     ${line}
+
+    ${line} =   Get Line    ${file_data}    2
+    Should Be Equal As Strings  ${line}     ${END_TAG}
+
+    ${line} =   Get Line    ${file_data}    3
+    Should Match Regexp     ${line}     ${STOC_HEADER_LINE}
+
+    ${line} =   Get Line    ${file_data}    4
+    Should Be Equal As Strings  ${payload_file}     ${line}
+
+    ${line} =   Get Line    ${file_data}    5
+    Should Be Equal As Strings  ${line}     ${END_TAG}
