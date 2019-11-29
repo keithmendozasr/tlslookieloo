@@ -1,2 +1,7 @@
 .*sw*
-Debug
+build_*
+.vscode
+dev_files
+._.DS_Store
+.DS_Store
+.gitignore
