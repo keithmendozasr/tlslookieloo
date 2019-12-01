@@ -245,3 +245,19 @@ Client Cert Required But Not Provided
     ${expect_lines} =   Get Lines Containing String     ${rslt.stdout}      WARN - Client didn't send a certificate
     ${line_cnt} =   Get Line Count  ${expect_lines}
     Should Be Equal As Integers  ${line_cnt}     ${1}
+
+Client Cert Required But Wrong Cert Provided
+    [Timeout]   25s
+    ${sut} =    Start tlslookieloo  ${PAYLOAD_DIR}/single_target_client_cert.yaml
+
+    ${client} =     Start Process   ${openssl}  s_client  -ign_eof  -quiet  -CAfile     ${CA_FILE}  -cert   ${CERT_PATH}/tlslookieloo_server.pem    -key    ${CERT_PATH}/tlslookieloo_server_priv.pem  -connect     localhost:9900
+    Sleep   1
+    Process Should Be Stopped   handle=${client}
+    ${rslt} =   Wait For Process    handle=${client}    timeout=1s  on_timeout=terminate
+    Log     Client console: ${rslt.stdout}\nstderr: ${rslt.stderr}
+
+    ${rslt} =   Terminate Process   ${sut}
+    Log  ${rslt.stdout}
+    ${expect_lines} =   Get Lines Containing String     ${rslt.stdout}  INFO - Client-provided certificate public key doesn't match expected public key
+    ${line_cnt} =   Get Line Count  ${expect_lines}
+    Should Be Equal As Integers  ${line_cnt}     ${1}
