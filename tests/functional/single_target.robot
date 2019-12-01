@@ -197,3 +197,36 @@ Large Payload
 
     ${line} =   Get Line    ${file_data}    5
     Should Be Equal As Strings  ${line}     ${END_TAG}
+
+Client Cert Required And Provided
+    [Timeout]   25s
+    ${server} =     Start Process   ${openssl}  s_server    -ign_eof    -quiet  -cert   ${SERVER_CERT}  -key    ${SERVER_KEY}  -CAfile  ${CA_FILE}  -port   +9901
+    Sleep   1
+    ${rslt} =   Is Process Running  ${server}
+    Run Keyword If  ${rslt} == ${False}     Log Process Failed Start    ${server}   s_server
+    ${server_obj} =     Get Process Object  ${server}
+
+    ${sut} =    Start tlslookieloo  ${PAYLOAD_DIR}/single_target_client_cert.yaml
+
+    ${client} =     Start Process   ${openssl}  s_client  -ign_eof  -quiet  -CAfile     ${CA_FILE}  -cert   ${CERT_PATH}/tlslookieloo_client.pem    -key    ${CERT_PATH}/tlslookieloo_client_priv.pem  -connect     localhost:9900
+    Sleep   1
+    ${rslt} =   Is Process Running  ${client}
+    Run Keyword If  ${rslt} == ${False}     Log Process Failed Start    ${client}   s_client
+    ${client_obj} =     Get Process Object  ${client}
+
+    Send Message String     ${client_obj}   ${server_obj}   Hello from client
+    Send Message String     ${server_obj}   ${client_obj}   Server acknowledge
+
+    Stop tlslookieloo   ${sut}
+
+    ${data_file} =  Set Variable    data/single_target_test1.msgs
+    Should Exist    ${data_file}
+    ${file_data} =  Get File    ${data_file}
+    ${num_lines} =  Get Line Count  ${file_data}
+    Should Be Equal As Integers     ${6}    ${num_lines}
+
+    ${line} =   Get Line    ${file_data}    1
+    Should Be Equal As Strings  ${line}     Hello from client
+
+    ${line} =   Get Line    ${file_data}    4
+    Should Be Equal As Strings  ${line}     Server acknowledge

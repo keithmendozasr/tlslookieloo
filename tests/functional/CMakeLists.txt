@@ -13,7 +13,10 @@
 # limitations under the License.
 
 configure_file(commonvars.py.in commonvars.py)
+
 configure_file(payloads/single_target_test_1.yaml payloads/single_target_test_1.yaml)
+configure_file(payloads/single_target_client_cert.yaml payloads/single_target_client_cert.yaml)
+
 configure_file(payloads/largetext.txt payloads/largetext.txt COPYONLY)
 
 add_test(NAME single_target
