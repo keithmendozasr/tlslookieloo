@@ -230,3 +230,18 @@ Client Cert Required And Provided
 
     ${line} =   Get Line    ${file_data}    4
     Should Be Equal As Strings  ${line}     Server acknowledge
+
+Client Cert Required But Not Provided
+    [Timeout]   25s
+    ${sut} =    Start tlslookieloo  ${PAYLOAD_DIR}/single_target_client_cert.yaml
+
+    ${client} =     Start Process   ${openssl}  s_client  -ign_eof  -CAfile     ${CA_FILE}  -connect    localhost:9900
+    Sleep   1
+    Process Should Be Stopped   handle=${client}
+    ${rslt} =   Wait For Process    handle=${client}    timeout=1s  on_timeout=terminate
+
+    ${rslt} =   Terminate Process   ${sut}
+    Log  ${rslt.stdout}
+    ${expect_lines} =   Get Lines Containing String     ${rslt.stdout}      WARN - Client didn't send a certificate
+    ${line_cnt} =   Get Line Count  ${expect_lines}
+    Should Be Equal As Integers  ${line_cnt}     ${1}
