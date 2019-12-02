@@ -16,6 +16,9 @@
 
 #include <thread>
 #include <csignal>
+#include <iostream>
+#include <atomic>
+#include <optional>
 
 #include <argp.h>
 
@@ -47,6 +50,7 @@ struct TargetRunner // NOLINT
 };
 
 vector<TargetRunner> targetThreads;
+static atomic_bool  errorExit = false;
 
 /**
  * Signal handler
@@ -119,9 +123,8 @@ static error_t parseArgs(int key, char *arg, struct argp_state *state)
 /**
  * Start handling targets
  */
-static void start(const string &targets)
+static bool start(const string &targets, Logger &logger)
 {
-    auto logger = Logger::getRoot();
     try
     {
         LOG4CPLUS_DEBUG(logger, "Process targets files"); // NOLINT
@@ -130,10 +133,18 @@ static void start(const string &targets)
             // NOLINTNEXTLINE
             LOG4CPLUS_INFO(logger, "Starting " << item.name << " bridge");
             TargetRunner obj;
-            obj.runner =std::thread([](TargetItem tgtItem)
+            obj.runner =std::thread([&logger](const TargetItem &tgtItem)
                 {
-                    Target tgt(tgtItem);
-                    tgt.start();
+                    try
+                    {
+                        Target tgt(tgtItem);
+                        tgt.start();
+                    }
+                    catch(const std::exception& e)
+                    {
+                        LOG4CPLUS_ERROR(logger, tgtItem.name << " stopping. Error encountered");
+                        errorExit = true;
+                    }
                 }, item);
             obj.handle = obj.runner.native_handle();
             targetThreads.push_back(std::move(obj));
@@ -144,76 +155,112 @@ static void start(const string &targets)
         // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "Failed to parse targets file, cause: " <<
             e.what() << ". Exiting");
+        return false;
     }
     catch(const system_error &e)
     {
         LOG4CPLUS_ERROR(logger, "Error encountered starting bridges"); // NOLINT
         Target::stop();
+        return false;
     }
+
+    return true;
 }
 
 int main(int argc, char *argv[])
 {
-    Initializer initializer;
+    // Process exit code
+    int exitCode = EXIT_SUCCESS;
+
     BasicConfigurator::doConfigure();
-
-    struct sigaction sa; // NOLINT
-    sa.sa_handler = sigHandler; // NOLINT
-    sa.sa_flags = 0; // NOLINT
-    sigemptyset(&sa.sa_mask);
-    if(sigaction(SIGINT, &sa, nullptr) == -1)
-    {
-        perror("Set SIGINT signal handler");
-        return EXIT_FAILURE;
-    }
-
-    if(sigaction(SIGTERM, &sa, nullptr) == -1)
-    {
-        perror("Set SIGTERM signal handler");
-        return EXIT_FAILURE;
-    }
-
-    struct ArgState argState;
-    argState.logger = Logger::getRoot();
-    Logger &logger = argState.logger;
+    auto logger = Logger::getRoot();
     logger.setLogLevel(INFO_LOG_LEVEL);
 
-    struct argp_option options[] = {
-        { "targets",    't', "tgtfile",     0, "Targets config file" },
-        { "logconfig",  'l', "logcfgfile",  0, "Logging configuration file" },
-        { 0 } 
-    };
-    const string argsDoc = "";
-    const string progDoc = "Record TLS communication between a server and client";
-    struct argp argp = { &options[0], parseArgs, progDoc.c_str(), argsDoc.c_str() };
-
-    if(argp_parse(&argp, argc, argv, 0, nullptr, &argState))
+    try
     {
-        LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters"); // NOLINT
-        return -1;
+        struct sigaction sa; // NOLINT
+        sa.sa_handler = sigHandler; // NOLINT
+        sa.sa_flags = 0; // NOLINT
+        sigemptyset(&sa.sa_mask);
+        if(sigaction(SIGINT, &sa, nullptr) == -1)
+        {
+            perror("Set SIGINT signal handler");
+            throw 1;
+        }
+
+        if(sigaction(SIGTERM, &sa, nullptr) == -1)
+        {
+            perror("Set SIGTERM signal handler");
+            throw 1;
+        }
+
+        struct ArgState argState;
+        argState.logger = logger;
+
+        struct argp_option options[] = {
+            { "targets",    't', "tgtfile",     0, "Targets config file" },
+            { "logconfig",  'l', "logcfgfile",  0, "Logging configuration file" },
+            { 0 }
+        };
+        const string argsDoc = "";
+        const string progDoc = "Record TLS communication between a server and client";
+        struct argp argp = { &options[0], parseArgs, progDoc.c_str(), argsDoc.c_str() };
+
+        if(argp_parse(&argp, argc, argv, ARGP_NO_EXIT, nullptr, &argState))
+        {
+            LOG4CPLUS_ERROR(logger, "Error parsing command-line parameters"); // NOLINT
+            throw 1;
+        }
+
+        if(argState.logconfig)
+        {
+            LOG4CPLUS_DEBUG(logger, "Loading logconfig file"); // NOLINT
+            logger.getHierarchy().resetConfiguration();
+            PropertyConfigurator::doConfigure(argState.logconfig.value());
+            if(!Logger::exists("root"))
+            {
+                cerr << "Failed to configure logger" << endl;
+                throw 2;
+            }
+            else
+            {
+                LOG4CPLUS_DEBUG(logger, "Logger configured");
+            }
+        }
+
+        if(!argState.targets)
+        {
+            LOG4CPLUS_ERROR(logger, "Targets file to use not provided"); // NOLINT
+            throw 3;
+        }
+        else
+        {
+            if(!start(argState.targets.value(), logger))
+            {
+                LOG4CPLUS_ERROR(logger, "Failed to start target bridges");
+                throw 4;
+            }
+        }
+
+        LOG4CPLUS_TRACE(logger, "Waiting for target threads to exit"); // NOLINT
+        for(auto &t : targetThreads)
+            t.runner.join();
+        // So the SocketInfo logging doesn't trigger log4cplus to complain
+        targetThreads.clear();
+
+        if(errorExit)
+        {
+            LOG4CPLUS_ERROR(logger, "One or more handlers exited with an error");
+            throw 5;
+        }
+    }
+    catch(const int &e)
+    {
+        LOG4CPLUS_DEBUG(logger, "Exit code from exception: " << e);
+        exitCode = e;
     }
 
-    if(argState.logconfig)
-    {
-        LOG4CPLUS_DEBUG(logger, "Loading logconfig file"); // NOLINT
-        logger.getHierarchy().resetConfiguration();
-        PropertyConfigurator::doConfigure(argState.logconfig.value());
-    }
-
-    if(argState.targets)
-        start(argState.targets.value());
-    else
-    {
-        LOG4CPLUS_ERROR(logger, "Targets file to use not provided"); // NOLINT
-        return -1;
-    }
-
-    LOG4CPLUS_TRACE(logger, "Waiting for target threads to exit"); // NOLINT
-    for(auto &t : targetThreads)
-        t.runner.join();
-    // So the SocketInfo logging doesn't trigger log4cplus to complain
-    targetThreads.clear();
     LOG4CPLUS_INFO(logger, "tlslookieloo exiting"); // NOLINT
 
-    return 0;
+    return exitCode;
 }

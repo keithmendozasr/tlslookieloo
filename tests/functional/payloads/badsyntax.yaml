@@ -1,0 +1,8 @@
+- name: App1
+  clientport: 9900
+  clientcert: ${CMAKE_CURRENT_SOURCE_DIR}/certs/tlslookieloo_server.pem
+  clientkey: ${CMAKE_CURRENT_SOURCE_DIR}/certs/tlslookieloo_server_priv.pem
+  serverhost
+  serverport: 9901
+  recordfile: data/single_target_test1.msgs
+  serverinsecure: true

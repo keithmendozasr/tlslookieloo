@@ -115,6 +115,7 @@ void Target::start()
             // NOLINTNEXTLINE
             LOG4CPLUS_ERROR(logger,
                 "Error ecnountered handling target. Cause: " << e.what());
+            throw;
         }
     }
     catch(const runtime_error &e)
@@ -122,12 +123,14 @@ void Target::start()
         // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "Error encountered handling target. Cause: " <<
             e.what());
+        throw;
     }
     catch(const logic_error &e)
     {
         // NOLINTNEXTLINE
         LOG4CPLUS_ERROR(logger, "Logic error encountered handling target. Cause: " <<
             e.what());
+        throw;
     }
 
     LOG4CPLUS_INFO(logger, "Target " << tgtItem.name << " stopping"); // NOLINT

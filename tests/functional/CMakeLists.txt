@@ -16,10 +16,17 @@ configure_file(commonvars.py.in commonvars.py)
 
 configure_file(payloads/single_target_test_1.yaml payloads/single_target_test_1.yaml)
 configure_file(payloads/single_target_client_cert.yaml payloads/single_target_client_cert.yaml)
+configure_file(payloads/missing_client_auth_file.yaml payloads/missing_client_auth_file.yaml)
 
 configure_file(payloads/largetext.txt payloads/largetext.txt COPYONLY)
+configure_file(payloads/largetext.txt payloads/badsyntax.yaml COPYONLY)
 
-add_test(NAME single_target
-         COMMAND robot --variablefile ${CMAKE_CURRENT_BINARY_DIR}/commonvars.py
-                 ${CMAKE_CURRENT_SOURCE_DIR}/single_target.robot
+add_test(single_target
+         robot --variablefile ${CMAKE_CURRENT_BINARY_DIR}/commonvars.py
+         ${CMAKE_CURRENT_SOURCE_DIR}/single_target.robot
+)
+
+add_test(startup_errors
+         robot --variablefile ${CMAKE_CURRENT_BINARY_DIR}/commonvars.py
+         ${CMAKE_CURRENT_SOURCE_DIR}/startup_errors.robot
 )
