@@ -8,6 +8,16 @@ Resource    functional.resource
 Test Setup  Remove Directory    data    recursive=${True}
 Test Teardown   Terminate All Processes
 
+*** Keywords ***
+
+Start Test System
+    [Arguments]     ${server_port}  ${client_conn}  ${tlslookieloo_config}
+    ${server}   ${server_obj} =     Start Server    ${server_port}  ${SERVER_CERT}  ${SERVER_KEY}
+    ${sut} =    Start tlslookieloo  ${tlslookieloo_config}
+    ${client}   ${client_obj} =     Start Client    ${client_conn}
+
+    [Return]    ${server}   ${server_obj}   ${sut}  ${client}   ${client_obj}
+
 *** Test Cases ***
 Bad Logger config
     ${sut} =    Start Process   ${TLSLOOKIELOO}     -t  target.yaml     -l  badlog.prop   alias=testprocess

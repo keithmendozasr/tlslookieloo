@@ -32,6 +32,15 @@ Validate Single Message File Content
     ${line} =   Get Line    ${file_data}    5
     Should Be Equal As Strings  ${line}     ${END_TAG}
 
+
+Start Test System
+    [Arguments]     ${server_port}  ${client_conn}  ${tlslookieloo_config}
+    ${server}   ${server_obj} =     Start Server    ${server_port}  ${SERVER_CERT}  ${SERVER_KEY}
+    ${sut} =    Start tlslookieloo  ${tlslookieloo_config}
+    ${client}   ${client_obj} =     Start Client    ${client_conn}
+
+    [Return]    ${server}   ${server_obj}   ${sut}  ${client}   ${client_obj}
+
 *** Test Cases ***
 Single Message Text
     [Timeout]   25s
