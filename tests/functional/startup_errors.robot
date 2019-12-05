@@ -86,7 +86,7 @@ Handler Failed Start
 
 Client Side Port In Use
     ${temp} =   Start server    9900    ${SERVER_CERT}  ${SERVER_KEY}
-    ${sut} =    Start Process   ${TLSLOOKIELOO}     -t  ${PAYLOAD_DIR}/single_target_test_1.yaml
+    ${sut} =    Start Process   ${TLSLOOKIELOO}     -t  ${PAYLOAD_DIR}/basic_operations.yaml
     Sleep   1s
     Process Should Be Stopped   ${sut}
     ${rslt} =   Wait For Process    ${sut}

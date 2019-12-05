@@ -5,6 +5,9 @@ Resource    functional.resource
 Test Setup  Reset Data Dir
 Test Teardown   Run Keyword And Ignore Error    Terminate All Processes
 
+*** Variables ***
+${msgs_file} =  data/basic_operations.msgs
+
 *** Keywords ***
 Validate Single Message File Content
     [Arguments]     ${data_file}    ${server_expect}    ${client_expect}
@@ -32,7 +35,6 @@ Validate Single Message File Content
     ${line} =   Get Line    ${file_data}    5
     Should Be Equal As Strings  ${line}     ${END_TAG}
 
-
 Start Test System
     [Arguments]     ${server_port}  ${client_conn}  ${tlslookieloo_config}
     ${server}   ${server_obj} =     Start Server    ${server_port}  ${SERVER_CERT}  ${SERVER_KEY}
@@ -44,7 +46,7 @@ Start Test System
 *** Test Cases ***
 Single Message Text
     [Timeout]   25s
-    ${server}   ${server_obj}   ${sut}  ${client}   ${client_obj} =     Start Test System   9901    localhost:9900  ${PAYLOAD_DIR}/single_target_test_1.yaml
+    ${server}   ${server_obj}   ${sut}  ${client}   ${client_obj} =     Start Test System   9901    localhost:9900  ${PAYLOAD_DIR}/basic_operations.yaml
 
     ${server_msg} =     Set Variable    Hello from server
     ${msg} =    Encode String To Bytes  ${server_msg}   ASCII
@@ -66,11 +68,11 @@ Single Message Text
 
     Stop tlslookieloo   ${sut}
 
-    Validate Single Message File Content    data/single_target_test1.msgs   ${server_msg}   ${client_msg}
+    Validate Single Message File Content    ${msgs_file}    ${server_msg}   ${client_msg}
 
 Single Message Binary
     [Timeout]   25s
-    ${server}   ${server_obj}   ${sut}  ${client}   ${client_obj} =     Start Test System   9901    localhost:9900  ${PAYLOAD_DIR}/single_target_test_1.yaml
+    ${server}   ${server_obj}   ${sut}  ${client}   ${client_obj} =     Start Test System   9901    localhost:9900  ${PAYLOAD_DIR}/basic_operations.yaml
 
     ${server_msg} =     Convert To Bytes    \x00\x00\x00\x0bHello there
     ${client_msg} =    Convert To Bytes    \x00\x00\x00\x01Y
@@ -93,11 +95,11 @@ Single Message Binary
 
     Stop tlslookieloo   ${sut}
 
-    Validate Single Message File Content  data/single_target_test1.msgs   <00><00><00><0b>Hello there     <00><00><00><01>Y
+    Validate Single Message File Content  ${msgs_file}  <00><00><00><0b>Hello there     <00><00><00><01>Y
 
 Multiple Message Same Source
     [Timeout]   25s
-    ${server}   ${server_obj}   ${sut}  ${client}   ${client_obj} =     Start Test System   9901    localhost:9900  ${PAYLOAD_DIR}/single_target_test_1.yaml
+    ${server}   ${server_obj}   ${sut}  ${client}   ${client_obj} =     Start Test System   9901    localhost:9900  ${PAYLOAD_DIR}/basic_operations.yaml
 
     Send Message String     ${client_obj}   ${server_obj}   Client Part 1\n
     Send Message String     ${client_obj}   ${server_obj}   Client Part 2
@@ -109,11 +111,10 @@ Multiple Message Same Source
 
     Stop tlslookieloo   ${sut}
 
-    ${data_file} =  Set Variable    data/single_target_test1.msgs
-    Should Exist    ${data_file}
-    ${file_data} =  Get File    ${data_file}
+    Should Exist    ${msgs_file}
+    ${file_data} =  Get File    ${msgs_file}
     ${num_lines} =  Get Line Count  ${file_data}
-    Should Be Equal     ${20}    ${num_lines}
+    Should Be Equal     ${20}   ${num_lines}
 
 	${line} =   Get Line    ${file_data}    0
     Should Match Regexp     ${line}     ${CTOS_HEADER_LINE}
@@ -179,15 +180,14 @@ Large Payload
     [Timeout]   25s
     ${payload_file} =   Get File    ${PAYLOAD_DIR}/largetext.txt
 
-    ${server}   ${server_obj}   ${sut}  ${client}   ${client_obj} =     Start Test System   9901    localhost:9900  ${PAYLOAD_DIR}/single_target_test_1.yaml
+    ${server}   ${server_obj}   ${sut}  ${client}   ${client_obj} =     Start Test System   9901    localhost:9900  ${PAYLOAD_DIR}/basic_operations.yaml
     Send Message String     ${client_obj}   ${server_obj}   ${payload_file}
     Send Message String     ${server_obj}   ${client_obj}   ${payload_file}
 
     Terminate All Processes
 
-    ${data_file} =  Set Variable    data/single_target_test1.msgs
-    Should Exist    ${data_file}
-    ${file_data} =  Get File    ${data_file}
+    Should Exist    ${msgs_file}
+    ${file_data} =  Get File    ${msgs_file}
 
     ${line} =   Get Line    ${file_data}    0
     Should Match Regexp     ${line}     ${CTOS_HEADER_LINE}
@@ -215,7 +215,7 @@ Client Cert Required And Provided
     Run Keyword If  ${rslt} == ${False}     Log Process Failed Start    ${server}   s_server
     ${server_obj} =     Get Process Object  ${server}
 
-    ${sut} =    Start tlslookieloo  ${PAYLOAD_DIR}/single_target_client_cert.yaml
+    ${sut} =    Start tlslookieloo  ${PAYLOAD_DIR}/basic_operations_client_cert.yaml
 
     ${client} =     Start Process   ${openssl}  s_client  -ign_eof  -quiet  -CAfile     ${CA_FILE}  -cert   ${CERT_PATH}/tlslookieloo_client.pem    -key    ${CERT_PATH}/tlslookieloo_client_priv.pem  -connect     localhost:9900
     Sleep   1
@@ -228,9 +228,8 @@ Client Cert Required And Provided
 
     Stop tlslookieloo   ${sut}
 
-    ${data_file} =  Set Variable    data/single_target_test1.msgs
-    Should Exist    ${data_file}
-    ${file_data} =  Get File    ${data_file}
+    Should Exist    ${msgs_file}
+    ${file_data} =  Get File    ${msgs_file}
     ${num_lines} =  Get Line Count  ${file_data}
     Should Be Equal As Integers     ${6}    ${num_lines}
 
@@ -242,7 +241,7 @@ Client Cert Required And Provided
 
 Client Cert Required But Not Provided
     [Timeout]   25s
-    ${sut} =    Start tlslookieloo  ${PAYLOAD_DIR}/single_target_client_cert.yaml
+    ${sut} =    Start tlslookieloo  ${PAYLOAD_DIR}/basic_operations_client_cert.yaml
 
     ${client} =     Start Process   ${openssl}  s_client  -ign_eof  -CAfile     ${CA_FILE}  -connect    localhost:9900
     Sleep   1
@@ -257,7 +256,7 @@ Client Cert Required But Not Provided
 
 Client Cert Required But Wrong Cert Provided
     [Timeout]   25s
-    ${sut} =    Start tlslookieloo  ${PAYLOAD_DIR}/single_target_client_cert.yaml
+    ${sut} =    Start tlslookieloo  ${PAYLOAD_DIR}/basic_operations_client_cert.yaml
 
     ${client} =     Start Process   ${openssl}  s_client  -ign_eof  -quiet  -CAfile     ${CA_FILE}  -cert   ${CERT_PATH}/tlslookieloo_server.pem    -key    ${CERT_PATH}/tlslookieloo_server_priv.pem  -connect     localhost:9900
     Sleep   1

@@ -4,5 +4,5 @@
   clientkey: ${CMAKE_CURRENT_SOURCE_DIR}/certs/tlslookieloo_server_priv.pem
   serverhost: localhost
   serverport: 9901
-  recordfile: data/single_target_test1.msgs
+  recordfile: data/basic_operations.msgs
   serverinsecure: true
