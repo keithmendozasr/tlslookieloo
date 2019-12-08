@@ -1,0 +1,17 @@
+- name: App1
+  clientport: 9900
+  clientcert: ${CMAKE_CURRENT_SOURCE_DIR}/certs/tlslookieloo_server.pem
+  clientkey: ${CMAKE_CURRENT_SOURCE_DIR}/certs/tlslookieloo_server_priv.pem
+  serverhost: localhost
+  serverport: 9901
+  recordfile: data/app1.msgs
+  serverinsecure: true
+
+- name: App2
+  clientport: 9910
+  clientcert: ${CMAKE_CURRENT_SOURCE_DIR}/certs/second_target.pem
+  clientkey: ${CMAKE_CURRENT_SOURCE_DIR}/certs/second_target_priv.pem
+  serverhost: localhost
+  serverport: 9911
+  recordfile: data/app2.msgs
+  serverinsecure: true

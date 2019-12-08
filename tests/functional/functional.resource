@@ -23,7 +23,8 @@ Start tlslookieloo
 
 Stop tlslookieloo
     [Arguments]     ${sut}
-    ${rslt} =   Terminate Process   ${sut}
+    Send Signal To Process  SIGINT  ${sut}
+    ${rslt} =   Wait For Process    ${sut}  timeout=2   on_timeout=kill
     Log     tlslookieloo exit code: ${rslt.rc}
     Log     tlslookieloo stdout: ${rslt.stdout}
     Log     tlslookieloo stderr: ${rslt.stderr}
@@ -64,3 +65,10 @@ Send Message String
     ${str_recv} =   Decode Bytes To String      ${recv_msg}     ASCII
     Log     Message Received: ${str_recv}
     Should Be Equal As Strings  ${str_recv}     ${msg}
+
+Post Test Cleanup
+    Terminate All Processes
+    ${rslt} =   Get Process Result  testprocess
+    Log     tlslookieloo post-test exit code: ${rslt.rc}
+    Log     tlslookieloo post-test stdout: ${rslt.stdout}
+    Log     tlslookieloo post-test stderr: ${rslt.stderr}
