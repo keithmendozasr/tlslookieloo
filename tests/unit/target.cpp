@@ -378,13 +378,13 @@ TEST_F(TargetTest, storeAlternatingMessage) // NOLINT
     }
 
     EXPECT_NO_THROW({
-        t.storeMessage("From the server", strlen("From the server"),
+        t.storeMessage("From the server", strlen("From the server"), // Flawfinder: ignore
             t.OWNER_SERVER);
-        t.storeMessage("From the client", strlen("From the client"),
+        t.storeMessage("From the client", strlen("From the client"),  // Flawfinder: ignore
             t.OWNER_CLIENT);
-        t.storeMessage("From the server again", strlen("From the server again"),
+        t.storeMessage("From the server again", strlen("From the server again"),  // Flawfinder: ignore
             t.OWNER_SERVER);
-        t.storeMessage("From the client again", strlen("From the client again"),
+        t.storeMessage("From the client again", strlen("From the client again"), // Flawfinder: ignore
             t.OWNER_CLIENT);
         t.storeMessage("", 0, t.OWNER_CLIENT);
     });

@@ -263,9 +263,9 @@ void Target::handleClient(ClientSide client)
     else
         LOG4CPLUS_DEBUG(logger, tgtItem.recordFile << " open"); // NOLINT
 
-    bool keepHandling = true;
     try
     {
+        bool keepHandling = true;
         while(keepRunning && keepHandling)
         {
             auto readable = waitForReadable(client, server);

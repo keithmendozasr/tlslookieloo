@@ -277,7 +277,7 @@ pyrpYfQs5MLgJWPTh84f4P/bwaU70ABd/pXVsUlqWYI7FgzyJRuRXwoksOWVOFmY
 )foo";
 
 	unique_ptr<BIO, decltype(&BIO_free)> b(
-        BIO_new_mem_buf(&expectPubKey[0], strlen(&expectPubKey[0])), &BIO_free);
+        BIO_new_mem_buf(&expectPubKey[0], strlen(&expectPubKey[0])), &BIO_free);    // FlawFinder: ignore
     ASSERT_TRUE(b) << "Failed to create BIO for expected public key";
 
     unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> evpKey(
