@@ -217,15 +217,7 @@ int main(int argc, char *argv[])
             LOG4CPLUS_DEBUG(logger, "Loading logconfig file"); // NOLINT
             logger.getHierarchy().resetConfiguration();
             PropertyConfigurator::doConfigure(argState.logconfig.value());
-            if(!Logger::exists("root"))
-            {
-                cerr << "Failed to configure logger" << endl;
-                throw 2;
-            }
-            else
-            {
-                LOG4CPLUS_DEBUG(logger, "Logger configured");
-            }
+            LOG4CPLUS_DEBUG(logger, "Logger configured");
         }
 
         if(!argState.targets)
