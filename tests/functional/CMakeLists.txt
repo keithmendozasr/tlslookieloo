@@ -22,17 +22,8 @@ configure_file(payloads/multi_targets.yaml payloads/multi_targets.yaml)
 configure_file(payloads/largetext.txt payloads/largetext.txt COPYONLY)
 configure_file(payloads/largetext.txt payloads/badsyntax.yaml COPYONLY)
 
-add_test(basic_operations
+add_test(functional_test
          robot --variablefile ${CMAKE_CURRENT_BINARY_DIR}/commonvars.py
-         ${CMAKE_CURRENT_SOURCE_DIR}/basic_operations.robot
-)
-
-add_test(startup_errors
-         robot --variablefile ${CMAKE_CURRENT_BINARY_DIR}/commonvars.py
-         ${CMAKE_CURRENT_SOURCE_DIR}/startup_errors.robot
-)
-
-add_test(multi_targets
-         robot --variablefile ${CMAKE_CURRENT_BINARY_DIR}/commonvars.py
-         ${CMAKE_CURRENT_SOURCE_DIR}/multi_targets.robot
+         --randomize all
+         ${CMAKE_CURRENT_SOURCE_DIR}
 )
