@@ -10,17 +10,20 @@ Test Teardown   Terminate All Processes
 
 *** Test Cases ***
 Bad Logger config
-    ${sut} =    Start Process   ${TLSLOOKIELOO}     -t  target.yaml     -l  badlog.prop   alias=testprocess
-    ${rslt} =   Wait For Process    ${sut}  timeout=2s  on_timeout=continue
-    Process Should Be Stopped   ${sut}
-
+    ${sut} =    Start Process   ${TLSLOOKIELOO}     -t  ${PAYLOAD_DIR}/basic_operations.yaml     -l  badlog.prop   alias=testprocess
+    Sleep   1s
+    ${rslt} =   Terminate Process   ${sut}
+    
     Log     tlslookieloo stdout:
     Log     ${rslt.stdout}
 
     Log     tlslookieloo stderr:
     Log     ${rslt.stderr}
 
-    Should Be Equal As Integers     ${rslt.rc}  ${2}
+    ${line} =   Get Line  ${rslt.stderr}    0
+    Should Contain  ${line}  log4cplus:ERROR could not open file badlog.prop
+
+    Should Be Equal As Integers     ${rslt.rc}  ${0}
 
 Target File Not Specified
     ${sut} =    Start Process   ${TLSLOOKIELOO}     alias=testprocess
