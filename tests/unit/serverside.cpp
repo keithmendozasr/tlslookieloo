@@ -188,13 +188,14 @@ TEST_F(ServerSideTest, sockConnectFirstIPReject) // NOLINT
                     int retVal = ::getaddrinfo(nullptr, "9900", hints, &tmp);
                     if(!retVal && tmp)
                     {
-                        *res = new struct addrinfo; // NOLINT
-                        memcpy(
-                            reinterpret_cast<void*>(*res), // NOLINT
-                            reinterpret_cast<void*>(tmp), // NOLINT
-                            sizeof(struct addrinfo)
-                        );
-                        (*res)->ai_next = tmp;
+                        retVal = ::getaddrinfo(nullptr, "9900", hints, res);
+                        if(!retVal)
+                        {
+                            auto a = *res;
+                            while(a->ai_next)
+                                a = a->ai_next;
+                            a->ai_next = tmp;
+                        }
                     }
 
                     return retVal;
