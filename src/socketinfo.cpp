@@ -25,11 +25,6 @@
 
 #include "socketinfo.h"
 
-#ifndef SOCK_NONBLOCK
-#include <fcntl.h>
-#define SOCK_NONBLOCK   O_NONBLOCK
-#endif
-
 using namespace std;
 using namespace log4cplus;
 
