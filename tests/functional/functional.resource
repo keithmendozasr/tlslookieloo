@@ -3,7 +3,7 @@ Library     Process
 Library     OperatingSystem
 
 *** Variables ***
-${openssl} =    /usr/bin/openssl
+${openssl} =    openssl
 
 *** Keyword ***
 Log Process Failed Start
@@ -15,7 +15,7 @@ Log Process Failed Start
 
 Start tlslookieloo
     [Arguments]    ${target_file}
-    ${sut} =    Start Process   ${TLSLOOKIELOO}     -t  ${target_file}  alias=testprocess
+    ${sut} =    Start Process   ${TLSLOOKIELOO}     -t  ${target_file}  -l  logger.properties   alias=testprocess
     Sleep   500ms
     ${rslt} =   Is Process Running  handle=${sut}
     Run Keyword If  ${rslt} == ${False}     Log Process Failed Start    ${sut}  tlslookieloo
