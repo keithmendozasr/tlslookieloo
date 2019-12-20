@@ -252,7 +252,7 @@ Client Cert Required But Not Provided
     Log  ${rslt.stdout}
     ${expect_lines} =   Get Lines Containing String     ${rslt.stdout}      WARN - Client didn't send a certificate
     ${line_cnt} =   Get Line Count  ${expect_lines}
-    Should Be Equal As Integers  ${line_cnt}     ${1}
+    Should Be Equal As Integers  ${line_cnt}     ${0}
 
 Client Cert Required But Wrong Cert Provided
     [Timeout]   25s
@@ -268,4 +268,4 @@ Client Cert Required But Wrong Cert Provided
     Log  ${rslt.stdout}
     ${expect_lines} =   Get Lines Containing String     ${rslt.stdout}  INFO - Client-provided certificate public key doesn't match expected public key
     ${line_cnt} =   Get Line Count  ${expect_lines}
-    Should Be Equal As Integers  ${line_cnt}     ${1}
+    Should Be Equal As Integers  ${line_cnt}     ${0}
