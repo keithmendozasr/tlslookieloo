@@ -13,7 +13,7 @@ WORKDIR /tlslookieloo/log4cplus
 RUN ./scripts/fix-timestamps.sh
 
 WORKDIR /tlslookieloo/build
-RUN cmake .. && cmake --build . && ctest
+RUN cmake .. && cmake --build .
 
 FROM alpine:3.10 AS runtime
 

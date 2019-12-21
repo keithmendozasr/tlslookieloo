@@ -47,4 +47,7 @@ This project uses cmake. Here's a way to compile it in Debian 10:
 
 ## Docker container
 
-A docker container is available on [Docker Hub](https://hub.docker.com/repository/docker/keithmendozasr/tlslookieloo)
+A docker containers available on [Docker Hub](https://hub.docker.com/repository/docker/keithmendozasr/tlslookieloo). Here's a sample invocation:
+
+1.  Create a folder to place the target yaml, log file, and TLS key pair.
+1.  docker run -d -p 9900:9900 --name testrun --mount="type=bind,source=$HOME/docker-files,dst=/data" tlslookieloo:edge -t /data/docker.yaml -l /data/dockerlog.prop
