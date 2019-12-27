@@ -1,6 +1,6 @@
 # Changelog
 
-## [ Unreleased ]
+## [ 0.4.0 ] - 2019-12-27
 ### Added
 - Generate Docker container
 
