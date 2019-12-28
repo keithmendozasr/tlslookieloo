@@ -35,7 +35,7 @@ This project uses cmake. Here's a way to compile it in Debian 10:
 1.  cmake --build .
 1.  ctest (make sure all passes)
 
-See [Building on macOS](https://github.com/keithmendozasr/tlslookieloo/wiki/macbuild.md) to build on macOS.
+See [Building on macOS](https://github.com/keithmendozasr/tlslookieloo/wiki/macbuild) to build on macOS.
 
 ## How to run
 1.  cd to build directory from the previous section.
