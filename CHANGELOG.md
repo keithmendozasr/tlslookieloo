@@ -1,8 +1,8 @@
 # Changelog
 
-## [ Unreleased ]
+## [ 0.9.0 ] - 2019-12-28
 ### Added
-- Ported code for macOS Catalina
+- macOS Catalina support
 
 ## [ 0.4.0 ] - 2019-12-27
 ### Added

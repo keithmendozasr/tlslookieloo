@@ -23,8 +23,8 @@ Make sure to process the git submodule with --recurse accordingly.
 
 ## Compilation
 
-This project uses cmake. Here's a way to compile it in Debian 10:
-1.  Make sure the following packages are installed:
+This project has been tested on Debian 10 and macOS Catalina. Below are the steps used to compile on Debian 10:
+1.  Install the following software packages:
 	1.  libssl-dev
 	1.  cmake
 	1.  libyaml-cpp
@@ -35,7 +35,7 @@ This project uses cmake. Here's a way to compile it in Debian 10:
 1.  cmake --build .
 1.  ctest (make sure all passes)
 
-See [Building on macOS](https://github.com/keithmendozasr/tlslookieloo/wiki/macbuild) to build on macOS.
+Instructions for building on macOS is in the [Building on macOS](https://github.com/keithmendozasr/tlslookieloo/wiki/macbuild) wiki page.
 
 ## How to run
 1.  cd to build directory from the previous section.
@@ -47,9 +47,15 @@ See [Building on macOS](https://github.com/keithmendozasr/tlslookieloo/wiki/macb
 1.  The "Example" page should load
 1.  Messages between your browser and www.example.com's server are recorded in app1.msgs
 
+See the [User Guide](https://github.com/keithmendozasr/tlslookieloo/wiki/User-Guide) for more information.
+
 ## Docker container
 
 A docker containers available on [Docker Hub](https://hub.docker.com/repository/docker/keithmendozasr/tlslookieloo). Here's a sample invocation:
 
-1.  Create a folder to place the target yaml, log file, and TLS key pair.
-1.  docker run -d -p 9900:9900 --name testrun --mount="type=bind,source=$HOME/docker-files,dst=/data" tlslookieloo:edge -t /data/docker.yaml -l /data/dockerlog.prop
+1.  Create a directory $HOME/docker-files to use as a bind mount.
+1.  Place the certificate-key pair from "How to run" above in $HOME/docker-files
+1.  Copy targets.yaml and logger.properties from [tlslookieloo/samples](https://github.com/keithmendozasr/tlslookieloo/tree/master/samples) directory into the directory from the previou step.
+1.  docker run -d -p 9988:9988 --name testrun --mount="type=bind,source=$HOME/docker-files,dst=/data" tlslookieloo:edge -t /data/docker.yaml -l /data/dockerlog.prop
+1.  Open your browser and go to http://localhost:9988
+1.  If all went well, the docker-files folder should now contain the app1.msgs and tlslookieloo.log files.
