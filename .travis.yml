@@ -27,8 +27,8 @@ addons:
 
 cache:
   directories:
-  - Debug/googletest
-  - Debug/log4cplus
+  - build/googletest
+  - build/log4cplus
   - yaml-cpp-yaml-cpp-0.6.2/build
   - $HOME/Library/Caches/Homebrew
 
