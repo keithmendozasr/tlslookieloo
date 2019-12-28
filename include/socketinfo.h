@@ -180,11 +180,16 @@ protected:
      void initNextSocket();
 
     /**
-     * Set the socket FD
+     * Make socket non-blocking
+     */
+    void makeSocketNonBlocking();
+
+    /**
+     * Set the socket FD, and make it non-blocking
      *
      * \arg fd New socket to set
      */
-    inline void setSocket(const int &fd)
+    void setSocket(const int &fd)
     {
         sockfd = std::shared_ptr<int>(new int(fd), SockfdDeleter());
     }

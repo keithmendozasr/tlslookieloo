@@ -50,6 +50,7 @@ include_directories(
     ${CMAKE_BINARY_DIR}/include
     ${CMAKE_BINARY_DIR}/log4cplus/include
     ${CMAKE_SOURCE_DIR}/googletest/googletest/include
+    ${OPENSSL_INCLUDE_DIR}
 )
 
 add_subdirectory(src)

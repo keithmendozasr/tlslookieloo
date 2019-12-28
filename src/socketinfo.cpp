@@ -18,6 +18,7 @@
 #include <stdexcept>
 #include <csignal>
 #include <algorithm>
+#include <fcntl.h>
 
 #include <openssl/err.h>
 
@@ -138,7 +139,6 @@ void SocketInfo::initNextSocket()
         " nextServ: " << nextServ
     );
 
-
     if(!servInfo)
         throw logic_error("Host info not resolved yet");
     else if(nextServ == nullptr)
@@ -151,10 +151,10 @@ void SocketInfo::initNextSocket()
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<const struct sockaddr_storage *>(sockAddr->ai_addr)
     );
+
     LOG4CPLUS_TRACE(logger, "Attempt to get socket"); // NOLINT
     sockfd = shared_ptr<int>(new int(wrapper->socket(sockAddr->ai_family,
-        sockAddr->ai_socktype | SOCK_NONBLOCK, sockAddr->ai_protocol)),
-        SockfdDeleter()
+        sockAddr->ai_socktype, sockAddr->ai_protocol)), SockfdDeleter()
     );
     if (*sockfd == -1)
     {
@@ -163,15 +163,40 @@ void SocketInfo::initNextSocket()
     }
     else
     {
+        makeSocketNonBlocking();
         LOG4CPLUS_DEBUG(logger, "Socket ready"); // NOLINT
         nextServ = sockAddr->ai_next;
     }
+
     LOG4CPLUS_TRACE(logger, "Value of nextServ: "<<nextServ); // NOLINT
+}
+
+void SocketInfo::makeSocketNonBlocking()
+{
+    if(!sockfd)
+        throw logic_error("No socket set");
+
+    auto sockFlags = wrapper->fcntl(*sockfd, F_GETFL, 0);
+    LOG4CPLUS_TRACE(logger, "Socket flags retrieved: " << sockFlags);
+    if(sockFlags < 0)
+    {
+        throw system_error(errno, std::generic_category(),
+            "Failed to get socket's current flags");
+    }
+
+    sockFlags |= O_NONBLOCK;
+    LOG4CPLUS_TRACE(logger, "New socket flags: " << sockFlags);
+    if(wrapper->fcntl(*sockfd, F_SETFL, sockFlags) == -1)
+    {
+        throw system_error(errno, std::generic_category(),
+            "Failed to socket non-blocking");
+    }
+
+    LOG4CPLUS_DEBUG(logger, "Socket set to non-blocking");
 }
 
 void SocketInfo::saveSocketIP(const sockaddr_storage *addrInfo)
 {
-    //unique_ptr<char[]>buf;
     int af;
     int bufSize;
     void *addrPtr = nullptr;
@@ -211,7 +236,7 @@ void SocketInfo::saveSocketIP(const sockaddr_storage *addrInfo)
         throwSystemError(err, "Failed to translate IP address");
     }
 
-    socketIP = make_optional(string(buf.get(), bufSize));
+    socketIP = make_optional(string(buf.get()));
     LOG4CPLUS_TRACE(logger, __PRETTY_FUNCTION__<<" Value of ip: "<< socketIP.value()); // NOLINT
 }
 

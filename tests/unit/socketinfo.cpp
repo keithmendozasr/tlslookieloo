@@ -20,6 +20,7 @@
 #include <cerrno>
 #include <system_error>
 #include <string>
+#include <fcntl.h>
 
 #include "mockwrapper.h"
 #include "socketinfo.h"
@@ -62,6 +63,16 @@ public:
     const OP_STATUS handleRetry(const int &rslt)
     {
         return SocketInfo::handleRetry(rslt);
+    }
+
+    void clearSocket()
+    {
+        SocketInfo::sockfd = nullptr;
+    }
+
+    void makeSocketNonBlocking()
+    {
+        SocketInfo::makeSocketNonBlocking();
     }
 };
 
@@ -217,9 +228,33 @@ TEST_F(SocketInfoTest, initNextSocketGood) // NOLINT
     EXPECT_EQ(s.getNextServ(), expectData->ai_next);
 }
 
+TEST_F(SocketInfoTest, makeSocketNonBlockingNoSocket) // NOLINT
+{
+    EXPECT_CALL((*mock), fcntl(_, _, _))
+        .Times(0);
+
+    s.clearSocket();
+    EXPECT_THROW(s.makeSocketNonBlocking(), logic_error);
+}
+
+TEST_F(SocketInfoTest, makeSocketNonBlockingGood) // NOLINT
+{
+    InSequence i;
+
+    EXPECT_CALL((*mock), fcntl(4, F_GETFL, _))
+        .WillOnce(Return(0));
+
+    EXPECT_CALL((*mock), fcntl(4, F_SETFL, O_NONBLOCK))
+        .WillOnce(Return(0));
+
+    EXPECT_NO_THROW(s.makeSocketNonBlocking());
+}
+
 TEST_F(SocketInfoTest, handleRetryReady) // NOLINT
 {
     {
+        InSequence seq;
+
         EXPECT_CALL((*mock), SSL_get_error(_, -1))
             .WillOnce(Return(SSL_ERROR_WANT_READ));
 
@@ -233,6 +268,8 @@ TEST_F(SocketInfoTest, handleRetryReady) // NOLINT
     }
 
     {
+        InSequence seq;
+
         EXPECT_CALL((*mock), SSL_get_error(_, -1))
             .WillOnce(Return(SSL_ERROR_WANT_WRITE));
 

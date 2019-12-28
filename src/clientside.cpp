@@ -43,7 +43,6 @@ void ClientSide::startListener(const unsigned int &port,
         {
             initNextSocket();
             auto sockFd = getSocket();
-
             const int yes = 1;
             if(wrapper->setsockopt(sockFd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes))
                 == -1)
@@ -99,17 +98,10 @@ ClientSide ClientSide::acceptClient()
 
     LOG4CPLUS_DEBUG(logger, "Received connection. New FD: " << fd); // NOLINT
 
-    if(wrapper->fcntl(fd, F_SETFL, wrapper->fcntl(fd, F_GETFL, 0) | O_NONBLOCK) // NOLINT
-        == -1)
-    {
-        int err = errno;
-        throwSystemError(err, "Failed to set client FD non-blocking");
-    }
-    else
-        LOG4CPLUS_TRACE(logger, "New FD non-blocking set"); // NOLINT
-
     ClientSide c(*this);
     c.setSocket(fd);
+    c.makeSocketNonBlocking();
+
     // NOLINTNEXTLINE
     c.saveSocketIP(&addr);
 
