@@ -35,6 +35,8 @@ This project uses cmake. Here's a way to compile it in Debian 10:
 1.  cmake --build .
 1.  ctest (make sure all passes)
 
+See [Building on macOS](https://github.com/keithmendozasr/tlslookieloo/wiki/macbuild.md) to build on macOS.
+
 ## How to run
 1.  cd to build directory from the previous section.
 1.  Generate a self-signed TLS certificate `openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out app1.crt -keyout app1.key`

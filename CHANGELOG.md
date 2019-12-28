@@ -1,5 +1,9 @@
 # Changelog
 
+## [ Unreleased ]
+### Added
+- Ported code for macOS Catalina
+
 ## [ 0.4.0 ] - 2019-12-27
 ### Added
 - Generate Docker container
