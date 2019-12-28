@@ -1,5 +1,14 @@
 language: cpp
-dist: bionic
+
+jobs:
+  include:
+  - os: linux
+    dist: bionic
+    compiler: gcc-8
+  - os: osx
+    osx_image: xcode11.2
+    compiler: clang
+
 addons:
   apt:
     sources:
@@ -9,37 +18,55 @@ addons:
       - libssl1.1
       - cmake-data
       - python3-pip
+  homebrew:
+    packages:
+      - openssl@1.1
+      - yaml-cpp
+      - argp-standalone
+      - robot-framework
 
 cache:
   directories:
   - Debug/googletest
   - Debug/log4cplus
   - yaml-cpp-yaml-cpp-0.6.2/build
-
-env:
-- MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
+  - $HOME/Library/Caches/Homebrew
 
 before_install:
-- eval ${MATRIX_EVAL}
+- if [ "$TRAVIS_OS_NAME" = "linxu" ]; then export CC=gcc-8; export CXX=g++-8; fi;
+- if [ "$TRAVIS_OS_NAME" = "osx" ]; then export PKG_CONFIG_PATH=$(brew --prefix openssl)/lib/pkgconfig; export PATH=$(brew --prefix openssl)/bin:$PATH; fi
 
 install:
-- pip3 install robotframework
-- travis_retry wget https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.6.2.tar.gz
-- tar zxvf yaml-cpp-0.6.2.tar.gz
-- cd yaml-cpp-yaml-cpp-0.6.2
-- if [ ! -d build ]; then mkdir build; fi &&
-  cd build &&
-  cmake .. &&
-  cmake --build . &&
-  sudo env "PATH=$PATH" cmake --build . --target install
+- |
+  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+    echo "Running linux install"
+    pip3 install robotframework
+    travis_retry wget https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.6.2.tar.gz
+    tar zxvf yaml-cpp-0.6.2.tar.gz
+    cd yaml-cpp-yaml-cpp-0.6.2
+    if [ ! -d build ]; then mkdir build; fi &&
+      cd build &&
+      cmake .. &&
+      cmake --build . &&
+      sudo env "PATH=$PATH" cmake --build . --target install
+  fi
 
 script:
 - cd ${TRAVIS_BUILD_DIR}
 - pushd log4cplus
 - autoreconf -f
 - popd
-- if [ ! -d build ]; then mkdir build; fi &&
-  cd Debug &&
-  cmake .. &&
-  cmake --build . &&
-  ctest --output-on-failure
+- if [ ! -d build ]; then mkdir build; fi
+- cd build
+- |
+  if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+    echo "Value of PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+    echo "Value of PATH: $PATH"
+    cmake -DCMAKE_CXX_FLAGS:STRING="-Wall -Werror -pedantic" -DCMAKE_EXE_LINKER_FLAGS:STRING="-L$(brew --prefix openssl)/lib -L$(brew --prefix argp-standalone)/lib -largp" ..
+  else
+    cmake -DCMAKE_CXX_FLAGS:STRING="-Wall -Werror -pedantic" ..
+  fi
+- cmake --build . && ctest --output-on-failure
+
+before_cache:
+- if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew cleanup; fi;
