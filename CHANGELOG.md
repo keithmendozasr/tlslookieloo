@@ -1,5 +1,9 @@
 # Changelog
 
+## [ Unreleased ]
+### Added
+- Set log4cplus submodule to release 2.0.5
+
 ## [ 0.9.0 ] - 2019-12-28
 ### Added
 - macOS Catalina support
