@@ -36,10 +36,11 @@ ExternalProject_Add(googletest
 
 # Build log4cplus
 ExternalProject_Add(log4cplus
-    PREFIX ${CMAKE_BINARY_DIR}/log4cplus
+    PREFIX "${CMAKE_BINARY_DIR}/log4cplus"
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/log4cplus"
-    CONFIGURE_COMMAND ${CMAKE_SOURCE_DIR}/log4cplus/configure --prefix=${CMAKE_BINARY_DIR}/log4cplus --enable-static=yes --enable-shared=no
-    BUILD_IN_SOURCE 1
+    BINARY_DIR "${CMAKE_BINARY_DIR}/log4cplus"
+    INSTALL_DIR "${CMAKE_BINARY_DIR}/log4cplus/install_dir"
+    CMAKE_ARGS "-DBUILD_SHARED_LIBS:BOOL=OFF" "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/log4cplus/install_dir"
 )
 
 find_package(OpenSSL 1.1.1 REQUIRED)
@@ -48,7 +49,7 @@ find_package(yaml-cpp 0.6 REQUIRED)
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_BINARY_DIR}/include
-    ${CMAKE_BINARY_DIR}/log4cplus/include
+    ${CMAKE_BINARY_DIR}/log4cplus/install_dir/include
     ${CMAKE_SOURCE_DIR}/googletest/googletest/include
     ${OPENSSL_INCLUDE_DIR}
 )

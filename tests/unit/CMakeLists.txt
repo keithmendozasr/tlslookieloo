@@ -29,7 +29,7 @@ target_include_directories(unittests
 )
 
 target_link_libraries(unittests gtest gmock pthread
-    ${CMAKE_BINARY_DIR}/log4cplus/lib/liblog4cplus.a
+    ${CMAKE_BINARY_DIR}/log4cplus/install_dir/lib/liblog4cplusS.a
     yaml-cpp ssl crypto
 )
 
