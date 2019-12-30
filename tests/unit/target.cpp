@@ -392,13 +392,17 @@ TEST_F(TargetTest, storeAlternatingMessage) // NOLINT
 
 TEST_F(TargetTest, messageRelayGood) // NOLINT
 {
+    // NOTE: Bug https://bugs.llvm.org/show_bug.cgi?id=42975 filed for clang-tidy
+    // misinterpreting lambda declaration as an array index.
+    // TODO: Remove the NOLINT on the lambda declaration when the fix has been
+    // released by the llvm team
     {
         InSequence s;
         const char expectData[] = "abc";
         const size_t expectedBuf = 4096;
         EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), expectedBuf))
             .WillOnce(DoAll(WithArg<1>(Invoke(
-                [expectData](void *ptr){
+                [expectData](void *ptr){ // NOLINT
                     memcpy(ptr, &expectData[0], sizeof(expectData));
                 })),
                 Return(sizeof(expectData))));
@@ -419,10 +423,13 @@ TEST_F(TargetTest, messageRelayGood) // NOLINT
 
 TEST_F(TargetTest, messageRelayRemoteDisconnect) // NOLINT
 {
+    // TODO: Remove the NOLINT on the lambda declaration when the fix has been
+    // released by the llvm team
+
     const char expectData[] = "abc";
     EXPECT_CALL((*mock), SSL_read(_, _, _))
         .WillRepeatedly(DoAll(WithArg<1>(Invoke(
-            [expectData](void *ptr){
+            [expectData](void *ptr){ // NOLINT
                 memcpy(ptr, &expectData[0], 4);
             })),
             Return(4)));

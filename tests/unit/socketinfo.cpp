@@ -37,6 +37,13 @@ public:
     SocketInfoTestObj(shared_ptr<MockWrapper> w) : SocketInfo(w)
     {}
 
+    virtual ~SocketInfoTestObj(){}
+
+    SocketInfoTestObj(const SocketInfoTestObj &) = delete;
+    SocketInfoTestObj(SocketInfoTestObj &&) = delete;
+    SocketInfoTestObj operator = (const SocketInfoTestObj) = delete;
+    SocketInfoTestObj operator = (SocketInfoTestObj &&) = delete;
+
     const bool resolveHostPort(const unsigned int &port)
     {
         return SocketInfo::resolveHostPort(port);
@@ -46,9 +53,6 @@ public:
     {
         return SocketInfo::resolveHostPort(port, host);
     }
-
-    SocketInfoTestObj operator = (const SocketInfoTestObj) = delete;
-    SocketInfoTestObj operator = (SocketInfoTestObj &&) = delete;
 
     const struct addrinfo *getNextServ()
     {
@@ -76,6 +80,7 @@ public:
     }
 };
 
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class SocketInfoTest : public ::testing::Test
 {
 protected:

@@ -409,7 +409,7 @@ void Target::storeMessage(const char * data, const size_t &len,
     {
         if(len == 0)
         {
-            LOG4CPLUS_TRACE(logger, "Not recording 0-byte 1st chunck");
+            LOG4CPLUS_TRACE(logger, "Not recording 0-byte 1st chunck"); // NOLINT
             return;
         }
 

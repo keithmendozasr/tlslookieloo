@@ -177,7 +177,7 @@ void SocketInfo::makeSocketNonBlocking()
         throw logic_error("No socket set");
 
     auto sockFlags = wrapper->fcntl(*sockfd, F_GETFL, 0);
-    LOG4CPLUS_TRACE(logger, "Socket flags retrieved: " << sockFlags);
+    LOG4CPLUS_TRACE(logger, "Socket flags retrieved: " << sockFlags); // NOLINT
     if(sockFlags < 0)
     {
         throw system_error(errno, std::generic_category(),
@@ -185,14 +185,14 @@ void SocketInfo::makeSocketNonBlocking()
     }
 
     sockFlags |= O_NONBLOCK;
-    LOG4CPLUS_TRACE(logger, "New socket flags: " << sockFlags);
+    LOG4CPLUS_TRACE(logger, "New socket flags: " << sockFlags); // NOLINT
     if(wrapper->fcntl(*sockfd, F_SETFL, sockFlags) == -1)
     {
         throw system_error(errno, std::generic_category(),
             "Failed to socket non-blocking");
     }
 
-    LOG4CPLUS_DEBUG(logger, "Socket set to non-blocking");
+    LOG4CPLUS_DEBUG(logger, "Socket set to non-blocking"); // NOLINT
 }
 
 void SocketInfo::saveSocketIP(const sockaddr_storage *addrInfo)

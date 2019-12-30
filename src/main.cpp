@@ -142,7 +142,7 @@ static bool start(const string &targets, Logger &logger)
                     }
                     catch(const std::exception& e)
                     {
-                        LOG4CPLUS_ERROR(logger, tgtItem.name << " stopping. Error encountered");
+                        LOG4CPLUS_ERROR(logger, tgtItem.name << " stopping. Error encountered"); // NOLINT
                         errorExit = true;
                     }
                 }, item);
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
             LOG4CPLUS_DEBUG(logger, "Loading logconfig file"); // NOLINT
             logger.getHierarchy().resetConfiguration();
             PropertyConfigurator::doConfigure(argState.logconfig.value());
-            LOG4CPLUS_DEBUG(logger, "Logger configured");
+            LOG4CPLUS_DEBUG(logger, "Logger configured"); // NOLINT
         }
 
         if(!argState.targets)
@@ -229,7 +229,7 @@ int main(int argc, char *argv[])
         {
             if(!start(argState.targets.value(), logger))
             {
-                LOG4CPLUS_ERROR(logger, "Failed to start target bridges");
+                LOG4CPLUS_ERROR(logger, "Failed to start target bridges"); // NOLINT
                 throw 4;
             }
         }
@@ -242,13 +242,13 @@ int main(int argc, char *argv[])
 
         if(errorExit)
         {
-            LOG4CPLUS_ERROR(logger, "One or more handlers exited with an error");
+            LOG4CPLUS_ERROR(logger, "One or more handlers exited with an error"); // NOLINT
             throw 5;
         }
     }
     catch(const int &e)
     {
-        LOG4CPLUS_DEBUG(logger, "Exit code from exception: " << e);
+        LOG4CPLUS_DEBUG(logger, "Exit code from exception: " << e); // NOLINT
         exitCode = e;
     }
 
