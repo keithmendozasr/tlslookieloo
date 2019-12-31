@@ -26,15 +26,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_compile_options(-Wall -Werror -pedantic)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb3 -O0")
 
-include(ExternalProject)
-ExternalProject_Add(googletest
-    PREFIX ${CMAKE_BINARY_DIR}/googletest
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/googletest"
-    BINARY_DIR "${CMAKE_BINARY_DIR}/googletest"
-    INSTALL_COMMAND ""
-)
-
 # Build log4cplus
+include(ExternalProject)
 ExternalProject_Add(log4cplus
     PREFIX "${CMAKE_BINARY_DIR}/log4cplus"
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/log4cplus"
@@ -50,9 +43,9 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_BINARY_DIR}/include
     ${CMAKE_BINARY_DIR}/log4cplus/install_dir/include
-    ${CMAKE_SOURCE_DIR}/googletest/googletest/include
     ${OPENSSL_INCLUDE_DIR}
 )
 
+add_subdirectory(googletest ${CMAKE_BINARY_DIR}/googletest EXCLUDE_FROM_ALL)
 add_subdirectory(src)
 add_subdirectory(tests)
