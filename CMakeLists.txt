@@ -26,7 +26,18 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_compile_options(-Wall -Werror -pedantic)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb3 -O0")
 
-# Build log4cplus
+find_package(OpenSSL 1.1.1 REQUIRED)
+find_package(yaml-cpp 0.6 REQUIRED)
+
+include_directories(
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_BINARY_DIR}/include
+    ${OPENSSL_INCLUDE_DIR}
+)
+
+# Build log4cplus library as an external project. A previous attempt to add it
+# as a subdirectory caused ctest to also run log4cplus' test; but, for some
+# reason its unit test executable didn't get built.
 include(ExternalProject)
 ExternalProject_Add(log4cplus
     PREFIX "${CMAKE_BINARY_DIR}/log4cplus"
@@ -34,16 +45,16 @@ ExternalProject_Add(log4cplus
     BINARY_DIR "${CMAKE_BINARY_DIR}/log4cplus"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/log4cplus/install_dir"
     CMAKE_ARGS "-DBUILD_SHARED_LIBS:BOOL=OFF" "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/log4cplus/install_dir"
+    BUILD_COMMAND "cmake" "--build" "." "--target" "log4cplusS"
+    INSTALL_COMMAND ""
 )
-
-find_package(OpenSSL 1.1.1 REQUIRED)
-find_package(yaml-cpp 0.6 REQUIRED)
-
+add_library(log4cplusStatic STATIC IMPORTED)
+add_dependencies(log4cplusStatic log4cplus)
+set_target_properties(log4cplusStatic PROPERTIES
+    IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/log4cplus/src/liblog4cplusS.a")
 include_directories(
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_BINARY_DIR}/include
-    ${CMAKE_BINARY_DIR}/log4cplus/install_dir/include
-    ${OPENSSL_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/log4cplus/include
+    ${CMAKE_BINARY_DIR}/log4cplus/include
 )
 
 add_subdirectory(googletest ${CMAKE_BINARY_DIR}/googletest EXCLUDE_FROM_ALL)

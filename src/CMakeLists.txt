@@ -15,7 +15,6 @@
 add_executable(tlslookieloo main.cpp concretewrapper.cpp socketinfo.cpp
     serverside.cpp init.cpp clientside.cpp target.cpp
 )
-target_link_libraries(tlslookieloo
-    ${CMAKE_BINARY_DIR}/log4cplus/install_dir/lib/liblog4cplusS.a pthread
-    yaml-cpp ssl crypto
-)
+
+add_dependencies(tlslookieloo log4cplus)
+target_link_libraries(tlslookieloo log4cplusStatic pthread yaml-cpp ssl crypto)

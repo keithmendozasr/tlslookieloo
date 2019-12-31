@@ -29,12 +29,11 @@ target_include_directories(unittests
     PRIVATE ${CMAKE_SOURCE_DIR}/googletest/googlemock/include
 )
 
-target_link_libraries(unittests gmock_main pthread
-    ${CMAKE_BINARY_DIR}/log4cplus/install_dir/lib/liblog4cplusS.a
-    yaml-cpp ssl crypto
+target_link_libraries(unittests gmock_main pthread log4cplusStatic yaml-cpp
+    ssl crypto
 )
 
-add_dependencies(unittests log4cplus gmock_main)
+add_dependencies(unittests gmock_main)
 
 add_test(parseTargetsFile unittests -t${CMAKE_SOURCE_DIR}/tests/unit/targets_files --gtest_filter=parseTargetsFile.*)
 add_test(SocketInfoTest unittests --gtest_filter=SocketInfoTest.* --gmock_verbose=error)
