@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-link_directories(${CMAKE_BINARY_DIR}/googletest/lib)
 add_executable(unittests main.cpp
     mockwrapper.cpp
     ${CMAKE_SOURCE_DIR}/src/concretewrapper.cpp
