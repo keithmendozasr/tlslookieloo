@@ -403,7 +403,7 @@ TEST_F(TargetTest, messageRelayGood) // NOLINT
         EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), expectedBuf))
             .WillOnce(DoAll(WithArg<1>(Invoke(
                 [expectData](void *ptr){ // NOLINT
-                    memcpy(ptr, &expectData[0], sizeof(expectData));
+                    memcpy(ptr, &expectData[0], sizeof(expectData)); // FlawFinder: ignore
                 })),
                 Return(sizeof(expectData))));
 
@@ -430,7 +430,7 @@ TEST_F(TargetTest, messageRelayRemoteDisconnect) // NOLINT
     EXPECT_CALL((*mock), SSL_read(_, _, _))
         .WillRepeatedly(DoAll(WithArg<1>(Invoke(
             [expectData](void *ptr){ // NOLINT
-                memcpy(ptr, &expectData[0], 4);
+                memcpy(ptr, &expectData[0], 4); // FlawFinder: ignore
             })),
             Return(4)));
 

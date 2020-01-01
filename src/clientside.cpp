@@ -290,7 +290,7 @@ ClientSide::X509Mem ClientSide::loadCertFile(const string &fileName)
 {
     LOG4CPLUS_TRACE(logger, "Open " << fileName); // NOLINT
     unique_ptr<FILE, decltype(&fclose)> f(
-        fopen(fileName.c_str(), "rb"), &fclose);
+        fopen(fileName.c_str(), "rb"), &fclose); // FlawFinder: ignore
     if(!f)
     {
         auto msg = string("Failed to open cert file ") + fileName;

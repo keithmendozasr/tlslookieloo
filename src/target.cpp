@@ -21,6 +21,7 @@
 #include <ctime>
 #include <mutex>
 #include <optional>
+#include <array>
 
 #include "log4cplus/loggingmacros.h"
 #include "log4cplus/ndc.h"
@@ -425,15 +426,16 @@ void Target::storeMessage(const char * data, const size_t &len,
         {
             lock_guard<mutex> lk(tmGuard);
             cTime = time(nullptr);
-            memcpy(&tmObj, gmtime(&cTime), sizeof(struct tm));
+            memcpy(&tmObj, gmtime(&cTime), sizeof(tmObj));
         }
 
         // YYYY-mm-dd 00:00:00
         const size_t tmBufSize = 20;
-        char tmBuf[tmBufSize];
-        strftime(&tmBuf[0], tmBufSize, "%F %T", &tmObj);
+        array<char, tmBufSize> tmBuf;
 
-        cleandata << "===" << &tmBuf[0] << " BEGIN ";
+        strftime(tmBuf.data(), tmBufSize, "%F %T", &tmObj);
+
+        cleandata << "===" << tmBuf.data() << " BEGIN ";
         switch(owner)
         {
         case MSGOWNER::CLIENT:

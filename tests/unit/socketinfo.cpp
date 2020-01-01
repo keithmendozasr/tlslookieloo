@@ -400,7 +400,7 @@ TEST_F(SocketInfoTest, readDataExact) // NOLINT
     EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 4))
         .WillOnce(DoAll(WithArg<1>(Invoke(
             [](void *ptr){
-                memcpy(ptr, "abc", 4);
+                memcpy(ptr, "abc", 4); // FlawFinder: ignore
             })),
             Return(4)));
 
@@ -418,7 +418,7 @@ TEST_F(SocketInfoTest, readDataShort) // NOLINT
     EXPECT_CALL((*mock), SSL_read(NotNull(), NotNull(), 30))
         .WillOnce(DoAll(WithArg<1>(Invoke(
             [](void *ptr){
-                memcpy(ptr, "abcde", 6);
+                memcpy(ptr, "abcde", 6); // FlawFinder: ignore
             })),
             Return(6)));
 

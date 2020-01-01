@@ -20,6 +20,7 @@
 #include <optional>
 #include <tuple>
 #include <memory>
+#include <array>
 
 #include <sys/socket.h>
 
@@ -146,11 +147,11 @@ const bool ServerSide::sockConnect(const unsigned int &port, const string &host)
                     else
                     {
                         const size_t bufLen = 256;
-                        char buf[bufLen];
-                        strerror_r(err, &buf[0], bufLen);
+                        array<char, bufLen> buf;
+                        strerror_r(err, buf.data(), bufLen);
                         LOG4CPLUS_DEBUG(logger, // NOLINT
                             "Failed to connect to IP " << ip <<
-                            ". Error message: " << buf << ". Try next IP");
+                            ". Error message: " << buf.data() << ". Try next IP");
                     }
                 }
                 else
