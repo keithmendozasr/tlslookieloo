@@ -53,9 +53,6 @@ install:
 
 script:
 - cd ${TRAVIS_BUILD_DIR}
-- pushd log4cplus
-- autoreconf -f
-- popd
 - if [ ! -d build ]; then mkdir build; fi
 - cd build
 - |
