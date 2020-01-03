@@ -154,7 +154,7 @@ private:
      * Handle clientside connection and message processing
      * \arg client ClientSide object containing the client connection info
      */
-    void handleClient(ClientSide client);
+    void handleClient(ClientSide &client);
 };
 
 } // namespace tlslookieloo

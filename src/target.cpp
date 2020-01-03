@@ -207,7 +207,7 @@ bool Target::messageRelay(SocketInfo &src, SocketInfo &dest, const MSGOWNER owne
     return retVal;
 }
 
-void Target::handleClient(ClientSide client)
+void Target::handleClient(ClientSide &client)
 {
     LOG4CPLUS_INFO(logger, "Start monitoring"); // NOLINT
 
