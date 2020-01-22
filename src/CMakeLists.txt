@@ -18,3 +18,7 @@ add_executable(tlslookieloo main.cpp concretewrapper.cpp socketinfo.cpp
 
 add_dependencies(tlslookieloo log4cplus)
 target_link_libraries(tlslookieloo log4cplusStatic pthread yaml-cpp ssl crypto)
+
+install(TARGETS tlslookieloo
+    RUNTIME DESTINATION bin
+)

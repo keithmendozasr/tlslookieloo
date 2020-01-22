@@ -15,7 +15,9 @@
 cmake_minimum_required (VERSION 3.10)
 include(FindPkgConfig)
 
-project (tlslookieloo VERSION 0.9.0)
+project (tlslookieloo
+    VERSION 1.0.0
+    HOMEPAGE_URL "https://github.com/keithmendozasr/tlslookieloo")
 enable_testing()
 configure_file(include/version.h.in ${CMAKE_BINARY_DIR}/include/version.h)
 
@@ -60,3 +62,15 @@ include_directories(
 add_subdirectory(googletest ${CMAKE_BINARY_DIR}/googletest EXCLUDE_FROM_ALL)
 add_subdirectory(src)
 add_subdirectory(tests)
+
+set(CPACK_GENERATOR "TGZ" "DEB")
+set(CPACK_PACKAGE_CONTACT "Keith Mendoza <keith@homepluspower.info>")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Utility to view stream message between server and client")
+set(CPACK_PACKAGE_DESCRIPTION 
+    "tlslookieloo is a utility to help troubleshoot network-related issues \
+between a server and client. A client will connect to tlslookieloo, who in \
+turn, will connect to the target server. tlslookieloo will then \
+store/display the unencrypted message between the two.")
+set(CPACK_DEBIAN_PACKAGE_SECTION "misc")
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+include(CPack)
