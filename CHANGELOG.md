@@ -1,8 +1,9 @@
 # Changelog
 
-## [ Unreleased ]
+## [ 1.0.0 ] - 2020-01-25
 ### Added
 - Set log4cplus submodule to release 2.0.5
+- Use CPack to generate Debian package (#12)
 
 ### Fixed
 - log4cplus build using CMake
