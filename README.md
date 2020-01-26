@@ -51,7 +51,7 @@ See the [User Guide](https://github.com/keithmendozasr/tlslookieloo/wiki/User-Gu
 
 ## Docker container
 
-A docker containers available on [Docker Hub](https://hub.docker.com/repository/docker/keithmendozasr/tlslookieloo). Here's a sample invocation:
+A docker containers available on [Docker Hub](https://hub.docker.com/r/keithmendozasr/tlslookieloo). Here's a sample invocation:
 
 1.  Create a directory $HOME/docker-files to use as a bind mount.
 1.  Place the certificate-key pair from "How to run" above in $HOME/docker-files
