@@ -25,9 +25,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_compile_options(-Wall -Werror -pedantic)
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb3 -O0")
-
 find_package(OpenSSL 1.1.1 REQUIRED)
 find_package(yaml-cpp 0.6 REQUIRED)
 
