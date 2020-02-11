@@ -1,5 +1,9 @@
 # Changelog
 
+## [ Unreleased ]
+### Changed
+- Use MOCK_METHOD macros without parameter number sufix (#20)
+
 ## [ 1.0.0 ] - 2020-01-25
 ### Added
 - Set log4cplus submodule to release 2.0.5
